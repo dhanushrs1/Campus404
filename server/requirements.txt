@@ -1,3 +1,6 @@
 fastapi
 uvicorn
 pymysql
+sqlalchemy
+sqladmin
+cryptography
