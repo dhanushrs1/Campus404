@@ -1,0 +1,111 @@
+/* Campus404 Gamified Dark Theme */
+:root {
+  --c404-bg-dark: #0f172a;
+  --c404-bg-card: #1e293b;
+  --c404-primary: #6366f1; /* Indigo */
+  --c404-accent: #8b5cf6; /* Violet */
+  --c404-text-main: #f8fafc;
+  --c404-text-muted: #94a3b8;
+  --c404-border: #334155;
+}
+
+body {
+  background-color: var(--c404-bg-dark) !important;
+  color: var(--c404-text-main) !important;
+  font-family: "Poppins", sans-serif !important;
+}
+
+/* Card & Container Overrides */
+.card {
+  background-color: var(--c404-bg-card) !important;
+  border: 1px solid var(--c404-border) !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.card-header {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid var(--c404-border) !important;
+  color: var(--c404-text-main) !important;
+}
+
+.card-title {
+  color: var(--c404-text-main) !important;
+  font-weight: 600;
+}
+
+/* Form Controls */
+.form-control,
+.form-select {
+  background-color: var(--c404-bg-dark) !important;
+  border: 1px solid var(--c404-border) !important;
+  color: var(--c404-text-main) !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--c404-primary) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--c404-primary),
+    var(--c404-accent)
+  ) !important;
+  border: none !important;
+  font-weight: 500;
+}
+
+.btn-secondary {
+  background-color: var(--c404-bg-card) !important;
+  border: 1px solid var(--c404-border) !important;
+  color: var(--c404-text-muted) !important;
+}
+
+/* Tables */
+.table {
+  color: var(--c404-text-main) !important;
+}
+
+.table thead th {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: var(--c404-text-muted) !important;
+  border-bottom: 2px solid var(--c404-border) !important;
+}
+
+.table tbody td {
+  border-bottom: 1px solid var(--c404-border) !important;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}
+
+/* Sidebar */
+.navbar-vertical {
+  background-color: var(--c404-bg-card) !important;
+  border-right: 1px solid var(--c404-border) !important;
+}
+
+.nav-link {
+  color: var(--c404-text-muted) !important;
+}
+
+.nav-link.active {
+  color: var(--c404-text-main) !important;
+  background-color: rgba(99, 102, 241, 0.1) !important;
+  border-left: 3px solid var(--c404-primary);
+}
+
+.nav-link:hover {
+  color: var(--c404-text-main) !important;
+}
+
+.navbar-brand-autodark {
+  color: var(--c404-text-main) !important;
+  text-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+}

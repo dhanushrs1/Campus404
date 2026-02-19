@@ -64,9 +64,16 @@ Base.metadata.create_all(engine)
 app = FastAPI(title="Campus404 API")
 
 # ==========================================
+# ==========================================
 # 4. SETUP THE SQLADMIN PANEL
 # ==========================================
-admin = Admin(app, engine)
+from fastapi.staticfiles import StaticFiles
+
+# Mount the static directory so we can serve the custom CSS
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Initialize Admin with templates_dir="templates" to prefer our overridden layout.html
+admin = Admin(app, engine, templates_dir="templates")
 
 class UserAdmin(ModelView, model=User):
     column_list = [User.id, User.username, User.total_xp]

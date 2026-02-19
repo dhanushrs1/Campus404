@@ -40,6 +40,9 @@ services:
     restart: always
     depends_on:
       - backend
+    volumes:
+      - ./client:/app
+      - /app/node_modules
 
   # ==========================================
   # 4. THE SANDBOX (Judge0)
