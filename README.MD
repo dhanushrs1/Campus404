@@ -21,7 +21,9 @@ You do not need to install MySQL, Python, or Node.js directly on your computer. 
 
 1. Install [Git](https://git-scm.com/).
 2. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/).
-   - _Windows Users: Make sure WSL2 is installed and enabled in Docker settings._
+3. **Windows Users Only:** You must have WSL2 (Windows Subsystem for Linux) installed and enabled in your Docker settings.
+   - **How to check:** Open Command Prompt and run `wsl -l -v`. If it shows `VERSION 2`, you are good to go.
+   - **How to install:** If you don't have it, watch this [3-Minute WSL2 Installation Guide](https://www.youtube.com/watch?v=4Sl4H6gersw) and simply run `wsl --install` in your terminal as Administrator.
 
 ### Step 1: Clone the Repository
 
