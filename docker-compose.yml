@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   # ==========================================
-  # 1. THE DATABASE (MySQL for your App Data)
+  # 1. THE DATABASE
   # ==========================================
   db:
     image: mysql:8.0
@@ -13,52 +11,50 @@ services:
       MYSQL_DATABASE: campus404
       MYSQL_USER: campus_dev
       MYSQL_PASSWORD: dev_password
-    # Notice: There is no 'ports' mapping here. 
-    # This keeps port 3306 internal only, exactly as your PDF requested for security.
     volumes:
       - campus_db_data:/var/lib/mysql
 
   # ==========================================
-  # 2. THE BACKEND (Python/FastAPI Brain)
+  # 2. THE BACKEND
   # ==========================================
   backend:
     build: ./server
     container_name: campus_backend
     restart: always
-    ports:
-      - "8000:8000"
     depends_on:
       - db
     environment:
-      # This tells FastAPI how to talk to the MySQL container
       - DATABASE_URL=mysql+pymysql://campus_dev:dev_password@db:3306/campus404
 
   # ==========================================
-  # 3. THE FRONTEND (React UI)
+  # 3. THE FRONTEND
   # ==========================================
   frontend:
     build: ./client
     container_name: campus_frontend
     restart: always
-    ports:
-      - "3000:3000"
     depends_on:
       - backend
 
   # ==========================================
-  # 4. THE SANDBOX (Judge0 API Engine)
+  # 4. THE SANDBOX (Judge0)
   # ==========================================
-  # Note: Judge0 requires its own internal Redis and Postgres to queue the code.
   judge0-server:
     image: judge0/judge0:1.13.1
     container_name: campus_sandbox_api
     restart: always
-    privileged: true # CRITICAL: Allows Judge0 to run safe, isolated student code
+    privileged: true
     ports:
       - "2358:2358"
     depends_on:
       - judge0-redis
       - judge0-postgres
+    environment:
+      - REDIS_HOST=judge0-redis
+      - POSTGRES_HOST=judge0-postgres
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=judge0
 
   judge0-worker:
     image: judge0/judge0:1.13.1
@@ -69,6 +65,14 @@ services:
     depends_on:
       - judge0-redis
       - judge0-postgres
+    environment:
+      - REDIS_HOST=judge0-redis
+      - POSTGRES_HOST=judge0-postgres
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=judge0
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
 
   judge0-redis:
     image: redis:6.0
@@ -86,6 +90,22 @@ services:
     volumes:
       - judge0_postgres_data:/var/lib/postgresql/data
 
+  # ==========================================
+  # 5. THE TRAFFIC POLICE (Nginx)
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+    container_name: campus_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+# THIS MUST BE AT THE VERY BOTTOM, TOUCHING THE LEFT WALL
 volumes:
   campus_db_data:
   judge0_postgres_data:
