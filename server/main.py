@@ -1,9 +1,11 @@
+from typing import List, Optional
 import os
 import time
 from fastapi import FastAPI, Request, Depends, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 from sqlalchemy import (
     Column, Integer, String, Text, ForeignKey,
     create_engine, Boolean, DateTime, text
@@ -69,6 +71,7 @@ class Level(Base):
     hint_text = Column(Text)
     official_solution = Column(Text)
     is_published = Column(Boolean, default=False)
+    repo_link = Column(String(500), nullable=True)  # optional GitHub/resource URL
     lab = relationship("Lab", back_populates="levels")
     user_progress = relationship("UserProgress", back_populates="level")
     submissions = relationship("Submission", back_populates="level")
@@ -101,7 +104,82 @@ class UserProgress(Base):
     user = relationship("User", back_populates="progress")
     level = relationship("Level", back_populates="user_progress")
 
+class PlatformSetting(Base):
+    """Key-value store for all platform-wide settings."""
+    __tablename__ = "platform_settings"
+    key         = Column(String(100), primary_key=True)
+    value       = Column(Text, nullable=False)
+    label       = Column(String(200))   # human-readable label for admin UI
+    description = Column(Text)          # helper text shown in the form
+    tab         = Column(String(50))    # which settings tab: gameplay|platform|access
+
 Base.metadata.create_all(engine)
+
+# ── Incremental schema migrations (safe for existing DBs) ────────────
+def apply_migrations():
+    """
+    Add new columns to existing tables without dropping data.
+    SQLAlchemy's create_all() only creates NEW tables — it never
+    alters existing ones. This runs raw SQL for each new column.
+    """
+    migrations = [
+        # (table, column, definition)
+        ("levels", "repo_link", "VARCHAR(500) NULL"),
+    ]
+    with engine.connect() as conn:
+        # Read the database name from the URL
+        db_name = engine.url.database
+        for table, column, definition in migrations:
+            result = conn.execute(text(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                "WHERE TABLE_SCHEMA = :db AND TABLE_NAME = :tbl AND COLUMN_NAME = :col"
+            ), {"db": db_name, "tbl": table, "col": column})
+            exists = result.scalar()
+            if not exists:
+                conn.execute(text(
+                    f"ALTER TABLE `{table}` ADD COLUMN `{column}` {definition}"
+                ))
+                conn.commit()
+                print(f"[Campus404] ✅ Migration: added `{column}` to `{table}`")
+            else:
+                print(f"[Campus404] ⏭  Migration: `{table}.{column}` already exists")
+
+apply_migrations()
+
+# ── Seed default settings (skips if they already exist) ─────────────
+DEFAULT_SETTINGS = [
+    # key                    value    label                                   description                                           tab
+    ("max_fail_unlock",      "5",     "Failed Attempts to Unlock Repo Link",  "How many failed attempts before the repo link is revealed to the student.", "gameplay"),
+    ("xp_per_level",         "100",   "XP Awarded per Level Completion",      "XP given to a user when they pass a level.",                              "gameplay"),
+    ("xp_per_first_try",     "50",    "Bonus XP for First-Try Pass",          "Extra XP awarded if the student passes on their very first attempt.",      "gameplay"),
+    ("platform_name",        "Campus404", "Platform Name",                   "Shown in the browser title and student-facing pages.",                     "platform"),
+    ("platform_tagline",     "Learn by fixing bugs", "Platform Tagline",     "Short description shown on the login / landing screen.",                   "platform"),
+    ("maintenance_mode",     "false",  "Maintenance Mode",                    "When enabled, students see a maintenance page instead of the platform.",   "platform"),
+    ("allow_registrations",  "true",   "Allow New Registrations",             "Disable to prevent new users from creating accounts.",                     "access"),
+    ("ban_duration_days",    "0",      "Ban Duration (days)",                  "How long a ban lasts. Set to 0 for permanent bans.",                       "access"),
+]
+
+def _seed_settings(db_session):
+    for key, value, label, description, tab in DEFAULT_SETTINGS:
+        exists = db_session.query(PlatformSetting).filter_by(key=key).first()
+        if not exists:
+            db_session.add(PlatformSetting(
+                key=key, value=value, label=label,
+                description=description, tab=tab,
+            ))
+    db_session.commit()
+
+# Run seed once on startup
+_seed_db = SessionLocal()
+try:
+    _seed_settings(_seed_db)
+finally:
+    _seed_db.close()
+
+def get_setting(db: Session, key: str, default: str = "") -> str:
+    """Convenience helper — read a single setting value."""
+    row = db.query(PlatformSetting).filter_by(key=key).first()
+    return row.value if row else default
 
 # ==========================================
 # 3. FASTAPI SETUP
@@ -241,6 +319,7 @@ async def admin_levels_create(
     title: str = Form(...), broken_code: str = Form(""),
     expected_output: str = Form(""), hint_text: str = Form(""),
     official_solution: str = Form(""), is_published: str = Form(None),
+    repo_link: str = Form(""),
     db: Session = Depends(get_db)
 ):
     db.add(Level(
@@ -248,6 +327,7 @@ async def admin_levels_create(
         broken_code=broken_code, expected_output=expected_output,
         hint_text=hint_text, official_solution=official_solution,
         is_published=(is_published == "on"),
+        repo_link=repo_link or None,
     ))
     db.commit()
     return RedirectResponse("/admin/levels", status_code=303)
@@ -267,6 +347,7 @@ async def admin_levels_update(level_id: int,
     title: str = Form(...), broken_code: str = Form(""),
     expected_output: str = Form(""), hint_text: str = Form(""),
     official_solution: str = Form(""), is_published: str = Form(None),
+    repo_link: str = Form(""),
     db: Session = Depends(get_db)
 ):
     level = db.query(Level).filter(Level.id == level_id).first()
@@ -279,6 +360,7 @@ async def admin_levels_update(level_id: int,
         level.hint_text = hint_text
         level.official_solution = official_solution
         level.is_published = (is_published == "on")
+        level.repo_link = repo_link or None
         db.commit()
     return RedirectResponse("/admin/levels", status_code=303)
 
@@ -337,8 +419,81 @@ async def admin_badges_delete(badge_id: int, db: Session = Depends(get_db)):
     return RedirectResponse("/admin/badges", status_code=303)
 
 # ==========================================
-# 10. API ROOT
+# 10. ADMIN ROUTES — SETTINGS
+# ==========================================
+@app.get("/admin/settings", response_class=HTMLResponse)
+async def admin_settings(request: Request, db: Session = Depends(get_db),
+                          msg: str = None, msg_type: str = "success",
+                          tab: str = "gameplay"):
+    settings_list = db.query(PlatformSetting).all()
+    # Group by tab for the template
+    by_tab = {}
+    for s in settings_list:
+        by_tab.setdefault(s.tab, []).append(s)
+    return templates.TemplateResponse("admin/settings.html", {
+        "request": request, "active": "settings",
+        "by_tab": by_tab,
+        "active_tab": tab,
+        "msg": msg, "msg_type": msg_type,
+    })
+
+@app.post("/admin/settings")
+async def admin_settings_save(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    # Only update fields that are actual setting keys (exclude _tab)
+    active_tab = form.get("_tab", "gameplay")
+    for key, value in form.items():
+        if key.startswith("_"):  # skip meta fields like _tab
+            continue
+        setting = db.query(PlatformSetting).filter_by(key=key).first()
+        if setting:
+            setting.value = value
+    db.commit()
+    return RedirectResponse(
+        f"/admin/settings?msg=Settings+saved&msg_type=success&tab={active_tab}",
+        status_code=303,
+    )
+
+# ==========================================
+# 11. API ROOT
 # ==========================================
 @app.get("/")
 def read_root():
     return {"message": "Campus404 Backend is Running!"}
+
+
+# ==========================================
+# 12. PUBLIC API — LEVEL DATA
+# ==========================================
+class LevelPublicResponse(BaseModel):
+    """
+    Safe public schema for Level data sent to the React frontend.
+    CRITICAL: expected_output and official_solution are intentionally
+    excluded to prevent students from cheating via the network tab.
+    """
+    id:           int
+    title:        str
+    lab_id:       int
+    order_number: int
+    broken_code:  Optional[str] = None
+    hint_text:    Optional[str] = None
+    repo_link:    Optional[str] = None
+
+    class Config:
+        from_attributes = True  # enables ORM mode (SQLAlchemy → Pydantic)
+
+
+@app.get("/levels", response_model=List[LevelPublicResponse])
+def api_levels(db: Session = Depends(get_db)):
+    """
+    Public endpoint — returns published levels only.
+    Browser calls /api/levels → Nginx strips /api/ → FastAPI receives /levels.
+    Safe: expected_output + official_solution are excluded by the Pydantic schema.
+    """
+    levels = (
+        db.query(Level)
+        .filter(Level.is_published == True)
+        .order_by(Level.lab_id, Level.order_number)
+        .all()
+    )
+    return levels

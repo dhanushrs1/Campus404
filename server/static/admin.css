@@ -757,3 +757,145 @@ a:hover { color: var(--accent); }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .form-grid-2 { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Settings — Tab Bar
+   Pure CSS, URL-driven (no JavaScript required)
+   ═══════════════════════════════════════════════════════════ */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 5px;
+  width: fit-content;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: all var(--t);
+  white-space: nowrap;
+}
+
+.tab-btn svg {
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+  stroke-width: 1.75;
+}
+
+.tab-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-1);
+}
+
+.tab-btn.active {
+  background: var(--brand-soft);
+  color: var(--brand-light);
+  border: 1px solid var(--brand-border);
+  font-weight: 700;
+  box-shadow: 0 2px 8px var(--brand-glow);
+}
+
+.tab-btn.active svg { color: var(--brand-light); }
+
+/* ═══════════════════════════════════════════════════════════
+   Settings — Page Layout
+   ═══════════════════════════════════════════════════════════ */
+.settings-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.setting-row {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.setting-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Toggle Switch
+   ═══════════════════════════════════════════════════════════ */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Hide the real checkbox off-screen */
+.toggle > input[type="hidden"] { display: none; }
+.toggle > input[type="checkbox"] {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle-track {
+  width: 44px; height: 24px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-md);
+  border-radius: 999px;
+  position: relative;
+  transition: background var(--t), border-color var(--t);
+  flex-shrink: 0;
+}
+
+.toggle-thumb {
+  width: 18px; height: 18px;
+  background: var(--text-3);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px; left: 2px;
+  transition: transform var(--t), background var(--t), box-shadow var(--t);
+}
+
+.toggle > input[type="checkbox"]:checked ~ .toggle-track {
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+}
+
+.toggle > input[type="checkbox"]:checked ~ .toggle-track .toggle-thumb {
+  transform: translateX(20px);
+  background: var(--brand-light);
+  box-shadow: 0 0 8px var(--brand-glow);
+}
+
+.toggle-label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+/* ── Responsive (settings) ──────────────────────────────── */
+@media (max-width: 900px) {
+  .settings-layout {
+    flex-direction: column;
+  }
+  .settings-layout > [style*="width:280px"] {
+    width: 100% !important;
+  }
+  .tab-bar {
+    width: 100%;
+  }
+}

@@ -1,0 +1,220 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Settings{% endblock %}
+{% block breadcrumb %}Settings{% endblock %}
+{% block page_title %}Platform Settings{% endblock %}
+
+{% block header_actions %}
+  <span class="badge badge-info" style="font-size:0.72rem;">
+    Changes take effect immediately
+  </span>
+{% endblock %}
+
+{% block content %}
+
+{# ── Tab navigation ──────────────────────────────────────────── #}
+<div class="tab-bar" role="tablist">
+  <a href="/admin/settings?tab=gameplay"
+     class="tab-btn {% if active_tab == 'gameplay' %}active{% endif %}"
+     role="tab">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
+    Gameplay
+  </a>
+  <a href="/admin/settings?tab=platform"
+     class="tab-btn {% if active_tab == 'platform' %}active{% endif %}"
+     role="tab">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+    Platform
+  </a>
+  <a href="/admin/settings?tab=access"
+     class="tab-btn {% if active_tab == 'access' %}active{% endif %}"
+     role="tab">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Access
+  </a>
+</div>
+
+{# ── Active tab form ─────────────────────────────────────────── #}
+<form method="post" action="/admin/settings">
+  {# Hidden field carries the active tab back to the route #}
+  <input type="hidden" name="_tab" value="{{ active_tab }}">
+
+  <div class="settings-layout">
+
+    {# Left: Settings fields #}
+    <div class="card" style="flex:1;">
+      <div class="card-head">
+        <div class="card-title">
+          {% if active_tab == 'gameplay' %}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg>
+            Gameplay Settings
+          {% elif active_tab == 'platform' %}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            Platform Settings
+          {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Access Settings
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+
+          {% set tab_settings = by_tab.get(active_tab, []) %}
+
+          {% if tab_settings %}
+            {% for setting in tab_settings %}
+            <div class="form-group setting-row">
+
+              <label for="{{ setting.key }}">{{ setting.label }}</label>
+
+              {# Render appropriate input type based on key #}
+              {% if setting.key in ['maintenance_mode', 'allow_registrations'] %}
+                {# Boolean toggle #}
+                <div class="toggle-wrap">
+                  <label class="toggle" for="{{ setting.key }}">
+                    <input type="hidden" name="{{ setting.key }}" value="false">
+                    <input type="checkbox"
+                           id="{{ setting.key }}"
+                           name="{{ setting.key }}"
+                           value="true"
+                           {% if setting.value == 'true' %}checked{% endif %}>
+                    <span class="toggle-track">
+                      <span class="toggle-thumb"></span>
+                    </span>
+                    <span class="toggle-label">
+                      {% if setting.key == 'maintenance_mode' %}
+                        {{ 'Enabled — students see maintenance page' if setting.value == 'true' else 'Disabled — platform is live' }}
+                      {% else %}
+                        {{ 'Open — new students can register' if setting.value == 'true' else 'Closed — registration disabled' }}
+                      {% endif %}
+                    </span>
+                  </label>
+                </div>
+
+              {% elif setting.key in ['max_fail_unlock', 'xp_per_level', 'xp_per_first_try', 'ban_duration_days'] %}
+                {# Number input #}
+                <div style="position:relative; max-width:180px;">
+                  <input type="number"
+                         id="{{ setting.key }}"
+                         name="{{ setting.key }}"
+                         value="{{ setting.value }}"
+                         min="0"
+                         style="padding-right:48px;">
+                  {% if 'xp' in setting.key %}
+                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:var(--warning);font-weight:700;">XP</span>
+                  {% elif 'days' in setting.key %}
+                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">days</span>
+                  {% endif %}
+                </div>
+
+              {% else %}
+                {# Text input #}
+                <input type="text"
+                       id="{{ setting.key }}"
+                       name="{{ setting.key }}"
+                       value="{{ setting.value }}"
+                       placeholder="{{ setting.label }}">
+              {% endif %}
+
+              {% if setting.description %}
+                <span class="form-hint">{{ setting.description }}</span>
+              {% endif %}
+
+            </div>
+            {% endfor %}
+          {% else %}
+            <div style="text-align:center;padding:32px;color:var(--text-3);">
+              No settings in this tab yet.
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+
+    {# Right: Info sidebar #}
+    <div style="width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;">
+
+      {# Save button card #}
+      <div class="card">
+        <div class="card-body" style="padding:16px;">
+          <button type="submit" class="btn btn-primary w-full" style="justify-content:center;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save Settings
+          </button>
+          <p style="font-size:0.72rem;color:var(--text-3);margin-top:10px;text-align:center;">
+            Only the visible tab's fields are saved.
+          </p>
+        </div>
+      </div>
+
+      {# Gameplay info card #}
+      {% if active_tab == 'gameplay' %}
+      <div class="card" style="border-color:rgba(99,102,241,0.3);">
+        <div class="card-head" style="padding:12px 16px;">
+          <div class="card-title" style="font-size:0.78rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            How Repo Unlock Works
+          </div>
+        </div>
+        <div class="card-body" style="padding:14px 16px;">
+          <div style="font-size:0.78rem;color:var(--text-2);line-height:1.65;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;gap:8px;">
+              <span style="color:var(--brand-light);font-weight:700;flex-shrink:0;">1.</span>
+              Student attempts a level and<br>gets the answer wrong.
+            </div>
+            <div style="display:flex;gap:8px;">
+              <span style="color:var(--brand-light);font-weight:700;flex-shrink:0;">2.</span>
+              Each fail increments their<br><strong>failed_attempts</strong> counter.
+            </div>
+            <div style="display:flex;gap:8px;">
+              <span style="color:var(--brand-light);font-weight:700;flex-shrink:0;">3.</span>
+              Once they reach <span class="badge badge-brand" style="font-size:0.65rem;">N attempts</span><br>the repo link unlocks automatically.
+            </div>
+            <div style="display:flex;gap:8px;">
+              <span style="color:var(--success);font-weight:700;flex-shrink:0;">✓</span>
+              The link is always <em>visible</em> but<br>padlocked until the threshold.
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if active_tab == 'platform' %}
+      <div class="card" style="border-color:rgba(245,158,11,0.3);">
+        <div class="card-head" style="padding:12px 16px;">
+          <div class="card-title" style="font-size:0.78rem;color:var(--warning);">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Maintenance Mode
+          </div>
+        </div>
+        <div class="card-body" style="padding:14px 16px;">
+          <p style="font-size:0.77rem;color:var(--text-2);line-height:1.6;">
+            Enabling maintenance mode will block <strong>all students</strong> from accessing the platform. Admins are unaffected.
+          </p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if active_tab == 'access' %}
+      <div class="card" style="border-color:rgba(239,68,68,0.25);">
+        <div class="card-head" style="padding:12px 16px;">
+          <div class="card-title" style="font-size:0.78rem;color:var(--danger);">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            Access Control
+          </div>
+        </div>
+        <div class="card-body" style="padding:14px 16px;">
+          <p style="font-size:0.77rem;color:var(--text-2);line-height:1.6;">
+            Ban duration of <strong>0 days</strong> means permanent. Changing this only affects <em>future</em> bans — existing bans are unaffected.
+          </p>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</form>
+
+{% endblock %}

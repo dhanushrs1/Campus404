@@ -116,6 +116,17 @@
             </div>
 
             <div class="form-group">
+              <label for="repo_link">Repo / Resource Link</label>
+              <input type="url" id="repo_link" name="repo_link"
+                     value="{{ level.repo_link if level and level.repo_link else '' }}"
+                     placeholder="https://github.com/your-org/repo">
+              <span class="form-hint" style="display:flex;align-items:center;gap:5px;">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width:11px;height:11px;flex-shrink:0;color:var(--brand-light);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Optional. Visible to students after N failed attempts (configured in Settings → Gameplay).
+              </span>
+            </div>
+
+            <div class="form-group">
               <label for="is_published" style="text-transform:none;letter-spacing:0;font-size:0.84rem;font-weight:500;color:var(--text-1);">
                 <div style="display:flex;align-items:center;gap:10px;cursor:pointer;">
                   <input type="checkbox" id="is_published" name="is_published"
