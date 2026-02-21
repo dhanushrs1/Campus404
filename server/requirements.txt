@@ -2,5 +2,6 @@ fastapi
 uvicorn
 pymysql
 sqlalchemy
-sqladmin
+jinja2
+python-multipart
 cryptography

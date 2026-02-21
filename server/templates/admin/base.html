@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus404 Admin · {% block title %}Dashboard{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/admin.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<div class="admin-wrap">
+
+  <!-- ════ SIDEBAR ════ -->
+  <aside class="sidebar">
+
+    <!-- Brand -->
+    <a href="/admin" class="sb-brand">
+      <div class="sb-brand-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
+        </svg>
+      </div>
+      <div class="sb-brand-text">
+        <span class="sb-brand-name">Campus<em>404</em></span>
+        <span class="sb-brand-sub">Admin Panel</span>
+      </div>
+    </a>
+
+    <!-- Nav -->
+    <nav class="sb-nav">
+
+      <span class="sb-section">Overview</span>
+      <a href="/admin" class="sb-link {% if active == 'dashboard' %}active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </a>
+
+      <span class="sb-section">Content</span>
+      <a href="/admin/labs" class="sb-link {% if active == 'labs' %}active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+        <span>Labs</span>
+      </a>
+      <a href="/admin/levels" class="sb-link {% if active == 'levels' %}active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        <span>Levels</span>
+      </a>
+
+      <span class="sb-section">People</span>
+      <a href="/admin/users" class="sb-link {% if active == 'users' %}active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Users</span>
+      </a>
+      <a href="/admin/submissions" class="sb-link {% if active == 'submissions' %}active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <span>Submissions</span>
+      </a>
+      <a href="/admin/badges" class="sb-link {% if active == 'badges' %}active{% endif %}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+        <span>Badges</span>
+      </a>
+
+    </nav>
+
+    <!-- Footer -->
+    <div class="sb-footer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+      <span class="sb-footer-label">System Online</span>
+      <span class="version-pill">v1.0</span>
+    </div>
+
+  </aside>
+
+  <!-- ════ MAIN ════ -->
+  <main class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="breadcrumb">
+          <span>Campus404</span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="bc-active">{% block breadcrumb %}Dashboard{% endblock %}</span>
+        </div>
+        <h1 class="page-h1">{% block page_title %}Dashboard{% endblock %}</h1>
+      </div>
+      <div class="topbar-right">
+        {% block header_actions %}{% endblock %}
+      </div>
+    </header>
+
+    <!-- Flash Message -->
+    {% if msg %}
+    <div class="flash flash-{{ msg_type | default('success') }}">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        {% if msg_type == 'error' %}<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        {% else %}<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>{% endif %}
+      </svg>
+      {{ msg }}
+    </div>
+    {% endif %}
+
+    <!-- Page Body -->
+    <div class="page-body">
+      {% block content %}{% endblock %}
+    </div>
+
+  </main>
+</div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

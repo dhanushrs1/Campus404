@@ -1,0 +1,57 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ 'Edit Lab' if lab else 'New Lab' }}{% endblock %}
+{% block breadcrumb %}Labs · {{ 'Edit' if lab else 'New' }}{% endblock %}
+{% block page_title %}{{ 'Edit Lab' if lab else 'Create New Lab' }}{% endblock %}
+
+{% block header_actions %}
+  <a href="/admin/labs" class="btn btn-ghost">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Labs
+  </a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:620px;">
+  <form method="post" action="{{ action }}">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18"/></svg>
+          Lab Details
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="name">Lab Name</label>
+            <input type="text" id="name" name="name"
+                   value="{{ lab.name if lab else '' }}"
+                   placeholder="e.g. Python Fundamentals"
+                   required>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description"
+                      placeholder="What will students learn in this lab? (optional)"
+                      rows="4">{{ lab.description if lab else '' }}</textarea>
+            <span class="form-hint">Shown to students on the lab selection screen.</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button type="submit" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        {{ 'Save Changes' if lab else 'Create Lab' }}
+      </button>
+      <a href="/admin/labs" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -13,6 +13,13 @@ services:
       MYSQL_PASSWORD: dev_password
     volumes:
       - campus_db_data:/var/lib/mysql
+    # ── Healthcheck: wait until MySQL is truly ready ──────────
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "campus_dev", "-pdev_password"]
+      interval: 5s      # check every 5 seconds
+      timeout: 5s       # give it 5s to respond
+      retries: 10       # up to 10 retries (= 50 seconds total)
+      start_period: 20s # give MySQL 20s to boot before health checks begin
 
   # ==========================================
   # 2. THE BACKEND
@@ -24,10 +31,12 @@ services:
     restart: always
     ports:
       - "8000:8000"
-    volumes:               
-      - ./server:/app     
+    volumes:
+      - ./server:/app
+    # ── Only start AFTER MySQL is healthy (not just "started") ─
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - DATABASE_URL=mysql+pymysql://campus_dev:dev_password@db:3306/campus404
 

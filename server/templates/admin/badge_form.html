@@ -1,0 +1,64 @@
+{% extends "admin/base.html" %}
+
+{% block title %}New Badge{% endblock %}
+{% block breadcrumb %}Badges · New{% endblock %}
+{% block page_title %}Create New Badge{% endblock %}
+
+{% block header_actions %}
+  <a href="/admin/badges" class="btn btn-ghost">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Badges
+  </a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:560px;">
+  <form method="post" action="{{ action }}">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+          Badge Details
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label for="name">Badge Name</label>
+            <input type="text" id="name" name="name"
+                   value="{{ badge.name if badge else '' }}"
+                   placeholder="e.g. Python Novice, Loop Master"
+                   required>
+          </div>
+
+          <div class="form-group">
+            <label for="required_xp">Required XP</label>
+            <input type="number" id="required_xp" name="required_xp"
+                   value="{{ badge.required_xp if badge else 0 }}"
+                   min="0" placeholder="100">
+            <span class="form-hint">Users earn this badge when they reach this XP amount.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="image_url">Image URL</label>
+            <input type="url" id="image_url" name="image_url"
+                   value="{{ badge.image_url if badge else '' }}"
+                   placeholder="https://example.com/badge.png">
+            <span class="form-hint">Link to the badge image (PNG or SVG recommended).</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button type="submit" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Create Badge
+      </button>
+      <a href="/admin/badges" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
