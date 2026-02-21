@@ -32,6 +32,12 @@
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     Access
   </a>
+  <a href="/admin/settings?tab=media"
+     class="tab-btn {% if active_tab == 'media' %}active{% endif %}"
+     role="tab">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    Media
+  </a>
 </div>
 
 {# ── Active tab form ─────────────────────────────────────────── #}
@@ -51,6 +57,9 @@
           {% elif active_tab == 'platform' %}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             Platform Settings
+          {% elif active_tab == 'media' %}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Media Settings
           {% else %}
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             Access Settings
@@ -63,66 +72,158 @@
           {% set tab_settings = by_tab.get(active_tab, []) %}
 
           {% if tab_settings %}
-            {% for setting in tab_settings %}
-            <div class="form-group setting-row">
+            {% if active_tab == 'media' %}
+              {# ── Custom Layout for Media Tab (Grouped Dimensions) ── #}
+              
+              {% set thumb_w = tab_settings | selectattr('key', 'equalto', 'media_thumb_w') | first %}
+              {% set thumb_h = tab_settings | selectattr('key', 'equalto', 'media_thumb_h') | first %}
+              {% set thumb_crop = tab_settings | selectattr('key', 'equalto', 'media_thumb_crop') | first %}
+              
+              {% set med_w = tab_settings | selectattr('key', 'equalto', 'media_medium_w') | first %}
+              {% set med_h = tab_settings | selectattr('key', 'equalto', 'media_medium_h') | first %}
 
-              <label for="{{ setting.key }}">{{ setting.label }}</label>
+              {% set lrg_w = tab_settings | selectattr('key', 'equalto', 'media_large_w') | first %}
+              {% set lrg_h = tab_settings | selectattr('key', 'equalto', 'media_large_h') | first %}
 
-              {# Render appropriate input type based on key #}
-              {% if setting.key in ['maintenance_mode', 'allow_registrations'] %}
-                {# Boolean toggle #}
+              {% set org = tab_settings | selectattr('key', 'equalto', 'media_organize') | first %}
+
+              {# Thumbnail Size & Crop #}
+              <div class="form-group setting-row">
+                <label>Thumbnail Setting</label>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                  <div style="position:relative; width: 120px;">
+                    <input type="number" id="media_thumb_w" name="media_thumb_w" value="{{ thumb_w.value if thumb_w else '150' }}" min="0" style="padding-right:36px; text-align:center;">
+                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">W</span>
+                  </div>
+                  <span style="color:var(--text-3); font-weight: 800; font-size: 1.1rem; padding-bottom:2px;">&times;</span>
+                  <div style="position:relative; width: 120px;">
+                    <input type="number" id="media_thumb_h" name="media_thumb_h" value="{{ thumb_h.value if thumb_h else '150' }}" min="0" style="padding-right:36px; text-align:center;">
+                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">H</span>
+                  </div>
+                </div>
+                
                 <div class="toggle-wrap">
-                  <label class="toggle" for="{{ setting.key }}">
-                    <input type="hidden" name="{{ setting.key }}" value="false">
-                    <input type="checkbox"
-                           id="{{ setting.key }}"
-                           name="{{ setting.key }}"
-                           value="true"
-                           {% if setting.value == 'true' %}checked{% endif %}>
-                    <span class="toggle-track">
-                      <span class="toggle-thumb"></span>
-                    </span>
-                    <span class="toggle-label">
-                      {% if setting.key == 'maintenance_mode' %}
-                        {{ 'Enabled — students see maintenance page' if setting.value == 'true' else 'Disabled — platform is live' }}
-                      {% else %}
-                        {{ 'Open — new students can register' if setting.value == 'true' else 'Closed — registration disabled' }}
-                      {% endif %}
-                    </span>
+                  <label class="toggle" for="media_thumb_crop">
+                    <input type="hidden" name="media_thumb_crop" value="false">
+                    <input type="checkbox" id="media_thumb_crop" name="media_thumb_crop" value="true" {% if (thumb_crop.value if thumb_crop else 'true') == 'true' %}checked{% endif %}>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-label">Hard Crop — exact dimensions</span>
                   </label>
                 </div>
+                <span class="form-hint">Maximum width and height of a thumbnail (pixels). Hard crop enforces precision.</span>
+              </div>
 
-              {% elif setting.key in ['max_fail_unlock', 'xp_per_level', 'xp_per_first_try', 'ban_duration_days'] %}
-                {# Number input #}
-                <div style="position:relative; max-width:180px;">
-                  <input type="number"
+              {# Medium Size #}
+              <div class="form-group setting-row">
+                <label>Medium Size</label>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="position:relative; width: 120px;">
+                    <input type="number" id="media_medium_w" name="media_medium_w" value="{{ med_w.value if med_w else '300' }}" min="0" style="padding-right:36px; text-align:center;">
+                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">W</span>
+                  </div>
+                  <span style="color:var(--text-3); font-weight: 800; font-size: 1.1rem; padding-bottom:2px;">&times;</span>
+                  <div style="position:relative; width: 120px;">
+                    <input type="number" id="media_medium_h" name="media_medium_h" value="{{ med_h.value if med_h else '300' }}" min="0" style="padding-right:36px; text-align:center;">
+                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">H</span>
+                  </div>
+                </div>
+                <span class="form-hint">Maximum dimensions (pixels) for medium-sized images. Set 0 to disable.</span>
+              </div>
+
+              {# Large Size #}
+              <div class="form-group setting-row">
+                <label>Large Size</label>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="position:relative; width: 120px;">
+                    <input type="number" id="media_large_w" name="media_large_w" value="{{ lrg_w.value if lrg_w else '1024' }}" min="0" style="padding-right:36px; text-align:center;">
+                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">W</span>
+                  </div>
+                  <span style="color:var(--text-3); font-weight: 800; font-size: 1.1rem; padding-bottom:2px;">&times;</span>
+                  <div style="position:relative; width: 120px;">
+                    <input type="number" id="media_large_h" name="media_large_h" value="{{ lrg_h.value if lrg_h else '1024' }}" min="0" style="padding-right:36px; text-align:center;">
+                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">H</span>
+                  </div>
+                </div>
+                <span class="form-hint">Maximum dimensions (pixels) for large-sized images. Set 0 to disable.</span>
+              </div>
+
+              {# Organize Uploads #}
+              <div class="form-group setting-row">
+                <label>Storage Organization</label>
+                <div class="toggle-wrap">
+                  <label class="toggle" for="media_organize">
+                    <input type="hidden" name="media_organize" value="false">
+                    <input type="checkbox" id="media_organize" name="media_organize" value="true" {% if (org.value if org else 'true') == 'true' %}checked{% endif %}>
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                    <span class="toggle-label">Enabled — structure into YYYY/MM folders</span>
+                  </label>
+                </div>
+                <span class="form-hint">Organize injected media files dynamically into month- and year-based folders.</span>
+              </div>
+
+            {% else %}
+              {# ── Generic Layout for other Tabs ── #}
+              {% for setting in tab_settings %}
+              <div class="form-group setting-row">
+
+                <label for="{{ setting.key }}">{{ setting.label }}</label>
+
+                {# Render appropriate input type based on key #}
+                {% if setting.key in ['maintenance_mode', 'allow_registrations'] %}
+                  {# Boolean toggle #}
+                  <div class="toggle-wrap">
+                    <label class="toggle" for="{{ setting.key }}">
+                      <input type="hidden" name="{{ setting.key }}" value="false">
+                      <input type="checkbox"
+                             id="{{ setting.key }}"
+                             name="{{ setting.key }}"
+                             value="true"
+                             {% if setting.value == 'true' %}checked{% endif %}>
+                      <span class="toggle-track">
+                        <span class="toggle-thumb"></span>
+                      </span>
+                      <span class="toggle-label">
+                        {% if setting.key == 'maintenance_mode' %}
+                          {{ 'Enabled — students see maintenance page' if setting.value == 'true' else 'Disabled — platform is live' }}
+                        {% else %}
+                          {{ 'Open — new students can register' if setting.value == 'true' else 'Closed — registration disabled' }}
+                        {% endif %}
+                      </span>
+                    </label>
+                  </div>
+
+                {% elif setting.key in ['max_fail_unlock', 'xp_per_level', 'xp_per_first_try', 'ban_duration_days'] %}
+                  {# Number input #}
+                  <div style="position:relative; max-width:180px;">
+                    <input type="number"
+                           id="{{ setting.key }}"
+                           name="{{ setting.key }}"
+                           value="{{ setting.value }}"
+                           min="0"
+                           style="padding-right:48px;">
+                    {% if 'xp' in setting.key %}
+                      <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:var(--warning);font-weight:700;">XP</span>
+                    {% elif 'days' in setting.key %}
+                      <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">days</span>
+                    {% endif %}
+                  </div>
+
+                {% else %}
+                  {# Text input #}
+                  <input type="text"
                          id="{{ setting.key }}"
                          name="{{ setting.key }}"
                          value="{{ setting.value }}"
-                         min="0"
-                         style="padding-right:48px;">
-                  {% if 'xp' in setting.key %}
-                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:var(--warning);font-weight:700;">XP</span>
-                  {% elif 'days' in setting.key %}
-                    <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.72rem;color:var(--text-3);font-weight:600;">days</span>
-                  {% endif %}
-                </div>
+                         placeholder="{{ setting.label }}">
+                {% endif %}
 
-              {% else %}
-                {# Text input #}
-                <input type="text"
-                       id="{{ setting.key }}"
-                       name="{{ setting.key }}"
-                       value="{{ setting.value }}"
-                       placeholder="{{ setting.label }}">
-              {% endif %}
+                {% if setting.description %}
+                  <span class="form-hint">{{ setting.description }}</span>
+                {% endif %}
 
-              {% if setting.description %}
-                <span class="form-hint">{{ setting.description }}</span>
-              {% endif %}
-
-            </div>
-            {% endfor %}
+              </div>
+              {% endfor %}
+            {% endif %}
           {% else %}
             <div style="text-align:center;padding:32px;color:var(--text-3);">
               No settings in this tab yet.
@@ -192,6 +293,25 @@
         <div class="card-body" style="padding:14px 16px;">
           <p style="font-size:0.77rem;color:var(--text-2);line-height:1.6;">
             Enabling maintenance mode will block <strong>all students</strong> from accessing the platform. Admins are unaffected.
+          </p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if active_tab == 'media' %}
+      <div class="card" style="border-color:rgba(16,185,129,0.3);">
+        <div class="card-head" style="padding:12px 16px;">
+          <div class="card-title" style="font-size:0.78rem;color:var(--success);">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Responsive Images
+          </div>
+        </div>
+        <div class="card-body" style="padding:14px 16px;">
+          <p style="font-size:0.77rem;color:var(--text-2);line-height:1.6;margin-bottom:12px;">
+            Changes to exact dimensions only affect <strong>new future uploads</strong>.
+          </p>
+          <p style="font-size:0.77rem;color:var(--text-2);line-height:1.6;">
+            Set a value to <code>0</code> to disable generating that specific size entirely.
           </p>
         </div>
       </div>

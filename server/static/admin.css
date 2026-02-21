@@ -505,6 +505,16 @@ td.mono  { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-
   border-color: var(--border-md);
 }
 
+.btn-secondary {
+  background: var(--bg-surface);
+  color: var(--text-1);
+  border: 1px solid var(--border-md);
+}
+.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: rgba(255,255,255,0.2);
+}
+
 .btn-danger-soft {
   background: var(--danger-soft);
   color: var(--danger);

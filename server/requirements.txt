@@ -5,3 +5,4 @@ sqlalchemy
 jinja2
 python-multipart
 cryptography
+Pillow
