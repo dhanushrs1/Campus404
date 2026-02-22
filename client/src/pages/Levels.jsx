@@ -52,7 +52,7 @@ function LevelCard({ level }) {
           </span>
         )}
 
-        <Link to={`/arena?level=${level.id}`} className="btn-start-level" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>
+        <Link to={`/workspace?challenge=${level.id}`} className="btn-start-level" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>
           Start Challenge →
         </Link>
       </div>

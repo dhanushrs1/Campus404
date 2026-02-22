@@ -42,6 +42,10 @@ async def admin_labs_create(
     order_number: int = Form(0),
     db: Session = Depends(get_db),
 ):
+    existing = db.query(Lab).filter(Lab.name == name).first()
+    if existing:
+        return RedirectResponse("/admin/labs?error=Lab+with+this+name+already+exists", status_code=303)
+        
     db.add(Lab(name=name, description=description, order_number=order_number))
     db.commit()
     return RedirectResponse("/admin/labs", status_code=303)
@@ -66,6 +70,11 @@ async def admin_labs_update(
 ):
     lab = db.query(Lab).filter(Lab.id == lab_id).first()
     if lab:
+        # Check for duplicates excluding current lab
+        existing = db.query(Lab).filter(Lab.name == name, Lab.id != lab_id).first()
+        if existing:
+            return RedirectResponse(f"/admin/labs/{lab_id}/edit?error=Lab+with+this+name+already+exists", status_code=303)
+            
         lab.name = name
         lab.description = description
         lab.order_number = order_number

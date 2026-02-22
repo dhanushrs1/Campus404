@@ -2,6 +2,7 @@
 routers/modules.py — Campus404
 Admin modules CRUD routes: list, new, create, edit, update, delete.
 """
+from typing import Optional
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -14,19 +15,27 @@ router = APIRouter()
 
 
 @router.get("/admin/modules", response_class=HTMLResponse)
-async def admin_modules(request: Request, db: Session = Depends(get_db)):
+async def admin_modules(request: Request, lab_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Module)
+    active_lab = None
+    if lab_id:
+        query = query.filter(Module.lab_id == lab_id)
+        active_lab = db.query(Lab).filter(Lab.id == lab_id).first()
+        
     return templates.TemplateResponse("admin/modules.html", {
         "request": request, "active": "modules",
-        "modules": db.query(Module).order_by(Module.lab_id, Module.order_number).all(),
+        "modules": query.order_by(Module.lab_id, Module.order_number).all(),
+        "active_lab": active_lab,
     })
 
 
 @router.get("/admin/modules/new", response_class=HTMLResponse)
-async def admin_modules_new(request: Request, db: Session = Depends(get_db)):
+async def admin_modules_new(request: Request, lab_id: Optional[int] = None, db: Session = Depends(get_db)):
     return templates.TemplateResponse("admin/module_form.html", {
         "request": request, "active": "modules",
         "module": None, "labs": db.query(Lab).all(),
         "action": "/admin/modules/create",
+        "prefill_lab_id": lab_id,
     })
 
 

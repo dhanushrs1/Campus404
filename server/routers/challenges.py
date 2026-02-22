@@ -2,6 +2,7 @@
 routers/challenges.py — Campus404
 Admin challenges CRUD routes: list, new, create, edit, update, delete.
 """
+from typing import Optional
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -14,19 +15,27 @@ router = APIRouter()
 
 
 @router.get("/admin/challenges", response_class=HTMLResponse)
-async def admin_challenges(request: Request, db: Session = Depends(get_db)):
+async def admin_challenges(request: Request, module_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Challenge)
+    active_module = None
+    if module_id:
+        query = query.filter(Challenge.module_id == module_id)
+        active_module = db.query(Module).filter(Module.id == module_id).first()
+        
     return templates.TemplateResponse("admin/challenges.html", {
         "request": request, "active": "challenges",
-        "challenges": db.query(Challenge).order_by(Challenge.module_id, Challenge.order_number).all(),
+        "challenges": query.order_by(Challenge.module_id, Challenge.order_number).all(),
+        "active_module": active_module,
     })
 
 
 @router.get("/admin/challenges/new", response_class=HTMLResponse)
-async def admin_challenges_new(request: Request, db: Session = Depends(get_db)):
+async def admin_challenges_new(request: Request, module_id: Optional[int] = None, db: Session = Depends(get_db)):
     return templates.TemplateResponse("admin/challenge_form.html", {
         "request": request, "active": "challenges",
         "challenge": None, "modules": db.query(Module).all(),
         "action": "/admin/challenges/create",
+        "prefill_module_id": module_id,
     })
 
 

@@ -5,7 +5,7 @@
 {% block page_title %}{{ 'Edit Challenge' if challenge else 'Create New Challenge' }}{% endblock %}
 
 {% block header_actions %}
-  <a href="/admin/challenges" class="btn btn-ghost">
+  <a href="/admin/challenges{% if challenge %}?module_id={{ challenge.module_id }}{% elif prefill_module_id %}?module_id={{ prefill_module_id }}{% endif %}" class="btn btn-ghost">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     Back to Challenges
   </a>
@@ -126,7 +126,7 @@
               <select id="module_id" name="module_id" required>
                 <option value="" disabled>Select a module…</option>
                 {% for module in modules %}
-                <option value="{{ module.id }}" {% if challenge and challenge.module_id == module.id %}selected{% endif %}>
+                <option value="{{ module.id }}" {% if challenge and challenge.module_id == module.id %}selected{% elif prefill_module_id and prefill_module_id == module.id %}selected{% endif %}>
                   {{ module.title }}
                 </option>
                 {% endfor %}

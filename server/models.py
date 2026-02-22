@@ -29,7 +29,7 @@ class User(Base):
 class Lab(Base):
     __tablename__ = "labs"
     id           = Column(Integer, primary_key=True)
-    name         = Column(String(100))
+    name         = Column(String(100), unique=True)
     description  = Column(Text)
     order_number = Column(Integer, default=0)
     modules      = relationship("Module", back_populates="lab")

@@ -4,7 +4,7 @@ import Login     from './pages/Login'
 import Register  from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Levels    from './pages/Levels'
-import Arena     from './pages/Arena'
+import Workspace from './pages/Workspace'
 
 export default function App() {
   return (
@@ -14,7 +14,7 @@ export default function App() {
       <Route path="/register"  element={<Register />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/levels"    element={<Levels />} />
-      <Route path="/arena" element={<Arena />} />
+      <Route path="/workspace" element={<Workspace />} />
     </Routes>
   )
 }
