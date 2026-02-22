@@ -50,8 +50,14 @@ def apply_migrations():
     """
     migrations = [
         # (table, column, definition)
-        ("levels", "repo_link", "VARCHAR(500) NULL"),
+        ("levels",  "repo_link",    "VARCHAR(500) NULL"),
         ("media_items", "metadata_json", "TEXT"),
+        # v2 — admin panel completion
+        ("users",   "email",        "VARCHAR(255) NULL"),
+        ("users",   "created_at",   "DATETIME NULL"),
+        ("labs",    "order_number", "INT NOT NULL DEFAULT 0"),
+        ("levels",  "description",  "TEXT NULL"),
+        ("badges",  "description",  "TEXT NULL"),
     ]
     with engine.connect() as conn:
         db_name = engine.url.database

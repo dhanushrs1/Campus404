@@ -29,7 +29,7 @@ from settings_seed import seed_settings
 from templates_config import templates  # shared Jinja2 instance (helpers registered inside)
 
 # Import routers
-from routers import dashboard, users, labs, levels, submissions, badges, settings, media, api
+from routers import dashboard, users, labs, levels, submissions, badges, settings, media, api, leaderboard, analytics
 
 # ── 1. Create tables + run safe column migrations ─────────────────────
 Base.metadata.create_all(engine)
@@ -56,3 +56,5 @@ app.include_router(badges.router)
 app.include_router(settings.router)
 app.include_router(media.router)
 app.include_router(api.router)
+app.include_router(leaderboard.router)
+app.include_router(analytics.router)

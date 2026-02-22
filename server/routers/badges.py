@@ -1,6 +1,6 @@
 """
 routers/badges.py — Campus404
-Admin badges CRUD routes: list, new, create, delete.
+Admin badges CRUD routes: list, new, create, edit, update, delete.
 """
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -17,7 +17,7 @@ router = APIRouter()
 async def admin_badges(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("admin/badges.html", {
         "request": request, "active": "badges",
-        "badges": db.query(Badge).all(),
+        "badges": db.query(Badge).order_by(Badge.required_xp).all(),
     })
 
 
@@ -32,12 +32,44 @@ async def admin_badges_new(request: Request):
 @router.post("/admin/badges/create")
 async def admin_badges_create(
     name: str = Form(...),
+    description: str = Form(""),
     image_url: str = Form(""),
     required_xp: int = Form(0),
     db: Session = Depends(get_db),
 ):
-    db.add(Badge(name=name, image_url=image_url, required_xp=required_xp))
+    db.add(Badge(
+        name=name, description=description or None,
+        image_url=image_url, required_xp=required_xp,
+    ))
     db.commit()
+    return RedirectResponse("/admin/badges", status_code=303)
+
+
+@router.get("/admin/badges/{badge_id}/edit", response_class=HTMLResponse)
+async def admin_badges_edit(badge_id: int, request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("admin/badge_form.html", {
+        "request": request, "active": "badges",
+        "badge": db.query(Badge).filter(Badge.id == badge_id).first(),
+        "action": f"/admin/badges/{badge_id}/update",
+    })
+
+
+@router.post("/admin/badges/{badge_id}/update")
+async def admin_badges_update(
+    badge_id: int,
+    name: str = Form(...),
+    description: str = Form(""),
+    image_url: str = Form(""),
+    required_xp: int = Form(0),
+    db: Session = Depends(get_db),
+):
+    badge = db.query(Badge).filter(Badge.id == badge_id).first()
+    if badge:
+        badge.name = name
+        badge.description = description or None
+        badge.image_url = image_url
+        badge.required_xp = required_xp
+        db.commit()
     return RedirectResponse("/admin/badges", status_code=303)
 
 

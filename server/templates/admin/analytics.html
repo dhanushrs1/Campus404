@@ -1,0 +1,128 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Analytics{% endblock %}
+{% block breadcrumb %}Analytics{% endblock %}
+{% block page_title %}Level Difficulty Stats{% endblock %}
+
+{% block header_actions %}
+  <span class="badge badge-muted">{{ stats | length }} published levels</span>
+{% endblock %}
+
+{% block content %}
+
+<!-- Legend -->
+<div class="card" style="padding:0;">
+  <div class="card-body" style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;">
+    <span style="font-size:0.78rem;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;">Difficulty Key:</span>
+    <span class="badge badge-danger">🔴 Hard (&lt;20% pass)</span>
+    <span class="badge badge-warning">🟡 Medium (20–60%)</span>
+    <span class="badge badge-success">🟢 Easy (&gt;60%)</span>
+    <span class="badge badge-muted">⬜ No Data</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <div class="card-title">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+      Attempt-to-Pass Ratio per Level
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table id="analytics-table">
+      <thead>
+        <tr>
+          <th data-sort="title" style="cursor:pointer;" title="Click to sort">Level ↕</th>
+          <th data-sort="lab" style="cursor:pointer;" title="Click to sort">Lab ↕</th>
+          <th data-sort="total" style="cursor:pointer;" title="Click to sort">Total Attempts ↕</th>
+          <th data-sort="passes" style="cursor:pointer;" title="Click to sort">Passes ↕</th>
+          <th data-sort="rate" style="cursor:pointer;" title="Click to sort">Pass Rate ↕</th>
+          <th>Difficulty</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if stats %}
+          {% for s in stats %}
+          <tr {% if s.warn %}style="background:rgba(245,158,11,0.04);"{% endif %}>
+            <td>
+              <a href="/admin/levels/{{ s.level.id }}/edit" style="font-weight:600;color:var(--brand-light);">{{ s.level.title }}</a>
+              {% if s.warn %}
+                <span title="High attempts, zero passes — check hint_text!" style="margin-left:6px;cursor:help;">⚠️</span>
+              {% endif %}
+            </td>
+            <td class="muted">{{ s.level.lab.name if s.level.lab else '—' }}</td>
+            <td class="mono" data-value="{{ s.total }}">{{ s.total }}</td>
+            <td class="mono" data-value="{{ s.passes }}">{{ s.passes }}</td>
+            <td data-value="{{ s.rate or -1 }}">
+              {% if s.rate is not none %}
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <!-- Progress bar -->
+                  <div style="width:60px;height:6px;background:var(--bg-surface);border-radius:3px;overflow:hidden;flex-shrink:0;">
+                    <div style="width:{{ s.rate }}%;height:100%;border-radius:3px;background:{% if s.difficulty == 'hard' %}var(--danger){% elif s.difficulty == 'medium' %}var(--warning){% else %}var(--success){% endif %};transition:width 0.4s;"></div>
+                  </div>
+                  <span style="font-family:var(--font-mono);font-weight:600;font-size:0.82rem;color:{% if s.difficulty == 'hard' %}var(--danger){% elif s.difficulty == 'medium' %}var(--warning){% else %}var(--success){% endif %};">
+                    {{ s.rate }}%
+                  </span>
+                </div>
+              {% else %}
+                <span class="muted">No attempts</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.difficulty == 'hard' %}
+                <span class="badge badge-danger">🔴 Hard</span>
+              {% elif s.difficulty == 'medium' %}
+                <span class="badge badge-warning">🟡 Medium</span>
+              {% elif s.difficulty == 'easy' %}
+                <span class="badge badge-success">🟢 Easy</span>
+              {% else %}
+                <span class="badge badge-muted">⬜ No Data</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/admin/levels/{{ s.level.id }}/edit" class="btn btn-ghost btn-sm">Edit Level</a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row">
+            <td colspan="7">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              No published levels with submissions yet.
+              <p>Publish some levels and let students attempt them to see analytics.</p>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Client-side column sorting
+document.querySelectorAll('#analytics-table th[data-sort]').forEach(th => {
+  let asc = false;
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    const tbody = th.closest('table').querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr:not(.empty-row)'));
+    rows.sort((a, b) => {
+      const ai = th.cellIndex;
+      const cellA = a.cells[ai];
+      const cellB = b.cells[ai];
+      const va = cellA?.dataset?.value ?? cellA?.textContent?.trim() ?? '';
+      const vb = cellB?.dataset?.value ?? cellB?.textContent?.trim() ?? '';
+      const na = parseFloat(va), nb = parseFloat(vb);
+      const cmp = isNaN(na) || isNaN(nb) ? va.localeCompare(vb) : na - nb;
+      return asc ? cmp : -cmp;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+    asc = !asc;
+  });
+});
+</script>
+{% endblock %}

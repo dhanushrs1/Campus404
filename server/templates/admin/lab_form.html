@@ -40,6 +40,14 @@
             <span class="form-hint">Shown to students on the lab selection screen.</span>
           </div>
 
+          <div class="form-group">
+            <label for="order_number">Order Number</label>
+            <input type="number" id="order_number" name="order_number"
+                   value="{{ lab.order_number if lab else 0 }}"
+                   min="0" placeholder="0">
+            <span class="form-hint">Lower numbers appear first on the student map. Use 0 for the first lab.</span>
+          </div>
+
         </div>
       </div>
     </div>

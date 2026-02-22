@@ -1,8 +1,8 @@
 {% extends "admin/base.html" %}
 
-{% block title %}New Badge{% endblock %}
-{% block breadcrumb %}Badges · New{% endblock %}
-{% block page_title %}Create New Badge{% endblock %}
+{% block title %}{{ 'Edit Badge' if badge else 'New Badge' }}{% endblock %}
+{% block breadcrumb %}Badges · {{ 'Edit' if badge else 'New' }}{% endblock %}
+{% block page_title %}{{ 'Edit Badge' if badge else 'Create New Badge' }}{% endblock %}
 
 {% block header_actions %}
   <a href="/admin/badges" class="btn btn-ghost">
@@ -48,6 +48,15 @@
             <span class="form-hint">Link to the badge image (PNG or SVG recommended).</span>
           </div>
 
+          <div class="form-group">
+            <label for="desc">Description</label>
+            <textarea id="desc" name="description"
+                      placeholder="e.g. Awarded when you complete all Python basics levels."
+                      rows="3"
+                      style="font-family:var(--font);font-size:0.86rem;">{{ badge.description if badge else '' }}</textarea>
+            <span class="form-hint">Shown to students when they view their badge collection.</span>
+          </div>
+
         </div>
       </div>
     </div>
@@ -55,7 +64,7 @@
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button type="submit" class="btn btn-primary">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Create Badge
+        {{ 'Save Changes' if badge else 'Create Badge' }}
       </button>
       <a href="/admin/badges" class="btn btn-ghost">Cancel</a>
     </div>

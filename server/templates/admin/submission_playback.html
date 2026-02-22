@@ -1,0 +1,148 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Code Playback — Submission #{{ sub.id }}{% endblock %}
+{% block breadcrumb %}Submissions{% endblock %}
+{% block page_title %}Code Playback{% endblock %}
+
+{% block header_actions %}
+  <a href="/admin/submissions" class="btn btn-ghost btn-sm">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Submissions
+  </a>
+{% endblock %}
+
+{% block content %}
+
+{% if sub %}
+
+<!-- Submission Metadata -->
+<div class="card">
+  <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:20px;">
+    <div>
+      <div style="font-size:0.67rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-3);">Submission ID</div>
+      <div style="font-family:var(--font-mono);font-size:0.95rem;color:var(--text-1);margin-top:4px;">#{{ sub.id }}</div>
+    </div>
+    <div>
+      <div style="font-size:0.67rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-3);">Student</div>
+      <div style="margin-top:4px;">
+        <a href="/admin/users/{{ sub.user.id }}" style="font-weight:600;color:var(--brand-light);">
+          {{ sub.user.username if sub.user else '—' }}
+        </a>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.67rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-3);">Level</div>
+      <div style="margin-top:4px;">
+        {% if sub.level %}
+          <a href="/admin/levels/{{ sub.level.id }}/edit" style="font-weight:600;color:var(--brand-light);">{{ sub.level.title }}</a>
+        {% else %}
+          <span class="muted">Level #{{ sub.level_id }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.67rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-3);">Submitted At</div>
+      <div style="font-family:var(--font-mono);font-size:0.85rem;color:var(--text-1);margin-top:4px;">
+        {{ sub.timestamp.strftime('%d %b %Y, %H:%M:%S') if sub.timestamp else '—' }}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.67rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-3);">Result</div>
+      <div style="margin-top:6px;">
+        {% set s = sub.status | lower %}
+        {% if s == 'passed' %}
+          <span class="badge badge-success">✓ Passed</span>
+        {% elif s == 'failed' %}
+          <span class="badge badge-danger">✗ Failed</span>
+        {% elif 'syntax' in s or 'error' in s %}
+          <span class="badge badge-warning">⚠ Syntax Error</span>
+        {% else %}
+          <span class="badge badge-muted">{{ sub.status }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Code Playback -->
+<div class="card">
+  <div class="card-head">
+    <div class="card-title">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Submitted Code
+    </div>
+    <button onclick="copyCode()" class="btn btn-ghost btn-sm" id="copy-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy
+    </button>
+  </div>
+  <div style="position:relative;">
+    <pre id="code-block" style="
+      margin: 0;
+      padding: 24px 20px;
+      background: var(--bg-surface);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      line-height: 1.7;
+      color: var(--text-1);
+      overflow-x: auto;
+      white-space: pre;
+      border-top: 1px solid var(--border);
+      tab-size: 4;
+    ">{{ sub.submitted_code or '# No code recorded' }}</pre>
+  </div>
+</div>
+
+{% if sub.level and sub.level.expected_output %}
+<!-- Expected Output -->
+<div class="card">
+  <div class="card-head">
+    <div class="card-title">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Expected Output
+      <span class="badge badge-muted" style="margin-left:8px;">Hidden from students</span>
+    </div>
+  </div>
+  <pre style="
+    margin: 0;
+    padding: 20px;
+    background: var(--success-soft);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    line-height: 1.65;
+    color: var(--success);
+    overflow-x: auto;
+    white-space: pre;
+    border-top: 1px solid rgba(16,185,129,0.2);
+  ">{{ sub.level.expected_output }}</pre>
+</div>
+{% endif %}
+
+{% else %}
+<div class="card">
+  <div class="card-body" style="text-align:center;padding:60px 20px;">
+    <svg xmlns="http://www.w3.org/2000/svg" style="width:48px;height:48px;margin:0 auto 12px;display:block;color:var(--text-3);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div style="font-size:0.9rem;color:var(--text-3);">Submission not found.</div>
+    <a href="/admin/submissions" class="btn btn-ghost btn-sm" style="margin-top:16px;">Back to Submissions</a>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyCode() {
+  const code = document.getElementById('code-block').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('copy-btn');
+    const original = btn.innerHTML;
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Copied!';
+    btn.style.color = 'var(--success)';
+    setTimeout(() => { btn.innerHTML = original; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+{% endblock %}

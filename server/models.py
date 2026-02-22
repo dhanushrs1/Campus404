@@ -17,36 +17,40 @@ class User(Base):
     __tablename__ = "users"
     id           = Column(Integer, primary_key=True)
     username     = Column(String(50), unique=True)
+    email        = Column(String(255), nullable=True)
     total_xp     = Column(Integer, default=0)
     is_admin     = Column(Boolean, default=False)
     is_banned    = Column(Boolean, default=False)
+    created_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     progress     = relationship("UserProgress", back_populates="user")
     submissions  = relationship("Submission", back_populates="user")
 
 
 class Lab(Base):
     __tablename__ = "labs"
-    id          = Column(Integer, primary_key=True)
-    name        = Column(String(100))
-    description = Column(Text)
-    levels      = relationship("Level", back_populates="lab")
+    id           = Column(Integer, primary_key=True)
+    name         = Column(String(100))
+    description  = Column(Text)
+    order_number = Column(Integer, default=0)
+    levels       = relationship("Level", back_populates="lab")
 
 
 class Level(Base):
     __tablename__ = "levels"
-    id               = Column(Integer, primary_key=True)
-    lab_id           = Column(Integer, ForeignKey("labs.id"))
-    order_number     = Column(Integer)
-    title            = Column(String(100))
-    broken_code      = Column(Text)
-    expected_output  = Column(String(200))
-    hint_text        = Column(Text)
-    official_solution= Column(Text)
-    is_published     = Column(Boolean, default=False)
-    repo_link        = Column(String(500), nullable=True)
-    lab              = relationship("Lab", back_populates="levels")
-    user_progress    = relationship("UserProgress", back_populates="level")
-    submissions      = relationship("Submission", back_populates="level")
+    id                = Column(Integer, primary_key=True)
+    lab_id            = Column(Integer, ForeignKey("labs.id"))
+    order_number      = Column(Integer)
+    title             = Column(String(100))
+    description       = Column(Text, nullable=True)
+    broken_code       = Column(Text)
+    expected_output   = Column(String(200))
+    hint_text         = Column(Text)
+    official_solution = Column(Text)
+    is_published      = Column(Boolean, default=False)
+    repo_link         = Column(String(500), nullable=True)
+    lab               = relationship("Lab", back_populates="levels")
+    user_progress     = relationship("UserProgress", back_populates="level")
+    submissions       = relationship("Submission", back_populates="level")
 
 
 class Submission(Base):
@@ -65,6 +69,7 @@ class Badge(Base):
     __tablename__ = "badges"
     id          = Column(Integer, primary_key=True)
     name        = Column(String(100))
+    description = Column(Text, nullable=True)
     image_url   = Column(String(255))
     required_xp = Column(Integer)
 

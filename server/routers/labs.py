@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Lab
+from models import Lab, Level
 from templates_config import templates
 
 router = APIRouter()
@@ -15,9 +15,15 @@ router = APIRouter()
 
 @router.get("/admin/labs", response_class=HTMLResponse)
 async def admin_labs(request: Request, db: Session = Depends(get_db)):
+    labs = db.query(Lab).order_by(Lab.order_number, Lab.id).all()
+    # Attach level counts
+    counts = {}
+    for level in db.query(Level).all():
+        counts[level.lab_id] = counts.get(level.lab_id, 0) + 1
     return templates.TemplateResponse("admin/labs.html", {
         "request": request, "active": "labs",
-        "labs": db.query(Lab).all(),
+        "labs": labs,
+        "level_counts": counts,
     })
 
 
@@ -33,9 +39,10 @@ async def admin_labs_new(request: Request):
 async def admin_labs_create(
     name: str = Form(...),
     description: str = Form(""),
+    order_number: int = Form(0),
     db: Session = Depends(get_db),
 ):
-    db.add(Lab(name=name, description=description))
+    db.add(Lab(name=name, description=description, order_number=order_number))
     db.commit()
     return RedirectResponse("/admin/labs", status_code=303)
 
@@ -54,12 +61,14 @@ async def admin_labs_update(
     lab_id: int,
     name: str = Form(...),
     description: str = Form(""),
+    order_number: int = Form(0),
     db: Session = Depends(get_db),
 ):
     lab = db.query(Lab).filter(Lab.id == lab_id).first()
     if lab:
         lab.name = name
         lab.description = description
+        lab.order_number = order_number
         db.commit()
     return RedirectResponse("/admin/labs", status_code=303)
 

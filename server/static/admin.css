@@ -909,3 +909,9 @@ a:hover { color: var(--accent); }
     width: 100%;
   }
 }
+
+/* ── Health Pulse (dashboard status dots) ────────────────── */
+@keyframes health-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}

@@ -23,7 +23,9 @@
         <tr>
           <th>#</th>
           <th>Username</th>
+          <th>Email</th>
           <th>Total XP</th>
+          <th>Joined</th>
           <th>Role</th>
           <th>Status</th>
           <th>Actions</th>
@@ -39,14 +41,18 @@
                 <div style="width:30px;height:30px;background:var(--brand-soft);border:1px solid var(--brand-border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:800;color:var(--brand-light);font-family:var(--font-mono);flex-shrink:0;">
                   {{ user.username[0].upper() if user.username else '?' }}
                 </div>
-                <span style="font-weight:600;">{{ user.username or '—' }}</span>
+                <a href="/admin/users/{{ user.id }}" style="font-weight:600;color:var(--brand-light);">
+                  {{ user.username or '—' }}
+                </a>
               </div>
             </td>
+            <td class="muted" style="font-size:0.8rem;">{{ user.email or '—' }}</td>
             <td>
               <span style="font-family:var(--font-mono);font-size:0.82rem;color:var(--warning);font-weight:600;">
                 ⚡ {{ user.total_xp or 0 }}
               </span>
             </td>
+            <td class="muted" style="font-size:0.79rem;font-family:var(--font-mono);">{{ user.created_at.strftime('%d %b %Y') if user.created_at else '—' }}</td>
             <td>
               {% if user.is_admin %}
                 <span class="badge badge-brand">
@@ -90,7 +96,7 @@
           {% endfor %}
         {% else %}
           <tr class="empty-row">
-            <td colspan="6">
+            <td colspan="8">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
               No users registered yet.
               <p>Users will appear here once they sign up on the platform.</p>

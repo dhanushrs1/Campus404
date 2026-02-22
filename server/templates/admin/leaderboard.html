@@ -1,0 +1,86 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Leaderboard{% endblock %}
+{% block breadcrumb %}Leaderboard{% endblock %}
+{% block page_title %}Leaderboard{% endblock %}
+
+{% block header_actions %}
+  <span class="badge badge-muted">{{ users | length }} players ranked</span>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">
+    <div class="card-title">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+      XP Rankings — All Players
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Player</th>
+          <th>Total XP</th>
+          <th>Role</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if users %}
+          {% for user in users %}
+          <tr>
+            <td>
+              {% if loop.index == 1 %}
+                <span style="font-size:1.1rem;">🥇</span>
+              {% elif loop.index == 2 %}
+                <span style="font-size:1.1rem;">🥈</span>
+              {% elif loop.index == 3 %}
+                <span style="font-size:1.1rem;">🥉</span>
+              {% else %}
+                <span class="mono" style="color:var(--text-3);">#{{ loop.index }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:32px;height:32px;background:{{ 'var(--brand-soft)' if loop.index <= 3 else 'rgba(255,255,255,0.04)' }};border:1px solid {{ 'var(--brand-border)' if loop.index <= 3 else 'var(--border)' }};border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:800;color:{{ 'var(--brand-light)' if loop.index <= 3 else 'var(--text-2)' }};font-family:var(--font-mono);flex-shrink:0;">
+                  {{ user.username[0].upper() if user.username else '?' }}
+                </div>
+                <a href="/admin/users/{{ user.id }}" style="font-weight:600;color:var(--text-1);">{{ user.username or '—' }}</a>
+              </div>
+            </td>
+            <td>
+              <span style="font-family:var(--font-mono);font-weight:800;font-size:{% if loop.index == 1 %}1.05rem{% else %}0.9rem{% endif %};color:{% if loop.index == 1 %}var(--warning){% elif loop.index <= 3 %}var(--brand-light){% else %}var(--text-1){% endif %};">
+                ⚡ {{ user.total_xp or 0 }}
+              </span>
+            </td>
+            <td>
+              {% if user.is_admin %}
+                <span class="badge badge-brand">Admin</span>
+              {% else %}
+                <span class="badge badge-muted">User</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if user.is_banned %}
+                <span class="badge badge-danger">Banned</span>
+              {% else %}
+                <span class="badge badge-success">Active</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr class="empty-row">
+            <td colspan="5">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+              No users yet. The leaderboard will populate once students register.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
