@@ -17,10 +17,10 @@ export default function Header() {
 
           <nav className="header-nav">
             <Link
-              to="/levels"
-              className={`nav-link ${pathname === '/levels' ? 'active' : ''}`}
+              to="/labs"
+              className={`nav-link ${pathname === '/labs' ? 'active' : ''}`}
             >
-              Challenges
+              Labs
             </Link>
             <Link
               to="/dashboard"

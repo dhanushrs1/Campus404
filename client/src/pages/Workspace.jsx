@@ -13,6 +13,7 @@ export default function Workspace() {
   const [code, setCode] = useState('');
   const [showHint, setShowHint] = useState(false);
   const [terminalOutput, setTerminalOutput] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
     if (!challengeId) {
@@ -37,9 +38,30 @@ export default function Workspace() {
       });
   }, [challengeId]);
 
-  const handleRunCode = () => {
+  const handleRunCode = async () => {
+    setIsRunning(true);
     const fileName = challenge?.editor_file_name || 'script.py';
-    setTerminalOutput(`Executing ${fileName}...\n\n${code}`);
+    setTerminalOutput(`Executing ${fileName}...`);
+
+    try {
+      const res = await fetch('/api/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_code: code, language_id: 71 }),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.detail || 'Failed to execute code');
+      }
+
+      setTerminalOutput(data.output);
+    } catch (err) {
+      setTerminalOutput(`Execution Error:\n\n${err.message}`);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   if (loading) {
@@ -85,11 +107,7 @@ export default function Workspace() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: 'var(--brand-glow)', border: '1px solid var(--brand-border)', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--brand-light)', fontFamily: 'var(--font-mono)', fontWeight: '600', marginBottom: '12px' }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              {challenge.editor_file_name || 'script.py'}
-            </div>
-            <h1 style={{ fontSize: '2rem', fontWeight: '800', margin: '0', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: '800', margin: '0', lineHeight: 1.2, letterSpacing: '-0.02em', paddingBottom: '12px' }}>
               {challenge.title}
             </h1>
           </div>
@@ -209,7 +227,15 @@ export default function Workspace() {
         borderLeft: '1px solid #111'
       }}>
         {/* Top: The Editor */}
-        <div style={{ flexGrow: 1, overflow: 'hidden', paddingTop: '16px' }}>
+        <div style={{ flexGrow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          {/* Editor Header Tab */}
+          <div style={{ padding: '4px 20px 0 20px', background: 'var(--bg-card)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-end', minHeight: '40px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 16px', background: 'var(--bg-surface)', border: '1px solid var(--brand-border)', borderRadius: '6px 6px 0 0', borderBottom: 'none', position: 'relative', bottom: '-1px', fontSize: '0.8rem', color: 'var(--brand-light)', fontFamily: 'var(--font-mono)', fontWeight: '600' }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              {challenge.editor_file_name || 'script.py'}
+            </div>
+          </div>
+          <div style={{ flexGrow: 1, paddingTop: '16px' }}>
           <Editor
             height="100%"
             width="100%"
@@ -227,6 +253,7 @@ export default function Workspace() {
               cursorBlinking: 'smooth',
             }}
           />
+          </div>
         </div>
 
         {/* Bottom: The Terminal */}
@@ -252,27 +279,28 @@ export default function Workspace() {
             <span style={{ fontSize: '0.85rem', color: 'var(--text-3)', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Output Console</span>
             <button 
               onClick={handleRunCode}
+              disabled={isRunning}
               style={{
-                background: 'var(--brand)',
-                color: '#fff',
-                border: 'none',
+                background: isRunning ? 'var(--bg-surface)' : 'var(--brand)',
+                color: isRunning ? 'var(--text-3)' : '#fff',
+                border: isRunning ? '1px solid var(--border)' : 'none',
                 padding: '8px 18px',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: isRunning ? 'not-allowed' : 'pointer',
                 fontFamily: 'var(--font)',
                 fontWeight: '700',
                 fontSize: '0.85rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 2px 10px rgba(99, 102, 241, 0.4)',
+                boxShadow: isRunning ? 'none' : '0 2px 10px rgba(99, 102, 241, 0.4)',
                 transition: 'all 0.2s ease'
               }}
-              onMouseOver={e=>e.currentTarget.style.transform='translateY(-1px)'}
-              onMouseOut={e=>e.currentTarget.style.transform='translateY(0)'}
+              onMouseOver={e=>!isRunning && (e.currentTarget.style.transform='translateY(-1px)')}
+              onMouseOut={e=>!isRunning && (e.currentTarget.style.transform='translateY(0)')}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-              Run Code
+              {!isRunning && <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>}
+              {isRunning ? 'Running...' : 'Run Code'}
             </button>
           </div>
           {/* Output Block */}

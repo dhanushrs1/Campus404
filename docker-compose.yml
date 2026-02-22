@@ -73,6 +73,8 @@ services:
       - POSTGRES_USER=judge0
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=judge0
+    volumes:
+      - judge0_isolate_data:/var/local/lib/isolate
 
   judge0-worker:
     image: judge0/judge0:1.13.1
@@ -90,7 +92,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=judge0
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - judge0_isolate_data:/var/local/lib/isolate
 
   judge0-redis:
     image: redis:6.0
@@ -127,3 +129,4 @@ services:
 volumes:
   campus_db_data:
   judge0_postgres_data:
+  judge0_isolate_data:
