@@ -724,3 +724,34 @@ a { color: inherit; text-decoration: none; }
   .am-card { padding: 24px 20px 20px; border-radius: 16px; }
   .am-github-badge { display: none; }
 }
+
+/* ── Rich Text Display (Workspace / Frontend) ───────────────────────── */
+.rich-text-display {
+  color: var(--text-2);
+  line-height: 1.7;
+  font-size: 1rem;
+}
+.rich-text-display img {
+  max-width: 100%;
+  height: auto !important;
+  border-radius: var(--radius-sm);
+  margin: 12px 0;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.rich-text-display a {
+  color: var(--brand-light);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(99, 102, 241, 0.4);
+  transition: all var(--t);
+}
+.rich-text-display a:hover {
+  text-decoration-color: var(--brand-light);
+  color: var(--text-1);
+}
+.rich-text-display ul, .rich-text-display ol {
+  margin: 12px 0 12px 24px;
+}
+.rich-text-display p {
+  margin-bottom: 12px;
+}

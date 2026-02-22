@@ -123,7 +123,7 @@ export default function Workspace() {
             fontSize: '1rem',
           }}>
             <h3 style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-3)', marginBottom: '8px' }}>Context</h3>
-            <div dangerouslySetInnerHTML={{ __html: challenge.description.replace(/\n/g, '<br/>') }} />
+            <div className="rich-text-display" dangerouslySetInnerHTML={{ __html: challenge.description.replace(/\n/g, '<br/>') }} />
           </div>
         )}
 
@@ -141,7 +141,7 @@ export default function Workspace() {
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
               Task
             </h3>
-            <div dangerouslySetInnerHTML={{ __html: challenge.instructions.replace(/\n/g, '<br/>') }} />
+            <div className="rich-text-display" dangerouslySetInnerHTML={{ __html: challenge.instructions.replace(/\n/g, '<br/>') }} />
           </div>
         )}
 

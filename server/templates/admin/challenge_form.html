@@ -38,13 +38,13 @@
             
             <div class="form-group">
               <label for="description">Description</label>
-              <textarea id="description" name="description" rows="3"
+              <textarea id="description" name="description" rows="3" class="rich-text-editor"
                         placeholder="Description of the challenge...">{{ challenge.description if challenge and challenge.description else '' }}</textarea>
             </div>
 
             <div class="form-group">
               <label for="instructions">Instructions</label>
-              <textarea id="instructions" name="instructions" rows="4"
+              <textarea id="instructions" name="instructions" rows="4" class="rich-text-editor"
                         placeholder="Step-by-step instructions for the student...">{{ challenge.instructions if challenge and challenge.instructions else '' }}</textarea>
             </div>
             
@@ -87,21 +87,21 @@
 
             <div class="form-group">
               <label for="starter_code">Starter Code</label>
-              <textarea id="starter_code" name="starter_code" rows="8"
+              <textarea id="starter_code" name="starter_code" rows="8" class="code-editor" spellcheck="false"
                         placeholder="# Paste the buggy code here that students need to fix&#10;for i in range(10  # <- missing parenthesis&#10;    print(i)">{{ challenge.starter_code if challenge else '' }}</textarea>
               <span class="form-hint">This is what students will see and edit.</span>
             </div>
 
             <div class="form-group">
               <label for="official_solution">Official Solution</label>
-              <textarea id="official_solution" name="official_solution" rows="8"
+              <textarea id="official_solution" name="official_solution" rows="8" class="code-editor" spellcheck="false"
                         placeholder="# The correct, working version of the code&#10;for i in range(10):&#10;    print(i)">{{ challenge.official_solution if challenge else '' }}</textarea>
               <span class="form-hint">Shown to students after passing (or on hint reveal).</span>
             </div>
 
             <div class="form-group">
               <label for="hint_text">Hint Text</label>
-              <textarea id="hint_text" name="hint_text" rows="4"
+              <textarea id="hint_text" name="hint_text" rows="4" class="rich-text-editor"
                         placeholder="Give students a nudge in the right direction without spoiling the answer...">{{ challenge.hint_text if challenge else '' }}</textarea>
             </div>
 

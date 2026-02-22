@@ -68,6 +68,39 @@ async def admin_media(
     })
 
 
+@router.get("/admin/api/media")
+async def api_admin_media(
+    db: Session = Depends(get_db),
+    q: Optional[str] = None,
+):
+    """JSON endpoint for the WYSIWYG Image Picker Modal"""
+    query = db.query(MediaItem).order_by(MediaItem.uploaded_at.desc())
+    if q:
+        query = query.filter(
+            MediaItem.title.contains(q) | MediaItem.original_name.contains(q)
+        )
+    
+    items = query.all()
+    results = []
+    for item in items:
+        # Get thumbnail or fallback to original file path
+        try:
+            meta = json.loads(item.metadata_json or "{}")
+            thumb_path = meta.get("sizes", {}).get("thumbnail", {}).get("file_path", item.file_path)
+        except:
+            thumb_path = item.file_path
+            
+        results.append({
+            "id": item.id,
+            "title": item.title or item.original_name,
+            "url": item.file_path,
+            "thumb": thumb_path,
+            "mime_type": item.mime_type
+        })
+        
+    return {"items": results}
+
+
 @router.post("/admin/media/upload")
 async def admin_media_upload(
     request: Request,
