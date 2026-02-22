@@ -34,11 +34,11 @@
         </select>
       </div>
       <div class="form-group" style="flex:1;min-width:140px;">
-        <label for="f-level">Level</label>
-        <select id="f-level" name="level_id">
-          <option value="">All Levels</option>
-          {% for lvl in levels %}
-            <option value="{{ lvl.id }}"{% if filter_level_id == lvl.id %} selected{% endif %}>{{ lvl.title }}</option>
+        <label for="f-challenge">Challenge</label>
+        <select id="f-challenge" name="challenge_id">
+          <option value="">All Challenges</option>
+          {% for chl in challenges %}
+            <option value="{{ chl.id }}"{% if filter_challenge_id == chl.id %} selected{% endif %}>{{ chl.title }}</option>
           {% endfor %}
         </select>
       </div>
@@ -62,7 +62,7 @@
         <tr>
           <th>#</th>
           <th>User</th>
-          <th>Level</th>
+          <th>Challenge</th>
           <th>Status</th>
           <th>Preview</th>
           <th>Timestamp</th>
@@ -85,10 +85,10 @@
               </div>
             </td>
             <td>
-              {% if sub.level %}
-                <a href="/admin/levels/{{ sub.level.id }}/edit" style="font-size:0.83rem;font-weight:600;color:var(--text-1);">{{ sub.level.title }}</a>
+              {% if sub.challenge %}
+                <a href="/admin/challenges/{{ sub.challenge.id }}/edit" style="font-size:0.83rem;font-weight:600;color:var(--text-1);">{{ sub.challenge.title }}</a>
               {% else %}
-                <span class="badge badge-muted">Level #{{ sub.level_id }}</span>
+                <span class="badge badge-muted">Challenge #{{ sub.challenge_id }}</span>
               {% endif %}
             </td>
             <td>

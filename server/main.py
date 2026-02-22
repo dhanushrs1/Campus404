@@ -13,7 +13,8 @@ Structure:
     dashboard.py     — /admin
     users.py         — /admin/users
     labs.py          — /admin/labs
-    levels.py        — /admin/levels
+    modules.py       — /admin/modules
+    challenges.py    — /admin/challenges
     submissions.py   — /admin/submissions
     badges.py        — /admin/badges
     settings.py      — /admin/settings
@@ -29,7 +30,7 @@ from settings_seed import seed_settings
 from templates_config import templates  # shared Jinja2 instance (helpers registered inside)
 
 # Import routers
-from routers import dashboard, users, labs, levels, submissions, badges, settings, media, api, leaderboard, analytics
+from routers import dashboard, users, labs, modules, challenges, submissions, badges, settings, media, api, leaderboard, analytics, syslogs
 
 # ── 1. Create tables + run safe column migrations ─────────────────────
 Base.metadata.create_all(engine)
@@ -50,7 +51,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(dashboard.router)
 app.include_router(users.router)
 app.include_router(labs.router)
-app.include_router(levels.router)
+app.include_router(modules.router)
+app.include_router(challenges.router)
 app.include_router(submissions.router)
 app.include_router(badges.router)
 app.include_router(settings.router)
@@ -58,3 +60,4 @@ app.include_router(media.router)
 app.include_router(api.router)
 app.include_router(leaderboard.router)
 app.include_router(analytics.router)
+app.include_router(syslogs.router)

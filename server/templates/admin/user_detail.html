@@ -60,10 +60,10 @@
           {{ user.created_at.strftime('%d %b %Y, %H:%M') if user.created_at else '—' }}
         </div>
       </div>
-      {% if current_level %}
+      {% if current_challenge %}
       <div>
         <div style="font-size:0.67rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-3);">Currently Stuck On</div>
-        <div style="font-size:0.88rem;color:var(--warning);margin-top:3px;font-weight:600;">⚙ {{ current_level.title }}</div>
+        <div style="font-size:0.88rem;color:var(--warning);margin-top:3px;font-weight:600;">⚙ {{ current_challenge.title }}</div>
       </div>
       {% endif %}
     </div>
@@ -126,7 +126,7 @@
   <div class="card-head">
     <div class="card-title">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Level Progress
+      Challenge Progress
     </div>
     <span class="badge badge-muted">{{ progress | length }} entries</span>
   </div>
@@ -134,20 +134,20 @@
     <table>
       <thead>
         <tr>
-          <th>Level</th>
+          <th>Challenge</th>
           <th>Status</th>
           <th>Failed Attempts</th>
         </tr>
       </thead>
       <tbody>
         {% if progress %}
-          {% for p in progress | sort(attribute='level.order_number') %}
+          {% for p in progress | sort(attribute='challenge.order_number') %}
           <tr>
             <td>
-              {% if p.level %}
-                <a href="/admin/levels/{{ p.level.id }}/edit" style="font-weight:600;color:var(--brand-light);">{{ p.level.title }}</a>
+              {% if p.challenge %}
+                <a href="/admin/challenges/{{ p.challenge.id }}/edit" style="font-weight:600;color:var(--brand-light);">{{ p.challenge.title }}</a>
               {% else %}
-                <span class="muted">Level #{{ p.level_id }}</span>
+                <span class="muted">Challenge #{{ p.challenge_id }}</span>
               {% endif %}
             </td>
             <td>

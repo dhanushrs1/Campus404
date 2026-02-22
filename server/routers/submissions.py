@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
-from models import Submission, User, Level
+from models import Submission, User, Challenge
 from templates_config import templates
 
 router = APIRouter()
@@ -18,18 +18,18 @@ async def admin_submissions(
     request: Request,
     db: Session = Depends(get_db),
     user_id: int = None,
-    level_id: int = None,
+    challenge_id: int = None,
     status: str = None,
 ):
     query = (
         db.query(Submission)
-        .options(joinedload(Submission.user), joinedload(Submission.level))
+        .options(joinedload(Submission.user), joinedload(Submission.challenge))
         .order_by(Submission.timestamp.desc())
     )
     if user_id:
         query = query.filter(Submission.user_id == user_id)
-    if level_id:
-        query = query.filter(Submission.level_id == level_id)
+    if challenge_id:
+        query = query.filter(Submission.challenge_id == challenge_id)
     if status:
         query = query.filter(Submission.status == status)
 
@@ -38,9 +38,9 @@ async def admin_submissions(
         "active":      "submissions",
         "submissions": query.all(),
         "users":       db.query(User).order_by(User.username).all(),
-        "levels":      db.query(Level).order_by(Level.title).all(),
+        "challenges":  db.query(Challenge).order_by(Challenge.title).all(),
         "filter_user_id":  user_id,
-        "filter_level_id": level_id,
+        "filter_challenge_id": challenge_id,
         "filter_status":   status,
     })
 
@@ -53,7 +53,7 @@ async def admin_submission_playback(
 ):
     sub = (
         db.query(Submission)
-        .options(joinedload(Submission.user), joinedload(Submission.level))
+        .options(joinedload(Submission.user), joinedload(Submission.challenge))
         .filter(Submission.id == submission_id)
         .first()
     )

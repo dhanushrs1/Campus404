@@ -17,7 +17,7 @@ DEFAULT_SETTINGS = [
     ("platform_tagline",     "Learn by fixing bugs", "Platform Tagline",              "Short description shown on the login / landing screen.",             "platform"),
     ("maintenance_mode",     "false",          "Maintenance Mode",                     "When enabled, students see a maintenance page instead of the platform.", "platform"),
     ("default_starting_xp", "0",              "Default Starting XP",                  "XP granted to every new user on registration.",                      "platform"),
-    ("judge0_api_url",       "http://judge0:2358", "Judge0 API URL",                  "Internal URL to the Judge0 code-execution sandbox.",                  "platform"),
+    ("judge0_api_url",       "http://judge0-server:2358", "Judge0 API URL",                  "Internal URL to the Judge0 code-execution sandbox.",                  "platform"),
     ("allow_registrations",  "true",           "Allow New Registrations",              "Disable to prevent new users from creating accounts.",               "access"),
     ("ban_duration_days",    "0",              "Ban Duration (days)",                  "How long a ban lasts. Set to 0 for permanent bans.",                 "access"),
 

@@ -52,10 +52,9 @@ function LevelCard({ level }) {
           </span>
         )}
 
-        {/* TODO: Link to /levels/:id when challenge page is built */}
-        <button className="btn-start-level" disabled>
+        <Link to={`/arena?level=${level.id}`} className="btn-start-level" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>
           Start Challenge →
-        </button>
+        </Link>
       </div>
     </div>
   )

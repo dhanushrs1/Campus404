@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
-from models import User, UserProgress, Level
+from models import User, UserProgress, Challenge
 from templates_config import templates
 
 router = APIRouter()
@@ -36,24 +36,24 @@ async def admin_user_detail(
     user = db.query(User).filter(User.id == user_id).first()
     progress = (
         db.query(UserProgress)
-        .options(joinedload(UserProgress.level))
+        .options(joinedload(UserProgress.challenge))
         .filter(UserProgress.user_id == user_id)
         .all()
     )
-    # Find level the student is currently stuck on (lowest incomplete)
+    # Find challenge the student is currently stuck on (lowest incomplete)
     incomplete = [p for p in progress if not p.is_completed]
-    current_level = None
+    current_challenge = None
     if incomplete:
-        # sort by level order_number
-        incomplete_sorted = sorted(incomplete, key=lambda p: p.level.order_number if p.level else 0)
-        current_level = incomplete_sorted[0].level if incomplete_sorted else None
+        # sort by challenge order_number
+        incomplete_sorted = sorted(incomplete, key=lambda p: p.challenge.order_number if p.challenge else 0)
+        current_challenge = incomplete_sorted[0].challenge if incomplete_sorted else None
 
     return templates.TemplateResponse("admin/user_detail.html", {
         "request":      request,
         "active":       "users",
         "user":         user,
         "progress":     progress,
-        "current_level": current_level,
+        "current_challenge": current_challenge,
     })
 
 

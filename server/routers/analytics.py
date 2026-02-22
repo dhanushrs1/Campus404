@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Level, Submission
+from models import Challenge, Submission
 from templates_config import templates
 
 router = APIRouter()
@@ -16,26 +16,26 @@ router = APIRouter()
 
 @router.get("/admin/analytics", response_class=HTMLResponse)
 async def admin_analytics(request: Request, db: Session = Depends(get_db)):
-    # All published levels
-    levels = db.query(Level).filter(Level.is_published == True).all()
+    # All published challenges
+    challenges = db.query(Challenge).filter(Challenge.is_published == True).all()
 
-    # Per-level submission counts
+    # Per-challenge submission counts
     total_counts = dict(
-        db.query(Submission.level_id, func.count(Submission.id))
-        .group_by(Submission.level_id)
+        db.query(Submission.challenge_id, func.count(Submission.id))
+        .group_by(Submission.challenge_id)
         .all()
     )
     pass_counts = dict(
-        db.query(Submission.level_id, func.count(Submission.id))
+        db.query(Submission.challenge_id, func.count(Submission.id))
         .filter(Submission.status == "passed")
-        .group_by(Submission.level_id)
+        .group_by(Submission.challenge_id)
         .all()
     )
 
     stats = []
-    for lvl in levels:
-        total   = total_counts.get(lvl.id, 0)
-        passes  = pass_counts.get(lvl.id, 0)
+    for chl in challenges:
+        total   = total_counts.get(chl.id, 0)
+        passes  = pass_counts.get(chl.id, 0)
         rate    = round((passes / total * 100), 1) if total > 0 else None
         if rate is None:
             difficulty = "no_data"
@@ -47,7 +47,7 @@ async def admin_analytics(request: Request, db: Session = Depends(get_db)):
             difficulty = "easy"
 
         stats.append({
-            "level":      lvl,
+            "challenge":  chl,
             "total":      total,
             "passes":     passes,
             "rate":       rate,

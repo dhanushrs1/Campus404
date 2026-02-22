@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Lab, Level
+from models import Lab, Module
 from templates_config import templates
 
 router = APIRouter()
@@ -16,14 +16,14 @@ router = APIRouter()
 @router.get("/admin/labs", response_class=HTMLResponse)
 async def admin_labs(request: Request, db: Session = Depends(get_db)):
     labs = db.query(Lab).order_by(Lab.order_number, Lab.id).all()
-    # Attach level counts
+    # Attach module counts
     counts = {}
-    for level in db.query(Level).all():
-        counts[level.lab_id] = counts.get(level.lab_id, 0) + 1
+    for module in db.query(Module).all():
+        counts[module.lab_id] = counts.get(module.lab_id, 0) + 1
     return templates.TemplateResponse("admin/labs.html", {
         "request": request, "active": "labs",
         "labs": labs,
-        "level_counts": counts,
+        "module_counts": counts,
     })
 
 

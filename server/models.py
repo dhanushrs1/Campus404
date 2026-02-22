@@ -32,37 +32,51 @@ class Lab(Base):
     name         = Column(String(100))
     description  = Column(Text)
     order_number = Column(Integer, default=0)
-    levels       = relationship("Level", back_populates="lab")
+    modules      = relationship("Module", back_populates="lab")
 
 
-class Level(Base):
-    __tablename__ = "levels"
+class Module(Base):
+    __tablename__ = "modules"
+    id           = Column(Integer, primary_key=True)
+    lab_id       = Column(Integer, ForeignKey("labs.id"))
+    order_number = Column(Integer)
+    title        = Column(String(100))
+    description  = Column(Text, nullable=True)
+    lab          = relationship("Lab", back_populates="modules")
+    challenges   = relationship("Challenge", back_populates="module")
+
+
+class Challenge(Base):
+    __tablename__ = "challenges"
     id                = Column(Integer, primary_key=True)
-    lab_id            = Column(Integer, ForeignKey("labs.id"))
+    module_id         = Column(Integer, ForeignKey("modules.id"))
     order_number      = Column(Integer)
     title             = Column(String(100))
     description       = Column(Text, nullable=True)
-    broken_code       = Column(Text)
+    editor_file_name  = Column(String(255), default="script.py")
+    instructions      = Column(Text)
+    starter_code      = Column(Text)
     expected_output   = Column(String(200))
     hint_text         = Column(Text)
     official_solution = Column(Text)
+    walkthrough_video_url = Column(String(500), nullable=True)
     is_published      = Column(Boolean, default=False)
     repo_link         = Column(String(500), nullable=True)
-    lab               = relationship("Lab", back_populates="levels")
-    user_progress     = relationship("UserProgress", back_populates="level")
-    submissions       = relationship("Submission", back_populates="level")
+    module            = relationship("Module", back_populates="challenges")
+    user_progress     = relationship("UserProgress", back_populates="challenge")
+    submissions       = relationship("Submission", back_populates="challenge")
 
 
 class Submission(Base):
     __tablename__ = "submissions"
     id             = Column(Integer, primary_key=True)
     user_id        = Column(Integer, ForeignKey("users.id"))
-    level_id       = Column(Integer, ForeignKey("levels.id"))
+    challenge_id   = Column(Integer, ForeignKey("challenges.id"))
     submitted_code = Column(Text)
     status         = Column(String(50))
     timestamp      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     user           = relationship("User", back_populates="submissions")
-    level          = relationship("Level", back_populates="submissions")
+    challenge      = relationship("Challenge", back_populates="submissions")
 
 
 class Badge(Base):
@@ -78,11 +92,11 @@ class UserProgress(Base):
     __tablename__ = "user_progress"
     id              = Column(Integer, primary_key=True)
     user_id         = Column(Integer, ForeignKey("users.id"))
-    level_id        = Column(Integer, ForeignKey("levels.id"))
+    challenge_id    = Column(Integer, ForeignKey("challenges.id"))
     is_completed    = Column(Boolean, default=False)
     failed_attempts = Column(Integer, default=0)
     user            = relationship("User", back_populates="progress")
-    level           = relationship("Level", back_populates="user_progress")
+    challenge       = relationship("Challenge", back_populates="user_progress")
 
 
 class PlatformSetting(Base):

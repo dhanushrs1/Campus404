@@ -9,7 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db, engine
-from models import Badge, Lab, Level, Submission, User
+from models import Badge, Lab, Challenge, Submission, User
 from models import PlatformSetting
 from templates_config import templates
 
@@ -41,7 +41,7 @@ def _check_db() -> bool:
 async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     recent = (
         db.query(Submission)
-        .options(joinedload(Submission.user), joinedload(Submission.level))
+        .options(joinedload(Submission.user), joinedload(Submission.challenge))
         .order_by(Submission.timestamp.desc())
         .limit(8)
         .all()
@@ -52,7 +52,7 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         "user_count":         db.query(User).count(),
         "admin_count":        db.query(User).filter(User.is_admin == True).count(),
         "lab_count":          db.query(Lab).count(),
-        "level_count":        db.query(Level).count(),
+        "challenge_count":    db.query(Challenge).count(),
         "submission_count":   db.query(Submission).count(),
         "badge_count":        db.query(Badge).count(),
         "recent_submissions": recent,

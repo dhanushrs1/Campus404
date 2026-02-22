@@ -29,13 +29,14 @@
     </div>
   </a>
 
-  <a href="/admin/levels" class="stat-card">
-    <div class="stat-icon green">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+  <!-- Challenges -->
+  <a href="/admin/challenges" class="stat-card">
+    <div class="stat-icon" style="background:var(--bg-3);color:var(--brand);">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
     </div>
     <div class="stat-info">
-      <span class="stat-label">Published Levels</span>
-      <span class="stat-value">{{ level_count }}</span>
+      <span class="stat-label">Published Challenges</span>
+      <span class="stat-value">{{ challenge_count }}</span>
     </div>
   </a>
 
@@ -107,7 +108,7 @@
           <div class="activity-main">
             {{ sub.user.username if sub.user else 'Unknown' }}
             <span style="color:var(--text-3); font-weight:400;">submitted to</span>
-            Level {{ sub.level_id }}
+            Challenge {{ sub.challenge_id }}
           </div>
           <div class="activity-sub">Status:
             <span class="badge {% if sub.status == 'Passed' %}badge-success{% elif sub.status == 'Failed' %}badge-danger{% else %}badge-warning{% endif %}">
@@ -143,12 +144,12 @@
     </div>
   </a>
 
-  <a href="/admin/levels/new" class="card" style="padding:18px 20px; display:flex; align-items:center; gap:14px; text-decoration:none; transition:all 0.16s;">
+  <a href="/admin/challenges/new" class="card" style="padding:18px 20px; display:flex; align-items:center; gap:14px; text-decoration:none; transition:all 0.16s;">
     <div class="stat-icon yellow" style="width:38px;height:38px;">
       <svg xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     </div>
     <div>
-      <div style="font-size:0.84rem;font-weight:700;color:var(--text-1);">New Level</div>
+      <div style="font-size:0.84rem;font-weight:700;color:var(--text-1);">New Challenge</div>
       <div style="font-size:0.72rem;color:var(--text-3);">Add a challenge level</div>
     </div>
   </a>

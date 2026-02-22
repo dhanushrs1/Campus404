@@ -8,3 +8,4 @@ cryptography
 Pillow
 httpx
 passlib[bcrypt]
+docker

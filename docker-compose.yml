@@ -33,6 +33,7 @@ services:
       - "8000:8000"
     volumes:
       - ./server:/app
+      - /var/run/docker.sock:/var/run/docker.sock
     # ── Only start AFTER MySQL is healthy (not just "started") ─
     depends_on:
       db:

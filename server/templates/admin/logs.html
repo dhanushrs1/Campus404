@@ -1,0 +1,265 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Logs{% endblock %}
+{% block breadcrumb %}System Logs{% endblock %}
+{% block page_title %}System Logs{% endblock %}
+
+{% block head %}
+<style>
+  .logs-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    height: 70vh;
+  }
+  .logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-surface);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .logs-terminal-wrapper {
+    flex-grow: 1;
+    background: #0f111a;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .logs-terminal {
+    flex-grow: 1;
+    padding: 16px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    color: #a6accd;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin: 0;
+  }
+  .logs-terminal::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .logs-terminal::-webkit-scrollbar-track {
+    background: #0f111a; 
+  }
+  .logs-terminal::-webkit-scrollbar-thumb {
+    background: #292d3e; 
+    border-radius: 4px;
+  }
+  .logs-terminal::-webkit-scrollbar-thumb:hover {
+    background: #3b4252; 
+  }
+  .log-error {
+    color: #f07178;
+  }
+  .log-warn {
+    color: #ffcb6b;
+  }
+  .log-info {
+    color: #82aaff;
+  }
+  .log-success {
+    color: #c3e88d;
+  }
+  .logs-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 17, 26, 0.8);
+    padding: 20px 40px;
+    border-radius: 8px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-weight: 500;
+  }
+  .logs-overlay.active {
+    display: flex;
+  }
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    100% { transform: rotate(360deg); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logs-container">
+  {% if not docker_connected %}
+  <div class="flash flash-error">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Warning: Docker socket is not connected or accessible. Live logs cannot be fetched.
+  </div>
+  {% endif %}
+
+  <div class="logs-header">
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div>
+        <label for="container-select" style="font-size:0.85rem; font-weight:600; color:var(--text-2); margin-bottom:4px; display:block;">Target Container</label>
+        <select id="container-select" class="form-input" style="width: 250px; padding: 6px 12px;">
+          {% for key, label in containers.items() %}
+          <option value="{{ key }}">{{ label }} ({{ key }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="tail-lines" style="font-size:0.85rem; font-weight:600; color:var(--text-2); margin-bottom:4px; display:block;">Lines</label>
+        <select id="tail-lines" class="form-input" style="width: 100px; padding: 6px 12px;">
+          <option value="100">100</option>
+          <option value="200" selected>200</option>
+          <option value="500">500</option>
+          <option value="1000">1000</option>
+        </select>
+      </div>
+    </div>
+    
+    <div style="display:flex; align-items:center; gap:12px;">
+      <label class="toggle" style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--text-1); cursor:pointer;">
+        <input type="checkbox" id="auto-scroll" checked>
+        <span>Auto-scroll</span>
+      </label>
+      <label class="toggle" style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--text-1); cursor:pointer;">
+        <input type="checkbox" id="auto-refresh" checked>
+        <span>Live</span>
+      </label>
+      <button id="refresh-btn" class="btn btn-primary btn-sm" {% if not docker_connected %}disabled{% endif %}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="logs-terminal-wrapper">
+    <pre id="logs-output" class="logs-terminal">Select a container and wait for logs to load...</pre>
+    <div id="loading-overlay" class="logs-overlay">
+      <svg class="spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      Fetching logs...
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const containerSelect = document.getElementById('container-select');
+  const tailSelect = document.getElementById('tail-lines');
+  const logsOutput = document.getElementById('logs-output');
+  const refreshBtn = document.getElementById('refresh-btn');
+  const autoScrollCb = document.getElementById('auto-scroll');
+  const autoRefreshCb = document.getElementById('auto-refresh');
+  const overlay = document.getElementById('loading-overlay');
+  
+  const isDockerConnected = {{ 'true' if docker_connected else 'false' }};
+  
+  let fetchInterval = null;
+  let isFetching = false;
+
+  // Extremely basic terminal colorizer matching ANSI colors to CSS or just simple keywords
+  function colorizeLogs(text) {
+    if (!text) return "No logs found for this container.";
+    
+    // Safety escape
+    text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // Very basic coloring based on common log keywords
+    const lines = text.split('\n');
+    const coloredLines = lines.map(line => {
+      const lower = line.toLowerCase();
+      if (lower.includes('error') || lower.includes('exception') || lower.includes('traceback') || lower.includes('fail')) {
+        return `<span class="log-error">${line}</span>`;
+      } else if (lower.includes('warn')) {
+        return `<span class="log-warn">${line}</span>`;
+      } else if (lower.includes('info') || lower.includes('notice')) {
+        return `<span class="log-info">${line}</span>`;
+      } else if (lower.includes('success') || lower.includes('ok')) {
+        return `<span class="log-success">${line}</span>`;
+      }
+      return line;
+    });
+    
+    return coloredLines.join('\n');
+  }
+
+  async function fetchLogs() {
+    if (isFetching) return;
+    isFetching = true;
+    
+    const container = containerSelect.value;
+    const tail = tailSelect.value;
+    
+    try {
+      if (logsOutput.textContent.includes('wait for logs to load') || logsOutput.textContent.trim() === '') {
+        overlay.classList.add('active');
+      }
+      
+      const res = await fetch(`/admin/logs/api?container=${container}&tail=${tail}`);
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Failed to fetch logs');
+      }
+      
+      const data = await res.json();
+      const prevScrollTop = logsOutput.scrollTop;
+      const prevScrollHeight = logsOutput.scrollHeight;
+      
+      logsOutput.innerHTML = colorizeLogs(data.logs);
+      
+      // Handle auto-scroll logic seamlessly
+      if (autoScrollCb.checked) {
+        logsOutput.scrollTop = logsOutput.scrollHeight;
+      } else {
+        // Maintain relative scroll position if new content arrives at bottom
+        logsOutput.scrollTop = prevScrollTop + (logsOutput.scrollHeight - prevScrollHeight);
+      }
+    } catch (err) {
+      logsOutput.innerHTML = `<span class="log-error">Error fetching logs: ${err.message}</span>`;
+    } finally {
+      overlay.classList.remove('active');
+      isFetching = false;
+    }
+  }
+
+  function startAutoRefresh() {
+    if (fetchInterval) clearInterval(fetchInterval);
+    if (autoRefreshCb.checked && isDockerConnected) {
+      fetchInterval = setInterval(fetchLogs, 4000);
+    }
+  }
+
+  // Event Listeners
+  containerSelect.addEventListener('change', () => {
+    logsOutput.innerHTML = '';
+    fetchLogs();
+  });
+  
+  tailSelect.addEventListener('change', fetchLogs);
+  
+  refreshBtn.addEventListener('click', () => {
+    // Flash effect on button
+    refreshBtn.style.opacity = '0.7';
+    setTimeout(() => refreshBtn.style.opacity = '1', 200);
+    fetchLogs();
+  });
+  
+  autoRefreshCb.addEventListener('change', startAutoRefresh);
+
+  // Initial fetch
+  if (isDockerConnected) {
+    fetchLogs();
+    startAutoRefresh();
+  }
+</script>
+{% endblock %}

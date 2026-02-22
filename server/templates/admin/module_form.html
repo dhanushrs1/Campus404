@@ -1,0 +1,81 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ 'Edit Module' if module else 'New Module' }}{% endblock %}
+{% block breadcrumb %}Modules · {{ 'Edit' if module else 'New' }}{% endblock %}
+{% block page_title %}{{ 'Edit Module' if module else 'Create New Module' }}{% endblock %}
+
+{% block header_actions %}
+  <a href="/admin/modules" class="btn btn-ghost">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Modules
+  </a>
+{% endblock %}
+
+{% block content %}
+<form method="post" action="{{ action }}">
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
+    
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            Module Details
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="title">Module Title</label>
+              <input type="text" id="title" name="title"
+                     value="{{ module.title if module else '' }}"
+                     placeholder="e.g. Introduction to Python" required>
+            </div>
+            <div class="form-group">
+              <label for="description">Description (Optional)</label>
+              <textarea id="description" name="description" rows="4" placeholder="Description of the module...">{{ module.description if module and module.description else '' }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar Settings -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Settings</div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="lab_id">Lab</label>
+              <select id="lab_id" name="lab_id" required>
+                <option value="" disabled>Select a lab…</option>
+                {% for lab in labs %}
+                <option value="{{ lab.id }}" {% if module and module.lab_id == lab.id %}selected{% endif %}>
+                  {{ lab.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="order_number">Order Number</label>
+              <input type="number" id="order_number" name="order_number"
+                     value="{{ module.order_number if module else 1 }}"
+                     min="1" placeholder="1">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Save -->
+      <button type="submit" class="btn btn-primary w-full" style="justify-content:center;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        {{ 'Save Changes' if module else 'Create Module' }}
+      </button>
+      <a href="/admin/modules" class="btn btn-ghost w-full" style="justify-content:center;">Cancel</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

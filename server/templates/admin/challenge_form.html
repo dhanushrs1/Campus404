@@ -1,13 +1,13 @@
 {% extends "admin/base.html" %}
 
-{% block title %}{{ 'Edit Level' if level else 'New Level' }}{% endblock %}
-{% block breadcrumb %}Levels · {{ 'Edit' if level else 'New' }}{% endblock %}
-{% block page_title %}{{ 'Edit Level' if level else 'Create New Level' }}{% endblock %}
+{% block title %}{{ 'Edit Challenge' if challenge else 'New Challenge' }}{% endblock %}
+{% block breadcrumb %}Challenges · {{ 'Edit' if challenge else 'New' }}{% endblock %}
+{% block page_title %}{{ 'Edit Challenge' if challenge else 'Create New Challenge' }}{% endblock %}
 
 {% block header_actions %}
-  <a href="/admin/levels" class="btn btn-ghost">
+  <a href="/admin/challenges" class="btn btn-ghost">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-    Back to Levels
+    Back to Challenges
   </a>
 {% endblock %}
 
@@ -22,26 +22,52 @@
         <div class="card-head">
           <div class="card-title">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-            Level Details
+            Challenge Details
           </div>
         </div>
         <div class="card-body">
           <div class="form-grid">
 
             <div class="form-group">
-              <label for="title">Level Title</label>
+              <label for="title">Challenge Title</label>
               <input type="text" id="title" name="title"
-                     value="{{ level.title if level else '' }}"
+                     value="{{ challenge.title if challenge else '' }}"
                      placeholder="e.g. Fix the Loop Bug"
                      required>
+            </div>
+            
+            <div class="form-group">
+              <label for="description">Description</label>
+              <textarea id="description" name="description" rows="3"
+                        placeholder="Description of the challenge...">{{ challenge.description if challenge and challenge.description else '' }}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="instructions">Instructions</label>
+              <textarea id="instructions" name="instructions" rows="4"
+                        placeholder="Step-by-step instructions for the student...">{{ challenge.instructions if challenge and challenge.instructions else '' }}</textarea>
+            </div>
+            
+            <div class="form-group">
+              <label for="editor_file_name">Editor File Name</label>
+              <input type="text" id="editor_file_name" name="editor_file_name"
+                     value="{{ challenge.editor_file_name if challenge and challenge.editor_file_name else 'script.py' }}"
+                     placeholder="script.py" required>
             </div>
 
             <div class="form-group">
               <label for="expected_output">Expected Output</label>
               <input type="text" id="expected_output" name="expected_output"
-                     value="{{ level.expected_output if level else '' }}"
+                     value="{{ challenge.expected_output if challenge else '' }}"
                      placeholder="Exact output the fixed code should produce">
               <span class="form-hint">This string is compared to the student's program output.</span>
+            </div>
+
+            <div class="form-group">
+              <label for="walkthrough_video_url">Walkthrough Video URL</label>
+              <input type="text" id="walkthrough_video_url" name="walkthrough_video_url"
+                     value="{{ challenge.walkthrough_video_url if challenge and challenge.walkthrough_video_url else '' }}"
+                     placeholder="e.g. YouTube embed link">
             </div>
 
           </div>
@@ -60,23 +86,23 @@
           <div class="form-grid">
 
             <div class="form-group">
-              <label for="broken_code">Broken Code</label>
-              <textarea id="broken_code" name="broken_code" rows="8"
-                        placeholder="# Paste the buggy code here that students need to fix&#10;for i in range(10  # <- missing parenthesis&#10;    print(i)">{{ level.broken_code if level else '' }}</textarea>
+              <label for="starter_code">Starter Code</label>
+              <textarea id="starter_code" name="starter_code" rows="8"
+                        placeholder="# Paste the buggy code here that students need to fix&#10;for i in range(10  # <- missing parenthesis&#10;    print(i)">{{ challenge.starter_code if challenge else '' }}</textarea>
               <span class="form-hint">This is what students will see and edit.</span>
             </div>
 
             <div class="form-group">
               <label for="official_solution">Official Solution</label>
               <textarea id="official_solution" name="official_solution" rows="8"
-                        placeholder="# The correct, working version of the code&#10;for i in range(10):&#10;    print(i)">{{ level.official_solution if level else '' }}</textarea>
+                        placeholder="# The correct, working version of the code&#10;for i in range(10):&#10;    print(i)">{{ challenge.official_solution if challenge else '' }}</textarea>
               <span class="form-hint">Shown to students after passing (or on hint reveal).</span>
             </div>
 
             <div class="form-group">
               <label for="hint_text">Hint Text</label>
               <textarea id="hint_text" name="hint_text" rows="4"
-                        placeholder="Give students a nudge in the right direction without spoiling the answer...">{{ level.hint_text if level else '' }}</textarea>
+                        placeholder="Give students a nudge in the right direction without spoiling the answer...">{{ challenge.hint_text if challenge else '' }}</textarea>
             </div>
 
           </div>
@@ -96,12 +122,12 @@
           <div class="form-grid">
 
             <div class="form-group">
-              <label for="lab_id">Lab</label>
-              <select id="lab_id" name="lab_id" required>
-                <option value="" disabled>Select a lab…</option>
-                {% for lab in labs %}
-                <option value="{{ lab.id }}" {% if level and level.lab_id == lab.id %}selected{% endif %}>
-                  {{ lab.name }}
+              <label for="module_id">Module</label>
+              <select id="module_id" name="module_id" required>
+                <option value="" disabled>Select a module…</option>
+                {% for module in modules %}
+                <option value="{{ module.id }}" {% if challenge and challenge.module_id == module.id %}selected{% endif %}>
+                  {{ module.title }}
                 </option>
                 {% endfor %}
               </select>
@@ -110,7 +136,7 @@
             <div class="form-group">
               <label for="order_number">Order Number</label>
               <input type="number" id="order_number" name="order_number"
-                     value="{{ level.order_number if level else 1 }}"
+                     value="{{ challenge.order_number if challenge else 1 }}"
                      min="1" placeholder="1">
               <span class="form-hint">Lower numbers unlock first.</span>
             </div>
@@ -118,11 +144,11 @@
             <div class="form-group">
               <label for="repo_link">Repo / Resource Link</label>
               <input type="url" id="repo_link" name="repo_link"
-                     value="{{ level.repo_link if level and level.repo_link else '' }}"
+                     value="{{ challenge.repo_link if challenge and challenge.repo_link else '' }}"
                      placeholder="https://github.com/your-org/repo">
               <span class="form-hint" style="display:flex;align-items:center;gap:5px;">
                 <svg xmlns="http://www.w3.org/2000/svg" style="width:11px;height:11px;flex-shrink:0;color:var(--brand-light);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Optional. Visible to students after N failed attempts (configured in Settings → Gameplay).
+                Optional. Visible to students after N failed attempts.
               </span>
             </div>
 
@@ -130,10 +156,10 @@
               <label for="is_published" style="text-transform:none;letter-spacing:0;font-size:0.84rem;font-weight:500;color:var(--text-1);">
                 <div style="display:flex;align-items:center;gap:10px;cursor:pointer;">
                   <input type="checkbox" id="is_published" name="is_published"
-                         {% if level and level.is_published %}checked{% endif %}
+                         {% if challenge and challenge.is_published %}checked{% endif %}
                          style="width:18px;height:18px;border-radius:4px;accent-color:var(--brand);cursor:pointer;">
                   <div>
-                    <div style="font-weight:600;font-size:0.84rem;">Publish Level</div>
+                    <div style="font-weight:600;font-size:0.84rem;">Publish Challenge</div>
                     <div style="font-size:0.72rem;color:var(--text-3);margin-top:1px;">Make visible to students</div>
                   </div>
                 </div>
@@ -147,9 +173,9 @@
       <!-- Save -->
       <button type="submit" class="btn btn-primary w-full" style="justify-content:center;">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        {{ 'Save Changes' if level else 'Create Level' }}
+        {{ 'Save Changes' if challenge else 'Create Challenge' }}
       </button>
-      <a href="/admin/levels" class="btn btn-ghost w-full" style="justify-content:center;">Cancel</a>
+      <a href="/admin/challenges" class="btn btn-ghost w-full" style="justify-content:center;">Cancel</a>
 
     </div>
   </div>

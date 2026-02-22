@@ -31,12 +31,12 @@
       </div>
     </div>
     <div>
-      <div style="font-size:0.67rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-3);">Level</div>
+      <div style="font-size:0.67rem;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-3);">Challenge</div>
       <div style="margin-top:4px;">
-        {% if sub.level %}
-          <a href="/admin/levels/{{ sub.level.id }}/edit" style="font-weight:600;color:var(--brand-light);">{{ sub.level.title }}</a>
+        {% if sub.challenge %}
+          <a href="/admin/challenges/{{ sub.challenge.id }}/edit" style="font-weight:600;color:var(--brand-light);">{{ sub.challenge.title }}</a>
         {% else %}
-          <span class="muted">Level #{{ sub.level_id }}</span>
+          <span class="muted">Challenge #{{ sub.challenge_id }}</span>
         {% endif %}
       </div>
     </div>
@@ -94,7 +94,7 @@
   </div>
 </div>
 
-{% if sub.level and sub.level.expected_output %}
+{% if sub.challenge and sub.challenge.expected_output %}
 <!-- Expected Output -->
 <div class="card">
   <div class="card-head">
@@ -116,7 +116,7 @@
     overflow-x: auto;
     white-space: pre;
     border-top: 1px solid rgba(16,185,129,0.2);
-  ">{{ sub.level.expected_output }}</pre>
+  ">{{ sub.challenge.expected_output }}</pre>
 </div>
 {% endif %}
 
