@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean, BigInteger, Column, DateTime, ForeignKey,
-    Integer, String, Text,
+    Integer, String, Text, JSON
 )
 from sqlalchemy.orm import relationship
 
@@ -53,18 +53,37 @@ class Challenge(Base):
     order_number      = Column(Integer)
     title             = Column(String(100))
     description       = Column(Text, nullable=True)
-    editor_file_name  = Column(String(255), default="script.py")
-    instructions      = Column(Text)
-    starter_code      = Column(Text)
-    expected_output   = Column(String(200))
-    hint_text         = Column(Text)
+    environment       = Column(String(50), default="standard_script")
+    content_blocks    = Column(JSON, default=list)
     official_solution = Column(Text)
-    walkthrough_video_url = Column(String(500), nullable=True)
     is_published      = Column(Boolean, default=False)
     repo_link         = Column(String(500), nullable=True)
     module            = relationship("Module", back_populates="challenges")
     user_progress     = relationship("UserProgress", back_populates="challenge")
     submissions       = relationship("Submission", back_populates="challenge")
+    files             = relationship("ChallengeFile", back_populates="challenge", cascade="all, delete-orphan")
+    test_cases        = relationship("TestCase", back_populates="challenge", cascade="all, delete-orphan")
+
+
+class ChallengeFile(Base):
+    __tablename__ = "challenge_files"
+    id             = Column(Integer, primary_key=True)
+    challenge_id   = Column(Integer, ForeignKey("challenges.id"))
+    name           = Column(String(255))
+    language       = Column(String(50))
+    content        = Column(Text)
+    is_entry_point = Column(Boolean, default=False)
+    challenge      = relationship("Challenge", back_populates="files")
+
+
+class TestCase(Base):
+    __tablename__ = "test_cases"
+    id              = Column(Integer, primary_key=True)
+    challenge_id    = Column(Integer, ForeignKey("challenges.id"))
+    input_data      = Column(Text)
+    expected_output = Column(Text)
+    is_hidden       = Column(Boolean, default=False)
+    challenge       = relationship("Challenge", back_populates="test_cases")
 
 
 class Submission(Base):
