@@ -1,76 +1,38 @@
-# Public API — Level Data
+# Public API Reference — Campus404
 
-**Route:** `GET /levels`
-**External URL (via Nginx):** `GET /api/levels`
-**Router file:** `server/routers/api.py`
-**Auth:** None (public)
-**Content-Type:** `application/json`
+> These are the **student-facing JSON endpoints** consumed by the React app.
+> All calls go through the Nginx proxy: `Browser → /api/... → FastAPI /...`
 
 ---
 
-## Purpose
+## Base URL
 
-Returns all **published** levels for the React frontend to render. Excludes sensitive fields (`expected_output`, `official_solution`) to prevent students from reading answers through the browser's network tab.
+| Environment        | Base URL                     |
+| ------------------ | ---------------------------- |
+| Development        | `http://localhost:3000/api`  |
+| Docker             | `http://localhost/api`       |
+| Internal (backend) | `http://campus_backend:8000` |
 
 ---
 
-## Pydantic Schema — `LevelPublicResponse`
+## Security Model
 
-```python
-class LevelPublicResponse(BaseModel):
-    id:           int
-    title:        str
-    lab_id:       int
-    order_number: int
-    broken_code:  Optional[str] = None
-    hint_text:    Optional[str] = None
-    repo_link:    Optional[str] = None  # null if not set OR threshold not reached
+- **No authentication currently** — all public routes are open
+- **`official_solution`** is never returned (excluded from Pydantic schema)
+- **`expected_output`** (TestCase) is never returned
+- Only **published** challenges (`is_published = True`) appear in results
 
-    class Config:
-        from_attributes = True  # SQLAlchemy ORM → Pydantic
+---
+
+## Endpoints
+
+### Health Check
+
+```
+GET /api/
 ```
 
-**Deliberately excluded:**
-
-- `expected_output` — used server-side for grading only
-- `official_solution` — revealed only after passing, never sent raw
-- `is_published` — backend concern, irrelevant to the client
-
----
-
-## Query Logic
-
-```python
-db.query(Level)
-  .filter(Level.is_published == True)
-  .order_by(Level.lab_id, Level.order_number)
-```
-
-Only published levels are returned. Order respects the lab grouping and the admin-set sequence.
-
----
-
-## Example Response
-
-```json
-[
-  {
-    "id": 1,
-    "title": "Fix the Addition Bug",
-    "lab_id": 1,
-    "order_number": 1,
-    "broken_code": "def add(a, b):\n    return a - b",
-    "hint_text": "Check the operator.",
-    "repo_link": null
-  }
-]
-```
-
----
-
-## Health Check
-
-`GET /` (external: `GET /api/`)
+**Response:**
 
 ```json
 { "message": "Campus404 Backend is Running!" }
@@ -78,32 +40,161 @@ Only published levels are returned. Order respects the lab grouping and the admi
 
 ---
 
-## Repo Link — Unlock Logic
+### Get All Labs
 
-The `repo_link` field is safe to return even when locked — the **frontend** is responsible for hiding/showing it based on the student's attempt count. The backend just returns whatever is stored.
+```
+GET /api/labs
+```
 
-Game engine pattern (to implement in the Judge0 callback):
+Returns all labs ordered by `order_number`.
 
-```python
-from settings_seed import get_setting
+**Response:**
 
-threshold = int(get_setting(db, "max_fail_unlock", "5"))
-progress  = db.query(UserProgress).filter_by(user_id=uid, level_id=lid).first()
-
-repo_unlocked = (
-    progress is not None and
-    progress.failed_attempts >= threshold and
-    level.repo_link is not None
-)
+```json
+[
+  {
+    "id": 1,
+    "name": "Python Fundamentals",
+    "description": "Fix broken Python programs from the ground up.",
+    "order_number": 1
+  }
+]
 ```
 
 ---
 
-## Adding More Public Endpoints
+### Get Modules + Challenges for a Lab
 
-Follow the same pattern in `server/routers/api.py`:
+```
+GET /api/labs/{lab_id}/modules
+```
 
-1. Define a `*PublicResponse` Pydantic model — only include safe fields
-2. Add `class Config: from_attributes = True`
-3. Register with `@router.get("/your-route", response_model=List[YourPublicResponse])`
-4. Frontend fetches `/api/your-route` — Nginx strips `/api/` → backend receives `/your-route`
+Returns all modules with their nested **published** challenges.
+
+**Path params:** `lab_id: int`
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "title": "Variables & Types",
+    "lab_id": 1,
+    "order_number": 1,
+    "description": null,
+    "challenges": [
+      {
+        "id": 3,
+        "title": "Fix the Type Error",
+        "module_id": 1,
+        "order_number": 1,
+        "description": "<p>The program crashes...</p>",
+        "editor_file_name": "main.py",
+        "instructions": "<p>Fix line 4...</p>",
+        "starter_code": "x = '5'\nprint(x + 10)",
+        "hint_text": "Look at the types.",
+        "walkthrough_video_url": null,
+        "repo_link": null
+      }
+    ]
+  }
+]
+```
+
+**Errors:** `404` if lab not found.
+
+---
+
+### Get All Published Challenges
+
+```
+GET /api/challenges
+```
+
+Returns a flat list of all published challenges.
+
+**Response:** Array of `ChallengePublicResponse` (same schema as above).
+
+---
+
+### Get Single Challenge
+
+```
+GET /api/challenges/{challenge_id}
+```
+
+**Path params:** `challenge_id: int`
+
+**Response:** Single `ChallengePublicResponse`
+
+**Errors:** `404` if not found or not published.
+
+---
+
+### Execute Code
+
+```
+POST /api/execute
+```
+
+Runs code against the Judge0 sandbox.
+
+**Request Headers:**
+
+```
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "source_code": "print('hello')",
+  "language_id": 71
+}
+```
+
+| Field         | Type    | Required | Default | Notes              |
+| ------------- | ------- | -------- | ------- | ------------------ |
+| `source_code` | string  | ✅       | —       | Code to run        |
+| `language_id` | integer | ❌       | `71`    | Judge0 language ID |
+
+**Common language IDs:**
+
+- `71` = Python 3
+- `63` = JavaScript (Node.js)
+- `62` = Java
+- `54` = C++ (GCC 9.2)
+
+**Response:**
+
+```json
+{ "output": "hello\n" }
+```
+
+**Errors:**
+
+- `500` — Execution error; check `detail` field.
+
+---
+
+## Response Schema: `ChallengePublicResponse`
+
+```typescript
+{
+  id:                    number,
+  title:                 string,
+  module_id:             number,
+  order_number:          number,
+  description:           string | null,   // Rich HTML
+  editor_file_name:      string,          // e.g. "main.py"
+  instructions:          string | null,   // Rich HTML task description
+  starter_code:          string | null,   // Pre-filled code in editor
+  hint_text:             string | null,   // Revealed on demand
+  walkthrough_video_url: string | null,   // YouTube/video link
+  repo_link:             string | null    // Unlocked after N failures
+}
+```
+
+> **Never included:** `official_solution`, `content_blocks`, `environment`, `is_published`, `TestCase.expected_output`

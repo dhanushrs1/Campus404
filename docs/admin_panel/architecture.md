@@ -1,128 +1,139 @@
-# Architecture — Campus404 Admin Panel
+# Architecture — Campus404
 
-## Stack
+## Overview
 
-| Layer            | Technology                            |
-| ---------------- | ------------------------------------- |
-| Web Framework    | FastAPI                               |
-| ORM              | SQLAlchemy                            |
-| Templating       | Jinja2                                |
-| Database         | MySQL 8.0                             |
-| Image Processing | Pillow (PIL)                          |
-| Styling          | Pure CSS (no Bootstrap)               |
-| Icons            | Inline SVG                            |
-| Fonts            | Inter · JetBrains Mono (Google Fonts) |
+Campus404 is a **three-tier web application** running entirely inside Docker Compose. Students access the React frontend, the frontend calls the FastAPI backend through the Nginx reverse proxy, and the backend executes code inside the isolated Judge0 sandbox.
 
 ---
 
-## Modular File Layout
+## Docker Services
 
-The server was refactored from a single `main.py` monolith into a clean feature-based module structure:
+| Container               | Image              | Role                                                                    | Port            |
+| ----------------------- | ------------------ | ----------------------------------------------------------------------- | --------------- |
+| `campus_nginx`          | `nginx:alpine`     | Reverse proxy — routes `/api/*` to backend, everything else to frontend | 80              |
+| `campus_backend`        | `python:3.11-slim` | FastAPI server (Uvicorn)                                                | 8000 (internal) |
+| `campus_frontend`       | `node:20-alpine`   | Vite dev server for React                                               | 5173 (internal) |
+| `campus_db`             | `mysql:8`          | Primary persistent database                                             | 3306 (internal) |
+| `campus_sandbox_api`    | `judge0/judge0`    | Code-execution HTTP API                                                 | 2358 (internal) |
+| `campus_sandbox_worker` | `judge0/judge0`    | Judge0 worker process                                                   | —               |
+| `campus_sandbox_db`     | `postgres:14`      | Judge0's PostgreSQL storage                                             | 5432 (internal) |
+| `campus_sandbox_redis`  | `redis:7`          | Judge0's job queue                                                      | 6379 (internal) |
+
+---
+
+## System Architecture Diagram
+
+```
+Browser
+  │
+  ▼
+┌──────────────────────────────────────────────┐
+│  Nginx (campus_nginx)  — port 80             │
+│                                              │
+│  /api/*   → FastAPI backend (port 8000)      │
+│  /*       → React Vite frontend (port 5173)  │
+└──────────────────────────────────────────────┘
+       │                        │
+       ▼                        ▼
+┌─────────────┐        ┌──────────────────┐
+│  FastAPI    │        │  React + Vite    │
+│  (Python)   │        │  (JavaScript)    │
+│             │        │                  │
+│  models.py  │        │  Monaco Editor   │
+│  routers/   │        │  React Router    │
+└──────┬──────┘        └──────────────────┘
+       │
+  ┌────┴──────────────────────┐
+  │                           │
+  ▼                           ▼
+MySQL 8                    Judge0
+(campus_db)            (campus_sandbox_api)
+                           │
+                    ┌──────┴───────┐
+                    │              │
+                 Postgres       Redis
+                 (sandbox_db)  (queue)
+```
+
+---
+
+## Request Flow: Student Submitting Code
+
+```
+1. Student writes code in Monaco Editor (Workspace.jsx)
+2. Clicks "Run Code"
+3. POST /api/execute → Nginx strips /api → FastAPI /execute
+4. FastAPI forwards to Judge0: POST http://judge0-server:2358/submissions
+5. Judge0 executes in isolated container, returns stdout/stderr
+6. FastAPI returns { "output": "..." } → frontend displays in terminal
+```
+
+> **Fallback**: If Judge0 returns an Internal Error for Python (language_id 71),
+> the backend falls back to running `python` locally via `subprocess`. This handles
+> Judge0's WSL2 crash on Docker Desktop.
+
+---
+
+## Backend Module Structure
 
 ```
 server/
-├── main.py                  ← Entry point (~55 lines): wires all modules together
-├── database.py              ← Engine, Base, SessionLocal, get_db, apply_migrations
-├── models.py                ← All 8 SQLAlchemy ORM models
-├── settings_seed.py         ← DEFAULT_SETTINGS list + seed_settings() + get_setting()
-├── templates_config.py      ← Single shared Jinja2 instance + registered helpers
+├── main.py               ← FastAPI app: mounts routers, runs migrations, seeds settings
+├── database.py           ← Engine, SessionLocal, get_db(), apply_migrations()
+├── models.py             ← All SQLAlchemy ORM models
+├── settings_seed.py      ← DEFAULT_SETTINGS, seed_settings(), get_setting()
+├── templates_config.py   ← Shared Jinja2 instance + global template helpers
 ├── requirements.txt
-├── static/
-│   ├── admin.css            ← Custom admin stylesheet
-│   └── uploads/             ← Uploaded media files (YYYY/MM/ subdirs)
-├── templates/
-│   └── admin/
-│       ├── base.html        ← Master layout (sidebar + topbar)
-│       ├── dashboard.html
-│       ├── users.html
-│       ├── labs.html
-│       ├── lab_form.html
-│       ├── levels.html
-│       ├── level_form.html
-│       ├── submissions.html
-│       ├── badges.html
-│       ├── badge_form.html
-│       ├── settings.html
-│       ├── media.html       ← Media library grid + drag-and-drop uploader
-│       └── media_edit.html  ← Media item edit page
+├── Dockerfile
 └── routers/
-    ├── __init__.py
-    ├── dashboard.py         ← GET /admin
-    ├── users.py             ← GET/POST /admin/users
-    ├── labs.py              ← CRUD /admin/labs
-    ├── levels.py            ← CRUD /admin/levels
-    ├── submissions.py       ← GET /admin/submissions
-    ├── badges.py            ← CRUD /admin/badges
-    ├── settings.py          ← GET/POST /admin/settings
-    ├── media.py             ← CRUD + upload /admin/media
-    └── api.py               ← GET / and GET /levels (public JSON)
+    ├── dashboard.py      ← /admin
+    ├── users.py          ← /admin/users
+    ├── labs.py           ← /admin/labs
+    ├── modules.py        ← /admin/modules
+    ├── challenges.py     ← /admin/challenges
+    ├── submissions.py    ← /admin/submissions
+    ├── badges.py         ← /admin/badges
+    ├── settings.py       ← /admin/settings
+    ├── media.py          ← /admin/media (Pillow uploads)
+    ├── leaderboard.py    ← /admin/leaderboard
+    ├── analytics.py      ← /admin/analytics
+    ├── syslogs.py        ← /admin/logs (Docker log viewer)
+    ├── admin_api.py      ← /admin/challenges REST API (Challenge Builder)
+    └── api.py            ← /challenges /labs /execute (public, consumed by React)
 ```
 
 ---
 
-## Request Flow
+## Frontend Module Structure
 
 ```
-Browser
-  │  GET /admin/labs
-  ▼
-FastAPI Router (routers/labs.py)
-  │  db: Session = Depends(get_db)   ← from database.py
-  ▼
-SQLAlchemy query → MySQL
-  │  list[Lab]                       ← model from models.py
-  ▼
-Jinja2 TemplateResponse              ← templates from templates_config.py
-  │  templates/admin/labs.html → extends base.html
-  ▼
-HTML Response → Browser
-```
-
-Form mutations follow the **Post/Redirect/Get** pattern:
-
-```
-Browser
-  │  POST /admin/labs/create  (form submit)
-  ▼
-FastAPI validates + writes to DB
-  ▼
-303 Redirect → GET /admin/labs
-  ▼
-Browser re-renders updated list
+client/src/
+├── App.jsx               ← Router: defines all page routes
+├── main.jsx              ← Entry point, wraps app in BrowserRouter
+├── index.css             ← Full CSS design system (CSS variables, utilities)
+├── pages/
+│   ├── Home.jsx          ← Landing page (placeholder)
+│   ├── Login.jsx         ← Login form (auth pending)
+│   ├── Register.jsx      ← Registration form (auth pending)
+│   ├── Dashboard.jsx     ← Student dashboard
+│   ├── Labs.jsx          ← Lab selection grid
+│   ├── Lab.jsx           ← Module + Challenge list for a lab
+│   └── Workspace.jsx     ← 3-pane challenge arena + code editor + terminal
+└── components/
+    ├── Header.jsx        ← Global navigation header
+    ├── Footer.jsx        ← Global footer
+    └── AuthModal.jsx     ← Login/Register modal overlay
 ```
 
 ---
 
-## Jinja2 Shared Templates
+## Database Migrations Strategy
 
-All routers import `templates` from `templates_config.py` — a **single shared instance** with global helpers registered on it:
+Campus404 **does not use Alembic**. Instead, `database.py` has a custom `apply_migrations()` function that:
 
-| Global Helper           | Description                                               |
-| ----------------------- | --------------------------------------------------------- |
-| `fmt_bytes(size)`       | Converts bytes to human-readable string (KB, MB, etc.)    |
-| `media_thumbnail(item)` | Returns thumbnail URL from metadata, fallback to original |
-| `media_dim(item)`       | Returns `"W × H px"` string from metadata JSON            |
+1. On every startup, iterates a list of `(table, column, definition)` tuples.
+2. Checks `INFORMATION_SCHEMA.COLUMNS` to see if the column exists.
+3. If it doesn't exist, runs `ALTER TABLE ADD COLUMN`.
+4. Safe to run repeatedly — idempotent.
 
-> **Critical:** All routers must `from templates_config import templates`. If each router creates its own `Jinja2Templates` instance, the global helpers won't be available and templates will throw `UndefinedError`.
-
----
-
-## DB Connection & Retry
-
-`DATABASE_URL` is read from the environment (injected by Docker Compose).
-If the env var is missing, it falls back to a local dev connection string.
-
-On startup, the app runs `create_engine_with_retry()` — it attempts to connect
-up to **10 times with 3-second gaps**. Combined with the Docker Compose
-MySQL `healthcheck` (condition: `service_healthy`), this permanently prevents
-the race condition where FastAPI starts before MySQL is ready.
-
----
-
-## Startup Sequence (`main.py`)
-
-1. `Base.metadata.create_all(engine)` — creates any new tables
-2. `apply_migrations()` — safely adds new columns to existing tables
-3. `seed_settings()` — inserts default `PlatformSetting` rows if missing
-4. `app = FastAPI(...)` — creates app, mounts `/static`
-5. `app.include_router(...)` — registers all 9 feature routers
+New columns must be added to the `migrations` list in `database.py`.

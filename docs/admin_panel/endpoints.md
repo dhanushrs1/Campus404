@@ -1,231 +1,349 @@
-# API Endpoints — Campus404 Admin Panel
+# API Endpoints Reference — Campus404
 
-All routes return `text/html` (Jinja2 rendered pages).
-Mutation routes (POST) respond with **HTTP 303 redirect** on success.
-Base path: `http://localhost:8000`
-
-Each feature lives in its own router file under `server/routers/`.
+> All endpoints are served by the FastAPI backend.
+> **Nginx routes**: `GET/POST /api/*` → strips `/api` prefix → FastAPI receives the path without `/api`.
+>
+> Base URL (internal): `http://campus_backend:8000`  
+> Base URL (via proxy): `http://localhost` (port 80 in production, port 3000 in dev via Nginx)
 
 ---
 
-## Dashboard
+## Public API (React Frontend)
 
-**Router:** `routers/dashboard.py`
+These endpoints are consumed by the React app and are **publicly accessible** (no auth currently).
 
-| Method | Path     | Response       |
-| ------ | -------- | -------------- |
-| `GET`  | `/admin` | Dashboard page |
+### `GET /`
 
-**Template context:**
+Health check.
 
-```python
-{
-  "active": "dashboard",
-  "user_count": int,
-  "lab_count": int,
-  "level_count": int,
-  "submission_count": int,
-  "badge_count": int,
-  "recent_submissions": list[Submission],  # latest 8, desc by timestamp
-}
+**Response:**
+
+```json
+{ "message": "Campus404 Backend is Running!" }
 ```
 
 ---
 
-## Users
+### `GET /challenges`
 
-**Router:** `routers/users.py`
+Returns all **published** challenges, ordered by `module_id` then `order_number`.
 
-| Method | Path                                  | Description        |
-| ------ | ------------------------------------- | ------------------ |
-| `GET`  | `/admin/users`                        | List all users     |
-| `POST` | `/admin/users/{user_id}/toggle-admin` | Toggle `is_admin`  |
-| `POST` | `/admin/users/{user_id}/toggle-ban`   | Toggle `is_banned` |
+**Response:** `Array<ChallengePublicResponse>`
 
-**Path params:** `user_id: int`
-**Redirect on POST:** `303 → /admin/users`
+```json
+[
+  {
+    "id": 1,
+    "title": "Fix the Off-By-One Error",
+    "module_id": 2,
+    "order_number": 1,
+    "description": "<p>Context HTML...</p>",
+    "editor_file_name": "main.py",
+    "instructions": "<p>Fix the loop...</p>",
+    "starter_code": "for i in range(0, 10):\n    ...",
+    "hint_text": "Check the loop range.",
+    "walkthrough_video_url": null,
+    "repo_link": null
+  }
+]
+```
 
----
-
-## Labs
-
-**Router:** `routers/labs.py`
-
-| Method | Path                          | Description   |
-| ------ | ----------------------------- | ------------- |
-| `GET`  | `/admin/labs`                 | List all labs |
-| `GET`  | `/admin/labs/new`             | New lab form  |
-| `POST` | `/admin/labs/create`          | Create lab    |
-| `GET`  | `/admin/labs/{lab_id}/edit`   | Edit lab form |
-| `POST` | `/admin/labs/{lab_id}/update` | Update lab    |
-| `POST` | `/admin/labs/{lab_id}/delete` | Delete lab    |
-
-**Form fields (create & update):**
-
-| Field         | Type  | Required |
-| ------------- | ----- | -------- |
-| `name`        | `str` | ✅       |
-| `description` | `str` | ❌       |
+> 🔒 `official_solution` and `TestCase.expected_output` are **never returned** to prevent cheating.
 
 ---
 
-## Levels
+### `GET /challenges/{challenge_id}`
 
-**Router:** `routers/levels.py`
+Returns a single published challenge by ID.
 
-| Method | Path                              | Description     |
-| ------ | --------------------------------- | --------------- |
-| `GET`  | `/admin/levels`                   | List all levels |
-| `GET`  | `/admin/levels/new`               | New level form  |
-| `POST` | `/admin/levels/create`            | Create level    |
-| `GET`  | `/admin/levels/{level_id}/edit`   | Edit level form |
-| `POST` | `/admin/levels/{level_id}/update` | Update level    |
-| `POST` | `/admin/levels/{level_id}/delete` | Delete level    |
+**Path params:** `challenge_id: int`
 
-**Form fields (create & update):**
+**Response:** `ChallengePublicResponse` (same schema as above)
 
-| Field               | Type              | Required | Notes                  |
-| ------------------- | ----------------- | -------- | ---------------------- |
-| `lab_id`            | `int`             | ✅       | Selected from dropdown |
-| `order_number`      | `int`             | ✅       | Lower = unlocks first  |
-| `title`             | `str`             | ✅       |                        |
-| `broken_code`       | `str`             | ❌       | Shown to student       |
-| `expected_output`   | `str`             | ❌       | Used for auto-grading  |
-| `hint_text`         | `str`             | ❌       |                        |
-| `official_solution` | `str`             | ❌       | Revealed after pass    |
-| `is_published`      | `"on"` \| omitted | ❌       | Checkbox value         |
-| `repo_link`         | `str`             | ❌       | GitHub/resource URL    |
+**Errors:**
+
+- `404` — Challenge not found or not published.
 
 ---
 
-## Submissions
+### `GET /labs`
 
-**Router:** `routers/submissions.py`
+Returns all labs, ordered by `order_number`.
 
-| Method | Path                 | Description                      |
-| ------ | -------------------- | -------------------------------- |
-| `GET`  | `/admin/submissions` | List all submissions (read-only) |
+**Response:**
 
-> No create / edit / delete — submissions are written by the game engine only.
-
----
-
-## Badges
-
-**Router:** `routers/badges.py`
-
-| Method | Path                              | Description     |
-| ------ | --------------------------------- | --------------- |
-| `GET`  | `/admin/badges`                   | List all badges |
-| `GET`  | `/admin/badges/new`               | New badge form  |
-| `POST` | `/admin/badges/create`            | Create badge    |
-| `POST` | `/admin/badges/{badge_id}/delete` | Delete badge    |
-
-**Form fields (create):**
-
-| Field         | Type  | Required | Notes              |
-| ------------- | ----- | -------- | ------------------ |
-| `name`        | `str` | ✅       |                    |
-| `required_xp` | `int` | ❌       | Default `0`        |
-| `image_url`   | `str` | ❌       | Must be a full URL |
-
----
-
-## Settings
-
-**Router:** `routers/settings.py`
-
-| Method | Path              | Description                                    |
-| ------ | ----------------- | ---------------------------------------------- |
-| `GET`  | `/admin/settings` | Tabbed settings page (query param: `?tab=...`) |
-| `POST` | `/admin/settings` | Save settings for the current tab              |
-
-**Available tabs:** `gameplay` · `platform` · `access` · `media`
-
-**POST form fields:** any `PlatformSetting.key` whose value changed.
-Special field `_tab` is read to preserve the active tab on redirect.
-
-**GET template context:**
-
-```python
-{
-  "active": "settings",
-  "by_tab": dict[str, list[PlatformSetting]],  # settings grouped by tab
-  "active_tab": str,
-  "msg": str | None,
-  "msg_type": "success" | "error",
-}
+```json
+[
+  {
+    "id": 1,
+    "name": "Python Fundamentals",
+    "description": "...",
+    "order_number": 1
+  }
+]
 ```
 
 ---
 
-## Media Library
+### `GET /labs/{lab_id}/modules`
 
-**Router:** `routers/media.py`
+Returns all modules and their **nested published challenges** for a specific lab.
 
-| Method | Path                            | Description                                |
-| ------ | ------------------------------- | ------------------------------------------ |
-| `GET`  | `/admin/media`                  | Media library grid                         |
-| `POST` | `/admin/media/upload`           | Upload one or more image files             |
-| `GET`  | `/admin/media/{item_id}/edit`   | Edit metadata for a media item             |
-| `POST` | `/admin/media/{item_id}/update` | Save title, alt text, caption, description |
-| `POST` | `/admin/media/{item_id}/delete` | Delete file from disk + DB                 |
+**Path params:** `lab_id: int`
 
-### Upload — multipart form
+**Response:**
 
-- **Field name:** `files` (multiple `UploadFile`)
-- **Allowed MIME types:** `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/svg+xml`, `image/bmp`, `image/tiff`
-- **Auto-generates** thumbnail, medium, and large responsive copies using Pillow
-- **Resize dimensions** are read live from `PlatformSetting` (`media_*` keys)
-- **Folder organization:** when `media_organize=true`, files go into `static/uploads/YYYY/MM/`
-
-### Upload response sizes
-
-Pillow generates up to 3 sizes based on admin settings:
-
-| Size name   | Setting keys                        | Default        | Strategy                                |
-| ----------- | ----------------------------------- | -------------- | --------------------------------------- |
-| `thumbnail` | `media_thumb_w` / `media_thumb_h`   | 150 × 150 px   | Hard crop if `media_thumb_crop=true`    |
-| `medium`    | `media_medium_w` / `media_medium_h` | 300 × 300 px   | Fit inside box (aspect ratio preserved) |
-| `large`     | `media_large_w` / `media_large_h`   | 1024 × 1024 px | Fit inside box (aspect ratio preserved) |
-
-> Setting any dimension to `0` disables that size from being generated.
-
-### Delete behaviour
-
-- Removes the **original file** from disk
-- Removes **all responsive size files** listed in `metadata_json.sizes`
-- Deletes the **DB record**
-- Redirects `303 → /admin/media?msg=Deleted`
-
-### Search
-
-`GET /admin/media?q=term` — filters by `title` or `original_name` (SQL `LIKE`).
-
-### GET `/admin/media` template context:
-
-```python
-{
-  "active": "media",
-  "items": list[MediaItem],   # filtered + ordered by uploaded_at desc
-  "total": int,               # total count (before filter)
-  "q": str | None,
-  "msg": str | None,
-  "msg_type": "success" | "error",
-}
+```json
+[
+  {
+    "id": 1,
+    "title": "Variables & Types",
+    "lab_id": 1,
+    "order_number": 1,
+    "description": null,
+    "challenges": [ { "id": 1, "title": "Fix the Loop", ... } ]
+  }
+]
 ```
+
+**Errors:**
+
+- `404` — Lab not found.
 
 ---
 
-## Public API
+### `POST /execute`
 
-**Router:** `routers/api.py`
+Executes code against the Judge0 sandbox.
 
-| Method | Path      | Content-Type       | Description                         |
-| ------ | --------- | ------------------ | ----------------------------------- |
-| `GET`  | `/`       | `application/json` | API health check                    |
-| `GET`  | `/levels` | `application/json` | Published levels (safe for browser) |
+**Request body:**
 
-> Browser calls `/api/levels` → Nginx strips `/api/` → FastAPI receives `/levels`.
+```json
+{
+  "source_code": "print('Hello World')",
+  "language_id": 71
+}
+```
 
-See [`public_api.md`](../public_api.md) for full schema details.
+| Field         | Type   | Default  | Notes                              |
+| ------------- | ------ | -------- | ---------------------------------- |
+| `source_code` | string | required | Code to execute                    |
+| `language_id` | int    | `71`     | Judge0 language ID (71 = Python 3) |
+
+**Response:**
+
+```json
+{ "output": "Hello World\n" }
+```
+
+**Fallback behavior:** If Judge0 returns an Internal Error for Python (language_id 71), the backend executes the code locally using `subprocess` with a 5-second timeout.
+
+**Errors:**
+
+- `500` — Execution failed; `detail` contains the error message.
+
+---
+
+## Admin Panel Endpoints (HTML Pages)
+
+These serve server-rendered HTML templates via Jinja2. They are intended for admin use.
+
+### Dashboard
+
+| Method | Path     | Description                                                                                                        |
+| ------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GET`  | `/admin` | Dashboard: metrics (users, labs, challenges, submissions, badges), system health (DB + Judge0), recent submissions |
+
+---
+
+### Users
+
+| Method | Path                                    | Description                                          |
+| ------ | --------------------------------------- | ---------------------------------------------------- |
+| `GET`  | `/admin/users`                          | List all users                                       |
+| `GET`  | `/admin/users/{user_id}`                | User detail: profile, progress, current challenge    |
+| `POST` | `/admin/users/{user_id}/toggle-admin`   | Toggle `is_admin` flag                               |
+| `POST` | `/admin/users/{user_id}/toggle-ban`     | Toggle `is_banned` flag                              |
+| `POST` | `/admin/users/{user_id}/adjust-xp`      | Adjust `total_xp` by a delta (form: `xp_delta: int`) |
+| `POST` | `/admin/users/{user_id}/reset-password` | Reset password (form: `new_password: str`)           |
+
+---
+
+### Labs
+
+| Method | Path                          | Description                                              |
+| ------ | ----------------------------- | -------------------------------------------------------- |
+| `GET`  | `/admin/labs`                 | List all labs with module counts                         |
+| `GET`  | `/admin/labs/new`             | Blank lab creation form                                  |
+| `POST` | `/admin/labs/create`          | Create lab (form: `name`, `description`, `order_number`) |
+| `GET`  | `/admin/labs/{lab_id}/edit`   | Edit form pre-filled with existing data                  |
+| `POST` | `/admin/labs/{lab_id}/update` | Update lab                                               |
+| `POST` | `/admin/labs/{lab_id}/delete` | Delete lab (cascades to modules and challenges)          |
+
+---
+
+### Modules
+
+| Method | Path                                | Query Params  | Description                                                            |
+| ------ | ----------------------------------- | ------------- | ---------------------------------------------------------------------- |
+| `GET`  | `/admin/modules`                    | `lab_id: int` | List modules for a lab (redirects to /admin/labs if no lab_id)         |
+| `GET`  | `/admin/modules/new`                | `lab_id: int` | New module form                                                        |
+| `POST` | `/admin/modules/create`             | —             | Create module (form: `lab_id`, `order_number`, `title`, `description`) |
+| `GET`  | `/admin/modules/{module_id}/edit`   | —             | Edit form                                                              |
+| `POST` | `/admin/modules/{module_id}/update` | —             | Update module                                                          |
+| `POST` | `/admin/modules/{module_id}/delete` | —             | Delete module                                                          |
+
+---
+
+### Challenges (UI)
+
+| Method | Path                                      | Query Params     | Description                                |
+| ------ | ----------------------------------------- | ---------------- | ------------------------------------------ |
+| `GET`  | `/admin/challenges`                       | `module_id: int` | List challenges for a module               |
+| `GET`  | `/admin/challenges/new`                   | `module_id: int` | Open drag-and-drop Challenge Builder (new) |
+| `GET`  | `/admin/challenges/{challenge_id}/edit`   | —                | Open Challenge Builder (edit existing)     |
+| `POST` | `/admin/challenges/{challenge_id}/delete` | —                | Delete challenge                           |
+
+> **Note:** Creating and updating challenges goes through the **Admin REST API** (below), not raw form POSTs. The Builder UI calls `fetch()` to `POST /admin/challenges` or `PUT /admin/challenges/{id}`.
+
+---
+
+### Admin REST API — Challenge Builder
+
+These are **JSON REST endpoints** that power the drag-and-drop Challenge Builder frontend.
+All endpoints are prefixed with `/admin/challenges`.
+
+| Method | Path                     | Description                                          |
+| ------ | ------------------------ | ---------------------------------------------------- |
+| `POST` | `/admin/challenges`      | Create challenge with files and test cases           |
+| `GET`  | `/admin/challenges/{id}` | Get full challenge data including files + test cases |
+| `PUT`  | `/admin/challenges/{id}` | Update challenge (replaces all files and test cases) |
+
+**POST/PUT Request Body Schema:**
+
+```json
+{
+  "title": "Fix the Loop",
+  "module_id": 1,
+  "order_number": 3,
+  "description": "Story/context HTML string",
+  "environment": "standard_script",
+  "content_blocks": [{ "type": "text", "content": "..." }],
+  "files": [
+    {
+      "name": "main.py",
+      "language": "python",
+      "content": "# starter code here",
+      "is_entry_point": true
+    }
+  ],
+  "test_cases": [
+    {
+      "input_data": "5",
+      "expected_output": "25",
+      "is_hidden": false
+    }
+  ]
+}
+```
+
+**Response:** Full `ChallengeResponse` including `id`, `files[].id`, `test_cases[].id`.
+
+---
+
+### Submissions
+
+| Method | Path                                          | Query Params                           | Description                                            |
+| ------ | --------------------------------------------- | -------------------------------------- | ------------------------------------------------------ |
+| `GET`  | `/admin/submissions`                          | `user_id?`, `challenge_id?`, `status?` | List all submissions with optional filters             |
+| `GET`  | `/admin/submissions/{submission_id}/playback` | —                                      | View a specific submission's code (read-only playback) |
+
+---
+
+### Badges
+
+| Method | Path                              | Description                                                            |
+| ------ | --------------------------------- | ---------------------------------------------------------------------- |
+| `GET`  | `/admin/badges`                   | List all badges ordered by `required_xp`                               |
+| `GET`  | `/admin/badges/new`               | New badge form                                                         |
+| `POST` | `/admin/badges/create`            | Create badge (form: `name`, `description`, `image_url`, `required_xp`) |
+| `GET`  | `/admin/badges/{badge_id}/edit`   | Edit form                                                              |
+| `POST` | `/admin/badges/{badge_id}/update` | Update badge                                                           |
+| `POST` | `/admin/badges/{badge_id}/delete` | Delete badge                                                           |
+
+---
+
+### Settings
+
+| Method | Path              | Query Params                 | Description                         |
+| ------ | ----------------- | ---------------------------- | ----------------------------------- |
+| `GET`  | `/admin/settings` | `tab?` (default: `gameplay`) | Show settings grouped by tab        |
+| `POST` | `/admin/settings` | —                            | Save all changed values (form body) |
+
+---
+
+### Media Library
+
+| Method | Path                            | Query Params        | Description                                                         |
+| ------ | ------------------------------- | ------------------- | ------------------------------------------------------------------- |
+| `GET`  | `/admin/media`                  | `q?` (search query) | Media library gallery; supports search by title/filename            |
+| `POST` | `/admin/media/upload`           | —                   | Upload one or more images (multipart form, field: `files`)          |
+| `GET`  | `/admin/media/{item_id}/edit`   | —                   | Edit media metadata                                                 |
+| `POST` | `/admin/media/{item_id}/update` | —                   | Save metadata (`title`, `alt_text`, `caption`, `description`)       |
+| `POST` | `/admin/media/{item_id}/delete` | —                   | Delete media item (removes original + resized files from disk + DB) |
+| `GET`  | `/admin/api/media`              | `q?`                | **JSON** — returns media list for WYSIWYG Image Picker modal        |
+
+**Upload behaviour:**
+
+- Allowed MIME types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/svg+xml`, `image/bmp`, `image/tiff`
+- Files are sanitised (alphanumeric + `.-_`) and lowercased
+- Pillow generates `thumbnail`, `medium`, and `large` variants automatically
+- Sizes and dimensions are configurable via Platform Settings (media tab)
+- Files organised into `YYYY/MM/` subfolders (configurable)
+
+---
+
+### Leaderboard
+
+| Method | Path                 | Description                           |
+| ------ | -------------------- | ------------------------------------- |
+| `GET`  | `/admin/leaderboard` | Users ranked by `total_xp` descending |
+
+---
+
+### Analytics
+
+| Method | Path               | Description                                                                                   |
+| ------ | ------------------ | --------------------------------------------------------------------------------------------- |
+| `GET`  | `/admin/analytics` | Level difficulty stats: pass rate per challenge, difficulty classification (easy/medium/hard) |
+
+**Difficulty classification:**
+| Pass Rate | Label |
+|-----------|-------|
+| ≥ 60% | `easy` |
+| 20–59% | `medium` |
+| < 20% | `hard` |
+| No data | `no_data` |
+| ≥ 10 attempts, 0 passes | ⚠️ Warn flag |
+
+---
+
+### System Logs
+
+| Method | Path              | Query Params                         | Description                                 |
+| ------ | ----------------- | ------------------------------------ | ------------------------------------------- |
+| `GET`  | `/admin/logs`     | —                                    | Log viewer page (Docker socket based)       |
+| `GET`  | `/admin/logs/api` | `container?`, `tail?` (default: 200) | **JSON** — last N log lines for a container |
+
+**Available containers:**
+
+| Container name          | Label                 |
+| ----------------------- | --------------------- |
+| `campus_backend`        | Backend API Server    |
+| `campus_frontend`       | Frontend Vite Server  |
+| `campus_sandbox_api`    | Judge0 Server API     |
+| `campus_sandbox_worker` | Judge0 Worker         |
+| `campus_db`             | MySQL Database        |
+| `campus_nginx`          | Nginx Proxy           |
+| `campus_sandbox_db`     | PostgreSQL Sandbox DB |
+| `campus_sandbox_redis`  | Redis Sandbox Queue   |
