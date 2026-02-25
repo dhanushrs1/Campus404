@@ -58,6 +58,8 @@ class Challenge(Base):
     official_solution = Column(Text)
     is_published      = Column(Boolean, default=False)
     repo_link         = Column(String(500), nullable=True)
+    xp_override       = Column(Integer, nullable=True)       # NULL = use global xp_per_level
+    language_id       = Column(Integer, default=71)           # Judge0 language ID (71 = Python 3)
     module            = relationship("Module", back_populates="challenges")
     user_progress     = relationship("UserProgress", back_populates="challenge")
     submissions       = relationship("Submission", back_populates="challenge")

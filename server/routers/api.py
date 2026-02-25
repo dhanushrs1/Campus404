@@ -34,6 +34,8 @@ class ChallengePublicResponse(BaseModel):
     hint_text:             Optional[str] = None
     walkthrough_video_url: Optional[str] = None
     repo_link:             Optional[str] = None
+    xp_override:           Optional[int] = None
+    language_id:           int = 71
 
     class Config:
         from_attributes = True

@@ -58,6 +58,9 @@ def apply_migrations():
         ("labs",    "order_number", "INT NOT NULL DEFAULT 0"),
         ("challenges",  "description",  "TEXT NULL"),
         ("badges",  "description",  "TEXT NULL"),
+        # v3 — builder features
+        ("challenges", "xp_override", "INT NULL"),
+        ("challenges", "language_id", "INT NOT NULL DEFAULT 71"),
     ]
     with engine.connect() as conn:
         db_name = engine.url.database

@@ -33,6 +33,8 @@ class ChallengeCreateRequest(BaseModel):
     content_blocks: List[Any] = []
     files: List[ChallengeFileSchema] = []
     test_cases: List[TestCaseSchema] = []
+    xp_override: Optional[int] = None
+    language_id: int = 71
 
 class ChallengeFileResponse(ChallengeFileSchema):
     id: int
@@ -67,7 +69,9 @@ def create_challenge(payload: ChallengeCreateRequest, db: Session = Depends(get_
         description=payload.description,
         environment=payload.environment,
         content_blocks=payload.content_blocks,
-        is_published=False
+        is_published=False,
+        xp_override=payload.xp_override,
+        language_id=payload.language_id
     )
     db.add(challenge)
     db.flush() 
@@ -120,6 +124,8 @@ def update_challenge(id: int, payload: ChallengeCreateRequest, db: Session = Dep
     challenge.description = payload.description
     challenge.environment = payload.environment
     challenge.content_blocks = payload.content_blocks
+    challenge.xp_override = payload.xp_override
+    challenge.language_id = payload.language_id
     
     # Replace files: delete old ones, add new ones
     db.query(ChallengeFile).filter(ChallengeFile.challenge_id == challenge.id).delete()

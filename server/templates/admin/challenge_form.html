@@ -5,214 +5,299 @@
 {% block page_title %}{{ 'Edit Challenge' if challenge else 'Create New Challenge' }}{% endblock %}
 
 {% block head %}
-  <!-- SortableJS for Drag and Drop -->
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-  <!-- Quill.js for WYSIWYG -->
+  <!-- Quill.js WYSIWYG -->
   <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
   <!-- Monaco Editor Loader -->
   <script src="https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/lib/umd/monaco-loader.min.js"></script>
-  
+
   <style>
-    .builder-header {
-      background-color: var(--bg-card);
-      border: 1px solid var(--bg-surface);
-      border-radius: 8px;
-      padding: 15px 20px;
-      margin-bottom: 20px;
+    /* ── Builder Chrome ─────────────────────────────────────── */
+    .builder-bar {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .builder-pills { display: flex; gap: 10px; flex-wrap: wrap; }
+    .b-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 5px 14px;
+      font-size: 0.76rem; font-weight: 600; color: var(--text-2);
+    }
+    .b-pill strong { color: var(--text-1); }
+    .b-pill svg { width: 13px; height: 13px; color: var(--brand-light); flex-shrink: 0; }
+
+    /* ── Block Stack ─────────────────────────────────────────── */
+    .block-stack { display: flex; flex-direction: column; gap: 16px; }
+
+    .cb {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: visible;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 160ms ease;
+    }
+    .cb:hover { border-color: var(--border-md); }
+
+    .cb-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.015);
+    }
+    .cb-icon {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
+    .cb-icon svg { width: 14px; height: 14px; stroke-width: 2; }
+    .cb-icon.brand  { background: var(--brand-soft); color: var(--brand-light); }
+    .cb-icon.green  { background: var(--success-soft); color: var(--success); }
+    .cb-icon.yellow { background: var(--warning-soft); color: var(--warning); }
+    .cb-icon.blue   { background: var(--info-soft); color: var(--info); }
+    .cb-icon.violet { background: rgba(167,139,250,0.12); color: var(--accent); }
+
+    .cb-label {
+      font-size: 0.82rem; font-weight: 700; color: var(--text-1);
+      letter-spacing: -0.01em; flex: 1;
+    }
+    .cb-req {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--danger); flex-shrink: 0;
     }
 
-    .metadata-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background-color: var(--bg-base);
-      border: 1px solid var(--bg-surface);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      color: var(--text-2);
-      font-weight: 500;
-      font-family: 'Inter', sans-serif;
+    .cb-actions { display: flex; gap: 4px; margin-left: auto; }
+    .cb-btn {
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); cursor: pointer;
+      color: var(--text-3); transition: all 160ms ease;
     }
-    
-    .metadata-pill strong { color: var(--text-1); }
+    .cb-btn:hover { color: var(--text-1); border-color: var(--border-md); background: var(--bg-hover); }
+    .cb-btn svg { width: 12px; height: 12px; stroke-width: 2.5; }
+    .cb-btn.danger:hover { color: var(--danger); border-color: rgba(239,68,68,0.3); background: var(--danger-soft); }
 
-    .split-layout {
-      display: grid;
-      grid-template-columns: 260px 1fr;
-      gap: 20px;
-      align-items: start;
+    .cb-body { padding: 16px; }
+
+    /* ── Quill Overrides ─────────────────────────────────────── */
+    .cb .ql-toolbar.ql-snow {
+      border: 1px solid var(--border); background: var(--bg-surface);
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      font-family: var(--font);
     }
-
-    /* Toolbox (Left Pane) */
-    .toolbox {
-      background-color: var(--bg-card);
-      border: 1px solid var(--bg-surface);
-      border-radius: 8px;
-      padding: 15px;
-      position: sticky;
-      top: 20px;
+    .cb .ql-container.ql-snow {
+      border: 1px solid var(--border); font-family: var(--font);
+      font-size: 0.88rem; color: var(--text-1);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      min-height: 140px; background: var(--bg-surface);
     }
+    .cb .ql-snow .ql-stroke { stroke: var(--text-3); }
+    .cb .ql-snow .ql-fill   { fill: var(--text-3); }
+    .cb .ql-snow.ql-toolbar button:hover .ql-stroke { stroke: var(--brand-light); }
+    .cb .ql-snow.ql-toolbar button:hover .ql-fill   { fill: var(--brand-light); }
+    .cb .ql-editor.ql-blank::before { color: var(--text-3); font-style: normal; }
 
-    .toolbox h3 {
-      font-family: 'Sora', sans-serif;
-      font-size: 14px;
-      color: var(--text-1);
-      margin-top: 0;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--bg-surface);
+    /* ── Code Editor Block ───────────────────────────────────── */
+    .ce-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
     }
 
-    .tool-btn {
-      display: flex;
-      align-items: center;
+    /* Tab bar */
+    .ce-tabs-bar {
+      display: flex; align-items: stretch;
+      background: var(--bg-surface); border-bottom: 1px solid var(--border);
+      padding: 0; min-height: 36px;
+      overflow: hidden;
+    }
+    .ce-tabs-scroll {
+      display: flex; align-items: stretch; gap: 0;
+      overflow-x: auto; overflow-y: hidden; flex: 1;
+      scrollbar-width: thin; scrollbar-color: var(--border-md) transparent;
+    }
+    .ce-tabs-scroll::-webkit-scrollbar { height: 6px; }
+    .ce-tabs-scroll::-webkit-scrollbar-track { background: var(--bg-surface); }
+    .ce-tabs-scroll::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 3px; }
+    .ce-tabs-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+    .ce-tab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 12px; min-height: 36px;
+      font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500;
+      color: var(--text-2); cursor: pointer;
+      border-right: 1px solid var(--border);
+      white-space: nowrap; flex-shrink: 0;
+      transition: background 120ms ease, color 120ms ease;
+      user-select: none;
+    }
+    .ce-tab:hover { background: var(--bg-hover); }
+    .ce-tab.active { background: var(--bg-card); color: var(--text-1); }
+
+    .ce-tab input.tf {
+      background: transparent; border: none; outline: none;
+      font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500;
+      color: inherit; width: 80px; padding: 0;
+    }
+
+    /* Tiny icon buttons inside tabs */
+    .ti {
+      width: 16px; height: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); border-radius: 3px;
+      transition: color 120ms ease, background 120ms ease;
+      flex-shrink: 0; padding: 0;
+    }
+    .ti:hover { color: var(--text-1); background: rgba(255,255,255,0.06); }
+    .ti svg { width: 10px; height: 10px; stroke-width: 2.5; }
+    .ti.star { font-size: 11px; line-height: 1; }
+    .ti.star.on { color: #facc15; }
+    .ti.star:hover { color: #facc15; }
+    .ti.del:hover { color: var(--danger); }
+
+    /* Add file btn */
+    .ce-add-file {
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 10px; cursor: pointer;
+      background: none; border: none; border-left: 1px solid var(--border);
+      color: var(--text-3); transition: color 120ms ease;
+    }
+    .ce-add-file:hover { color: var(--brand-light); }
+    .ce-add-file svg { width: 13px; height: 13px; stroke-width: 2.5; }
+
+    /* Monaco */
+    .ce-monaco { height: 350px; width: 100%; position: relative; }
+
+    /* Entry-point strip */
+    .ce-strip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-top: 1px solid var(--border);
+      font-size: 0.7rem; color: var(--text-3);
+    }
+    .ce-strip .ep-star { color: #facc15; }
+    .ce-strip .ep-name { color: var(--text-1); font-weight: 700; font-family: var(--font-mono); }
+
+    /* ── Simple input blocks (video, repo) ───────────────────── */
+    .cb .si {
+      width: 100%; background: var(--bg-surface);
+      border: 1px solid var(--border-md);
+      border-radius: var(--radius-md);
+      padding: 10px 13px; font-family: var(--font);
+      font-size: 0.86rem; color: var(--text-1);
+      outline: none; transition: border-color 160ms ease, box-shadow 160ms ease;
+      box-sizing: border-box;
+    }
+    .cb .si:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-glow);
+    }
+    .cb .si::placeholder { color: var(--text-3); }
+
+    /* ── Add Block Grid ──────────────────────────────────────── */
+    .add-block-area {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; margin-top: 8px;
+    }
+
+    .add-block-trigger {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 24px;
+      background: var(--bg-card); border: 1px dashed var(--border-md);
+      border-radius: var(--radius-lg);
+      font-family: var(--font); font-size: 0.84rem; font-weight: 600;
+      color: var(--text-2); cursor: pointer;
+      transition: all 160ms ease;
+    }
+    .add-block-trigger:hover {
+      border-color: var(--brand-border); color: var(--brand-light);
+      background: var(--brand-glow);
+    }
+    .add-block-trigger svg { width: 16px; height: 16px; stroke-width: 2.5; }
+
+    .add-grid {
+      display: none;
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       width: 100%;
-      padding: 12px;
-      background-color: var(--bg-base);
-      border: 1px solid var(--bg-surface);
-      border-radius: 6px;
-      color: var(--text-2);
-      font-family: 'Inter', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: grab;
-      margin-bottom: 10px;
-      transition: all 0.2s;
+      max-width: 520px;
+      animation: fadeIn 0.15s ease;
+    }
+    .add-grid.open { display: grid; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .ag-card {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; padding: 18px 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      cursor: pointer; transition: all 160ms ease;
+      text-align: center; position: relative;
+    }
+    .ag-card:hover {
+      border-color: var(--brand-border); background: var(--brand-glow);
+      box-shadow: var(--shadow-brand);
+    }
+    .ag-card .ag-icon {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-md); flex-shrink: 0;
+    }
+    .ag-card .ag-icon svg { width: 18px; height: 18px; stroke-width: 1.8; }
+    .ag-card .ag-name { font-size: 0.78rem; font-weight: 600; color: var(--text-1); line-height: 1.1; }
+    .ag-card .ag-sub { font-size: 0.65rem; color: var(--text-3); margin-top: -2px; }
+    .ag-card .ag-req {
+      position: absolute; top: 8px; right: 8px;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--danger);
     }
 
-    .tool-btn:hover { background-color: var(--bg-surface); color: var(--text-1); }
-    .tool-btn:active { cursor: grabbing; }
-
-    /* Canvas (Right Pane) */
-    .canvas-container {
-      background-color: var(--bg-card);
-      border: 1px solid var(--bg-surface);
-      border-radius: 8px;
-      min-height: calc(100vh - 250px);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
+    /* Disabled card (Code Editor already exists) */
+    .ag-card.disabled {
+      opacity: 0.35; cursor: not-allowed;
+      pointer-events: none;
     }
 
-    #canvas-area {
-      flex: 1;
-      min-height: 60vh; /* Ensure tall canvas */
-      border: 2px dashed var(--bg-surface);
-      border-radius: 8px;
-      padding: 15px;
-      padding-bottom: 60vh; /* Massive drop area at the bottom for SortableJS dropping */
-      background-color: rgba(0,0,0,0.02);
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+    /* Shake on trying disabled */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      15%     { transform: translateX(-5px); }
+      30%     { transform: translateX(5px); }
+      45%     { transform: translateX(-4px); }
+      60%     { transform: translateX(4px); }
+      75%     { transform: translateX(-2px); }
+      90%     { transform: translateX(2px); }
     }
-    
-    .block-error {
-       border: 2px solid #ff4d4f !important;
-       background-color: rgba(255, 77, 79, 0.05) !important;
-    }
-    #order-error-msg {
-       display: none;
-       background-color: #ff4d4f;
-       color: white;
-       padding: 12px 15px;
-       border-radius: 6px;
-       margin-bottom: 15px;
-       font-size: 13px;
-       font-weight: 500;
-       align-items: center;
-       gap: 8px;
-    }
+    .shake-it { animation: shake 0.4s ease; pointer-events: auto !important; opacity: 0.5 !important; }
 
-    #canvas-area:empty::before {
-      content: "Drag blocks here from the toolbox...";
-      display: block;
-      text-align: center;
-      color: var(--text-3);
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
-      margin-top: 40px;
+    /* ── Toast ───────────────────────────────────────────────── */
+    #toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(14px);
+      background: var(--bg-card); border: 1px solid var(--brand-border);
+      color: var(--text-1); font-family: var(--font);
+      font-size: 0.8rem; font-weight: 500;
+      padding: 10px 22px; border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 9999; white-space: nowrap;
     }
+    #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* Dropped Blocks */
-    .content-block {
-      background-color: var(--bg-base);
-      border: 1px solid var(--bg-surface);
-      border-radius: 6px;
-      padding: 15px;
-      position: relative;
-      cursor: grab;
+    /* ── Empty State ─────────────────────────────────────────── */
+    .empty-canvas {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 50px 20px 30px; color: var(--text-3);
+      font-size: 0.84rem; gap: 6px;
     }
-    .content-block.sortable-ghost { opacity: 0.4; background-color: var(--bg-surface); }
-    .content-block.sortable-drag { cursor: grabbing; }
-
-    .block-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      border-bottom: 1px solid var(--bg-surface);
-      padding-bottom: 10px;
-    }
-
-    .block-title {
-      font-family: 'Sora', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-1);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .remove-block-btn {
-      background: transparent;
-      border: none;
-      color: #ff4d4f;
-      cursor: pointer;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-    }
-    .remove-block-btn:hover { opacity: 1; }
-
-    /* Forms */
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; color: var(--text-2); font-size: 12px; font-weight: 600; margin-bottom: 6px; }
-    .form-input, .form-textarea {
-      width: 100%;
-      background-color: var(--bg-card);
-      border: 1px solid var(--bg-surface);
-      color: var(--text-1);
-      padding: 10px;
-      border-radius: 4px;
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
-      outline: none;
-    }
-    .form-input:focus, .form-textarea:focus { border-color: var(--brand); }
-    .form-textarea { min-height: 100px; resize: vertical; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
-    
-    /* Quill Editor Overrides */
-    .ql-toolbar.ql-snow { border: 1px solid var(--bg-surface); background: var(--bg-card); font-family: 'Inter', sans-serif; border-radius: 4px 4px 0 0; }
-    .ql-container.ql-snow { border: 1px solid var(--bg-surface); font-family: 'Inter', sans-serif; font-size: 14px; border-radius: 0 0 4px 4px; color: var(--text-1); min-height: 150px; background: var(--bg-card); }
-    .ql-snow.ql-toolbar button { color: var(--text-2); }
-    .ql-snow.ql-toolbar button:hover, .ql-snow .ql-toolbar button:hover { color: var(--brand); }
-    
-    /* Code Editor Block specific styles */
-    .code-tabs-header { display: flex; align-items: center; border-bottom: 1px solid var(--bg-surface); background: var(--bg-card); padding: 5px; gap: 5px; overflow-x: auto; }
-    .code-tab { padding: 6px 12px; background: var(--bg-base); border: 1px solid var(--bg-surface); border-radius: 4px; font-size: 12px; font-family: 'Inter', sans-serif; color: var(--text-2); cursor: pointer; display: flex; align-items: center; gap: 8px; }
-    .code-tab.active { background: var(--brand-alpha); border-color: var(--brand); color: var(--brand); }
-    .code-tab input.tab-name-input { background: transparent; border: none; outline: none; color: inherit; width: 80px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-    .add-tab-btn { background: var(--bg-surface); border: none; color: var(--text-2); cursor: pointer; padding: 6px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
-    .add-tab-btn:hover { color: var(--text-1); background: rgba(255,255,255,0.1); }
-    .monaco-container { height: 300px; width: 100%; border: 1px solid var(--bg-surface); border-top: none; }
-    .hidden-toggle { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #ff9800; cursor: pointer; margin-left: 8px; }
+    .empty-canvas svg { width: 38px; height: 38px; stroke-width: 1.2; margin-bottom: 4px; }
   </style>
 {% endblock %}
 
@@ -224,538 +309,659 @@
 {% endblock %}
 
 {% block content %}
-<form id="challenge-form" method="POST" action="">
-  <!-- Hidden input to hold serialized block array -->
-  <input type="hidden" name="content_blocks" id="hidden_content_blocks">
 
-  <!-- Metadata Header -->
-  <div class="builder-header">
-    <div class="flex-gap-15" style="display:flex; gap:15px">
-      <div class="metadata-pill">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="M2 15h10"/><path d="M9 18l3-3-3-3"/></svg>
-        Module: <strong>{{ module_name if module_name else "Unknown Module" }}</strong>
+<div id="toast"></div>
+
+<form id="cf" autocomplete="off">
+
+  <!-- ── Top bar ──────────────────────────────────────────── -->
+  <div class="builder-bar">
+    <div class="builder-pills">
+      <div class="b-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/></svg>
+        Module: <strong>{{ module_name if module_name else "—" }}</strong>
       </div>
-      <div class="metadata-pill">
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        Challenge Level: <strong>{{ challenge.order_number if challenge else auto_level }}</strong>
+      <div class="b-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Level: <strong>{{ challenge.order_number if challenge else auto_level }}</strong>
+      </div>
+      
+      <div class="b-pill" style="padding-right:6px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        XP: 
+        <input type="number" id="inp-xp" class="top-inp" placeholder="Default"
+               value="{{ challenge.xp_override if challenge and challenge.xp_override != None else '' }}"
+               style="width:60px; background:var(--bg-card); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 6px; font-size:12px; font-family:var(--font-mono); outline:none;">
+      </div>
+      
+      <div class="b-pill" style="padding-right:6px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Lang: 
+        <select id="inp-lang" class="top-inp" style="background:var(--bg-card); border:1px solid var(--border); border-radius:4px; color:var(--text-1); padding:2px 6px; font-size:12px; font-family:var(--font); outline:none; height:24px;">
+          {% set cur_lang = challenge.language_id if challenge else 71 %}
+          <option value="71" {% if cur_lang == 71 %}selected{% endif %}>Python 3</option>
+          <option value="63" {% if cur_lang == 63 %}selected{% endif %}>JavaScript</option>
+          <option value="74" {% if cur_lang == 74 %}selected{% endif %}>TypeScript</option>
+          <option value="62" {% if cur_lang == 62 %}selected{% endif %}>Java</option>
+          <option value="50" {% if cur_lang == 50 %}selected{% endif %}>C (GCC)</option>
+          <option value="54" {% if cur_lang == 54 %}selected{% endif %}>C++ (GCC)</option>
+          <option value="51" {% if cur_lang == 51 %}selected{% endif %}>C#</option>
+          <option value="60" {% if cur_lang == 60 %}selected{% endif %}>Go</option>
+          <option value="73" {% if cur_lang == 73 %}selected{% endif %}>Rust</option>
+          <option value="68" {% if cur_lang == 68 %}selected{% endif %}>PHP</option>
+          <option value="82" {% if cur_lang == 82 %}selected{% endif %}>SQL</option>
+          <option value="46" {% if cur_lang == 46 %}selected{% endif %}>Bash</option>
+        </select>
       </div>
     </div>
-    
-    <div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span id="draft-status" style="font-size:12px; color:var(--text-3); display:none;">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px; vertical-align:-2px;"><polyline points="20 6 9 17 4 12"/></svg>
+        Draft saved
+      </span>
       <button type="submit" class="btn btn-primary" id="save-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Save Challenge
       </button>
     </div>
   </div>
 
-  <div class="split-layout">
-    
-    <!-- Toolbox Pane -->
-    <div class="left-pane" style="position: sticky; top: 20px; display: flex; flex-direction: column; gap: 15px;">
-      
-      <div class="toolbox" id="toolbox" style="position: static; margin: 0;">
-        <h3>Add Block</h3>
-        
-        <div class="tool-btn" data-type="rich_text">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-          Rich Text / Markdown
-        </div>
-        
-        <div class="tool-btn" data-type="video">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
-          Video Embed
-        </div>
-        
-        <div class="tool-btn" data-type="repo">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-          Git Repository
-        </div>
-
-        <div class="tool-btn" data-type="code_editor">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-          Code Editor
-        </div>
-        
-        <div class="tool-btn" data-type="hint">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          Hint Box
-        </div>
-      </div>
-
-      <div class="toolbox-guide" style="font-size: 13px; color: var(--text-2); background: var(--bg-surface); border: 1px solid var(--bg-surface); border-radius: 8px; padding: 15px;">
-        <h4 style="margin-top: 0; color: var(--text-1); margin-bottom: 10px; font-size: 14px; display:flex; align-items:center; gap:6px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-          Block Order Guide
-        </h4>
-        <ol style="padding-left: 18px; margin-bottom: 0; display:flex; flex-direction:column; gap:10px;">
-          <li><strong>Rich Text</strong><br><span style="font-size:11px; opacity:0.8;">Description &amp; Instructions</span></li>
-          <li><strong>Code Editor</strong></li>
-          <li><strong>Hint Box</strong></li>
-          <li><em>Video Embed (Optional)</em></li>
-          <li><em>Git Repo (Optional)</em></li>
-        </ol>
-      </div>
-
-    </div>
-
-    <!-- Canvas Pane -->
-    <div class="canvas-container">
-      
+  <!-- ── Title ────────────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-body">
       <div class="form-group">
         <label>Challenge Title</label>
-        <input type="text" name="title" class="form-input" value="{{ challenge.title if challenge else '' }}" required placeholder="e.g. Iterating through a List">
+        <input type="text" name="title" id="inp-title"
+               value="{{ challenge.title if challenge else '' }}"
+               required placeholder="e.g. Fix the Broken Loop">
       </div>
-
-      <hr style="margin:20px 0; border:0; border-top:1px solid var(--bg-surface);">
-
-      <div id="order-error-msg" style="display:none;"></div>
-
-      <div id="canvas-area">
-        <!-- Dropped blocks spawn here -->
-      </div>
-      
     </div>
   </div>
+
+  <!-- ── Block Stack ──────────────────────────────────────── -->
+  <div class="block-stack" id="stack"></div>
+
+  <!-- ── Add Block ────────────────────────────────────────── -->
+  <div class="add-block-area">
+    <button type="button" class="add-block-trigger" id="add-trigger">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Block
+    </button>
+    <div class="add-grid" id="add-grid">
+      <!-- Rich Text -->
+      <div class="ag-card" data-add="rich_text">
+        <div class="ag-req"></div>
+        <div class="ag-icon" style="background:var(--brand-soft);color:var(--brand-light);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        </div>
+        <span class="ag-name">Rich Text</span>
+        <span class="ag-sub">Description, instructions</span>
+      </div>
+      <!-- Code Editor -->
+      <div class="ag-card" data-add="code_editor" id="ag-code">
+        <div class="ag-req"></div>
+        <div class="ag-icon" style="background:var(--success-soft);color:var(--success);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <span class="ag-name">Code Editor</span>
+        <span class="ag-sub">One per challenge</span>
+      </div>
+      <!-- Hint -->
+      <div class="ag-card" data-add="hint">
+        <div class="ag-req"></div>
+        <div class="ag-icon" style="background:var(--warning-soft);color:var(--warning);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        </div>
+        <span class="ag-name">Hint Box</span>
+        <span class="ag-sub">Collapsible clue</span>
+      </div>
+      <!-- Video -->
+      <div class="ag-card" data-add="video">
+        <div class="ag-icon" style="background:var(--info-soft);color:var(--info);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span class="ag-name">Video</span>
+        <span class="ag-sub">YouTube / embed</span>
+      </div>
+      <!-- Repo -->
+      <div class="ag-card" data-add="repo">
+        <div class="ag-icon" style="background:rgba(167,139,250,0.12);color:var(--accent);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        </div>
+        <span class="ag-name">Git Repo</span>
+        <span class="ag-sub">Repository link</span>
+      </div>
+    </div>
+  </div>
+
 </form>
 
+<!-- ════════════════════════════════════════════════════════════
+     SCRIPT
+     ════════════════════════════════════════════════════════════ -->
 <script>
-  // Hydrate existing challenge data safely
-  const rawBlocksData = `{{ challenge.content_blocks | tojson | safe if challenge and challenge.content_blocks else '[]' }}`;
-  const existingBlocks = JSON.parse(rawBlocksData);
+const CH_ID = "{{ challenge.id if challenge else 'new' }}";
+const DRAFT_KEY = `c404_draft_${CH_ID}`;
 
-  document.addEventListener('DOMContentLoaded', () => {
-    
-    const toolbox = document.getElementById('toolbox');
-    const canvas = document.getElementById('canvas-area');
+// Try to recover draft
+const rawDraft = localStorage.getItem(DRAFT_KEY);
+let draftObj = null;
+if (rawDraft) {
+  try {
+    draftObj = JSON.parse(rawDraft);
+    // If it's older than 2 hours, discard
+    if (Date.now() - draftObj.ts > 2 * 60 * 60 * 1000) draftObj = null;
+  } catch(e) {}
+}
 
-    // Real-time Canvas Validation
-    window.validateCanvasOrder = () => {
-      const blocksList = Array.from(canvas.querySelectorAll('.content-block'));
-      const blockTypes = blocksList.map(el => el.getAttribute('data-block-type'));
-      const errorMsgBox = document.getElementById('order-error-msg');
-      const saveBtn = document.getElementById('save-btn');
-      
-      blocksList.forEach(b => b.classList.remove('block-error'));
-      let orderError = "";
-      
-      if (blockTypes.length > 0) {
-        if (blockTypes[0] && blockTypes[0] !== 'rich_text') {
-           blocksList[0].classList.add('block-error');
-           orderError = "The 1st block must be 'Rich Text / Markdown'.";
-        } else if (blockTypes.length > 1 && blockTypes[1] !== 'code_editor') {
-           blocksList[1].classList.add('block-error');
-           orderError = "The 2nd block must be the 'Code Editor'.";
-        } else if (blockTypes.length > 2 && blockTypes[2] !== 'hint') {
-           blocksList[2].classList.add('block-error');
-           orderError = "The 3rd block must be the 'Hint Box'.";
-        } else if (blockTypes.length > 3) {
-           for (let i = 3; i < blockTypes.length; i++) {
-              if (blockTypes[i] !== 'video' && blockTypes[i] !== 'repo') {
-                 blocksList[i].classList.add('block-error');
-                 orderError = "Only optional blocks (Video, Git) allowed after Hint Box.";
-                 break;
-              }
-           }
-        }
-      }
-      
-      if (orderError) {
-         errorMsgBox.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> <span><strong>Error:</strong> ${orderError} Please fix to save.</span>`;
-         errorMsgBox.style.display = 'flex';
-         saveBtn.disabled = true;
-         saveBtn.style.opacity = '0.5';
-      } else {
-         errorMsgBox.style.display = 'none';
-         saveBtn.disabled = false;
-         saveBtn.style.opacity = '1';
-      }
-    };
+let RAW = `{{ challenge.content_blocks | tojson | safe if challenge and challenge.content_blocks else '[]' }}`;
+let EXISTING = JSON.parse(RAW);
 
-    // -- HYDRATION: Restore existing blocks --
-    if (existingBlocks && existingBlocks.length > 0) {
-      existingBlocks.forEach(block => {
-        const html = createBlockHtml(block.type, block.content);
-        const wrapper = document.createElement('div');
-        wrapper.className = 'content-block';
-        wrapper.setAttribute('data-block-type', block.type);
-        wrapper.innerHTML = html;
-        canvas.appendChild(wrapper);
-        initBlockScripts(wrapper, block.type, block.content);
-      });
-      window.validateCanvasOrder();
-    }
-    
-    // 1. Initialize Sortable for Canvas (Reordering)
-    new Sortable(canvas, {
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      handle: '.content-block', // drag anywhere on the block
-      onSort: function () {
-        window.validateCanvasOrder();
-      }
-    });
-
-    // 2. Setup draggability from Toolbox to Canvas using standard HTML5 Drag & Drop or Sortable "put"
-    // For simplicity, we'll configure Toolbox as a Sortable "clone" source
-    new Sortable(toolbox, {
-      group: {
-        name: 'shared',
-        pull: 'clone',
-        put: false // Don't allow dropping items back into the toolbox
-      },
-      animation: 150,
-      sort: false, // Toolbox items don't reorder intrinsically
-      onEnd: function (evt) {
-        // If the item was dropped successfully into another list (the canvas)
-        if (evt.to === canvas) {
-          const item = evt.item;
-          const blockType = item.getAttribute('data-type');
-          
-          // Generate the specific HTML for the dropped block
-          const html = createBlockHtml(blockType);
-          
-          // Replace the cloned tool-btn shadow that Sortable placed with our actual Block UI
-          const wrapper = document.createElement('div');
-          wrapper.className = 'content-block';
-          wrapper.setAttribute('data-block-type', blockType);
-          wrapper.innerHTML = html;
-          
-          canvas.replaceChild(wrapper, item);
-          initBlockScripts(wrapper, blockType, null);
-          window.validateCanvasOrder();
-        }
-      }
-    });
-    
-    // Also allow canvas to accept from 'shared' group
-    new Sortable(canvas, {
-      group: 'shared',
-      animation: 150,
-      ghostClass: 'sortable-ghost',
-      onSort: function() {
-        window.validateCanvasOrder();
-      }
-    });
-
-    // 3. Block HTML Generator
-    function createBlockHtml(type, initialData = '') {
-      let title = '';
-      let icon = '';
-      let inputHtml = '';
-      
-      // If initialData is an object (like for code_editor), handle specially or ignore for HTML string Gen.
-      const strData = typeof initialData === 'string' ? initialData : '';
-      
-      if (type === 'rich_text') {
-        title = 'Rich Text / Markdown';
-        icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>';
-        inputHtml = `<div class="quill-editor" data-placeholder="# Heading\nType instructions here...">${strData}</div>`;
-      } 
-      else if (type === 'video') {
-        title = 'Video Embed';
-        icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.33 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>';
-        inputHtml = `<input type="text" class="form-input block-value" placeholder="https://youtube.com/watch?v=..." value="${strData}">`;
-      }
-      else if (type === 'repo') {
-        title = 'Git Repository';
-        icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>';
-        inputHtml = `<input type="text" class="form-input block-value" placeholder="https://github.com/user/repo" value="${strData}">`;
-      }
-      else if (type === 'hint') {
-        title = 'Hint Box';
-        icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
-        inputHtml = `<div class="quill-editor" data-placeholder="Add a helpful hint...">${strData}</div>`;
-      }
-      else if (type === 'code_editor') {
-        title = 'Code Editor';
-        icon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>';
-        inputHtml = `
-          <div class="code-editor-block">
-            <div class="code-tabs-header">
-               <div class="code-tabs-list" style="display:flex; gap:5px;"></div>
-               <button type="button" class="add-tab-btn" title="Add File">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-               </button>
-            </div>
-            <div class="monaco-container"></div>
-          </div>
-        `;
-      }
-
-      return `
-        <div class="block-header">
-          <div class="block-title">${icon} ${title}</div>
-          <button type="button" class="remove-block-btn" onclick="this.closest('.content-block').remove(); window.validateCanvasOrder();">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <div class="block-content">
-          ${inputHtml}
-        </div>
-      `;
-    }
-
-    // 4. Initialize Block Scripts (Quill, Monaco, etc)
-    function initBlockScripts(wrapper, type, initialData) {
-      if (type === 'rich_text' || type === 'hint') {
-        const editorDiv = wrapper.querySelector('.quill-editor');
-        const quill = new Quill(editorDiv, {
-          theme: 'snow',
-          placeholder: editorDiv.getAttribute('data-placeholder'),
-          modules: {
-            toolbar: [
-              [{ 'header': [1, 2, 3, false] }],
-              ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-              [{'list': 'ordered'}, {'list': 'bullet'}],
-              ['link', 'image', 'code-block'],
-              ['clean']
-            ]
-          }
-        });
-        wrapper.quillInstance = quill; // Bind instance to element for serialization later
-      }
-      else if (type === 'code_editor') {
-        // We will initialize Monaco editor and tabs here.
-        wrapper.codeFiles = initialData && Array.isArray(initialData) ? initialData : [{ name: 'main.py', content: '# Write your code here', hidden: false }];
-        wrapper.activeFileIndex = 0;
-        
-        const monacoContainer = wrapper.querySelector('.monaco-container');
-        const tabsList = wrapper.querySelector('.code-tabs-list');
-        const addBtn = wrapper.querySelector('.add-tab-btn');
-        
-        const setMonacoLang = (filename) => {
-           if (!wrapper.monacoInstance) return;
-           let lang = 'python';
-           if (filename.endsWith('.js')) lang = 'javascript';
-           else if (filename.endsWith('.html')) lang = 'html';
-           else if (filename.endsWith('.css')) lang = 'css';
-           else if (filename.endsWith('.sql')) lang = 'sql';
-           monaco.editor.setModelLanguage(wrapper.monacoInstance.getModel(), lang);
-        };
-
-        const renderTabs = () => {
-          tabsList.innerHTML = '';
-          wrapper.codeFiles.forEach((file, index) => {
-            const tab = document.createElement('div');
-            tab.className = 'code-tab' + (index === wrapper.activeFileIndex ? ' active' : '');
-            
-            // Name input for renaming
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.className = 'tab-name-input';
-            nameInput.value = file.name;
-            nameInput.onchange = (e) => { file.name = e.target.value; setMonacoLang(file.name); };
-            nameInput.onclick = (e) => e.stopPropagation(); // prevent tab switch when typing
-            
-            // Hidden toggle
-            const eyeIcon = file.hidden 
-              ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
-              : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-            
-            const hideBtn = document.createElement('div');
-            hideBtn.className = 'hidden-toggle';
-            hideBtn.innerHTML = eyeIcon;
-            hideBtn.title = file.hidden ? 'Hidden from student' : 'Visible to student';
-            hideBtn.onclick = (e) => {
-              e.stopPropagation();
-              file.hidden = !file.hidden;
-              renderTabs();
-            };
-            
-            // Delete button (only if more than 1 file)
-            const delBtn = document.createElement('div');
-            delBtn.innerHTML = '&times;';
-            delBtn.style.cssText = "margin-left:5px; padding:2px; font-weight:bold; cursor:pointer;";
-            delBtn.onclick = (e) => {
-               e.stopPropagation();
-               if (wrapper.codeFiles.length > 1) {
-                  wrapper.codeFiles.splice(index, 1);
-                  if (wrapper.activeFileIndex >= wrapper.codeFiles.length) {
-                     wrapper.activeFileIndex = Math.max(0, wrapper.codeFiles.length - 1);
-                  } else if (wrapper.activeFileIndex > index) {
-                     wrapper.activeFileIndex--;
-                  }
-                  renderTabs();
-                  if (wrapper.monacoInstance) {
-                     wrapper.monacoInstance.setValue(wrapper.codeFiles[wrapper.activeFileIndex].content);
-                     setMonacoLang(wrapper.codeFiles[wrapper.activeFileIndex].name);
-                  }
-               } else {
-                  alert("You must have at least one file.");
-               }
-            };
-            
-            tab.appendChild(nameInput);
-            tab.appendChild(hideBtn);
-            tab.appendChild(delBtn);
-            
-            tab.onclick = () => {
-              // Save current
-              if (wrapper.monacoInstance) {
-                 wrapper.codeFiles[wrapper.activeFileIndex].content = wrapper.monacoInstance.getValue();
-              }
-              wrapper.activeFileIndex = index;
-              renderTabs();
-              
-              if (wrapper.monacoInstance) {
-                 wrapper.monacoInstance.setValue(wrapper.codeFiles[wrapper.activeFileIndex].content);
-                 setMonacoLang(file.name);
-              }
-            };
-            
-            tabsList.appendChild(tab);
-          });
-        };
-        
-        addBtn.onclick = () => {
-           if (wrapper.monacoInstance) {
-               wrapper.codeFiles[wrapper.activeFileIndex].content = wrapper.monacoInstance.getValue();
-           }
-           wrapper.codeFiles.push({ name: `file_${wrapper.codeFiles.length + 1}.py`, content: '', hidden: false });
-           wrapper.activeFileIndex = wrapper.codeFiles.length - 1;
-           renderTabs();
-           if (wrapper.monacoInstance) {
-              wrapper.monacoInstance.setValue('');
-              setMonacoLang(wrapper.codeFiles[wrapper.activeFileIndex].name);
-           }
-        };
-
-        renderTabs();
-        
-        // Wait for Monaco to load
-        require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.41.0/min/vs' }});
-        require(['vs/editor/editor.main'], function() {
-          wrapper.monacoInstance = monaco.editor.create(monacoContainer, {
-            value: wrapper.codeFiles[wrapper.activeFileIndex].content,
-            language: 'python',
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true
-          });
-          setMonacoLang(wrapper.codeFiles[wrapper.activeFileIndex].name);
-        });
-      }
-    }
-
-    // 4. Handle Form Submission
-    const form = document.getElementById('challenge-form');
-    form.addEventListener('submit', async (e) => {
+if (draftObj && draftObj.blocks && draftObj.blocks.length > 0) {
+  EXISTING = draftObj.blocks;
+  document.getElementById('inp-title').value = draftObj.title || '';
+  if (draftObj.xp !== null) document.getElementById('inp-xp').value = draftObj.xp;
+  if (draftObj.lang) document.getElementById('inp-lang').value = draftObj.lang;
+  
+  // Show toast with discard option
+  setTimeout(() => {
+    const t = document.getElementById('toast');
+    t.innerHTML = `Recovered unsaved draft. <a href="#" id="discard-draft" style="color:var(--brand); margin-left:10px; text-decoration:underline;">Discard</a>`;
+    t.classList.add('on');
+    document.getElementById('discard-draft').onclick = (e) => {
       e.preventDefault();
-      const saveBtn = document.getElementById('save-btn');
-      saveBtn.innerText = 'Saving...';
-      saveBtn.disabled = true;
+      localStorage.removeItem(DRAFT_KEY);
+      window.location.reload();
+    };
+    setTimeout(() => t.classList.remove('on'), 8000);
+  }, 500);
+}
 
-      // Validate Block Arrangement
-      const blockTypes = Array.from(document.querySelectorAll('#canvas-area .content-block')).map(el => el.getAttribute('data-block-type'));
-      let orderError = "";
-      
-      if (blockTypes.length < 3) {
-         orderError = "You must include at least the 3 mandatory blocks.";
-      } else if (blockTypes[0] !== 'rich_text') {
-         orderError = "The 1st block must be 'Rich Text / Markdown' for descriptions and instructions.";
-      } else if (blockTypes[1] !== 'code_editor') {
-         orderError = "The 2nd block must be the 'Code Editor'.";
-      } else if (blockTypes[2] !== 'hint') {
-         orderError = "The 3rd block must be the 'Hint Box'.";
-      } else {
-         for (let i = 3; i < blockTypes.length; i++) {
-            if (blockTypes[i] !== 'video' && blockTypes[i] !== 'repo') {
-               orderError = "Only optional blocks (Video Embed, Git Repository) are allowed after the Hint Box. No additional mandatory blocks.";
-               break;
-            }
-         }
+/* ── Toast ────────────────────────────────────────────────── */
+let _tt;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('on'), 3000);
+}
+
+/* ── SVG constants ────────────────────────────────────────── */
+const IC = {
+  rich_text:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>',
+  code_editor:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+  hint:         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+  video:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+  repo:         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>'
+};
+const LABELS = { rich_text: 'Rich Text', code_editor: 'Code Editor', hint: 'Hint Box', video: 'Video Embed', repo: 'Git Repository' };
+const COLORS = { rich_text: 'brand', code_editor: 'green', hint: 'yellow', video: 'blue', repo: 'violet' };
+const REQUIRED = ['rich_text', 'code_editor', 'hint'];
+
+/* ── DOM ──────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+
+const stack   = document.getElementById('stack');
+const trigger = document.getElementById('add-trigger');
+const grid    = document.getElementById('add-grid');
+const agCode  = document.getElementById('ag-code');
+
+/* ── State: each block = { id, type, el, data } ─────────── */
+let blocks = [];
+let nextId = 1;
+
+/* ── Add Grid toggle ─────────────────────────────────────── */
+trigger.addEventListener('click', () => grid.classList.toggle('open'));
+
+/* ── Add Grid cards ──────────────────────────────────────── */
+grid.querySelectorAll('.ag-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const type = card.dataset.add;
+    if (type === 'code_editor' && hasCodeEditor()) {
+      // Shake effect + toast
+      card.classList.remove('shake-it');
+      void card.offsetWidth;
+      card.classList.add('shake-it');
+      card.addEventListener('animationend', () => card.classList.remove('shake-it'), { once: true });
+      toast('Only one Code Editor block per challenge.');
+      return;
+    }
+    addBlock(type, null);
+    grid.classList.remove('open');
+    syncCodeButton();
+  });
+});
+
+function hasCodeEditor() {
+  return blocks.some(b => b.type === 'code_editor');
+}
+
+function syncCodeButton() {
+  if (hasCodeEditor()) agCode.classList.add('disabled');
+  else agCode.classList.remove('disabled');
+}
+
+/* ── Add a block to the stack ────────────────────────────── */
+function addBlock(type, data) {
+  const id = nextId++;
+  const el = document.createElement('div');
+  el.className = 'cb';
+  el.dataset.blockId = id;
+  el.dataset.blockType = type;
+  el.innerHTML = blockHTML(type, id);
+  stack.appendChild(el);
+
+  const block = { id, type, el, data };
+  blocks.push(block);
+
+  // Wire header buttons
+  el.querySelector('.cb-up').addEventListener('click',  () => moveBlock(id, -1));
+  el.querySelector('.cb-down').addEventListener('click', () => moveBlock(id, 1));
+  el.querySelector('.cb-del').addEventListener('click',  () => removeBlock(id));
+
+  initBlockContent(block);
+  syncCodeButton();
+  updateEmptyState();
+}
+
+/* ── Block header HTML ───────────────────────────────────── */
+function blockHTML(type, id) {
+  const req = REQUIRED.includes(type) ? '<span class="cb-req"></span>' : '';
+  return `
+    <div class="cb-head">
+      <div class="cb-icon ${COLORS[type]}">${IC[type]}</div>
+      <span class="cb-label">${LABELS[type]}</span>
+      ${req}
+      <div class="cb-actions">
+        <button type="button" class="cb-btn cb-up" title="Move up">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button type="button" class="cb-btn cb-down" title="Move down">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <button type="button" class="cb-btn danger cb-del" title="Remove">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="cb-body" id="body-${id}"></div>`;
+}
+
+/* ── Move / Remove ───────────────────────────────────────── */
+function moveBlock(id, dir) {
+  const i = blocks.findIndex(b => b.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= blocks.length) return;
+  // Swap in array
+  [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
+  // Swap in DOM
+  const parent = stack;
+  if (dir === -1) parent.insertBefore(blocks[i].el, blocks[j].el);
+  else            parent.insertBefore(blocks[j].el, blocks[i].el);
+}
+
+function removeBlock(id) {
+  const i = blocks.findIndex(b => b.id === id);
+  if (i === -1) return;
+  blocks[i].el.remove();
+  blocks.splice(i, 1);
+  syncCodeButton();
+  updateEmptyState();
+}
+
+function updateEmptyState() {
+  let emp = stack.querySelector('.empty-canvas');
+  if (blocks.length === 0 && !emp) {
+    emp = document.createElement('div');
+    emp.className = 'empty-canvas';
+    emp.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>No blocks yet</span>
+      <span style="font-size:0.75rem;">Click <strong>+ Add Block</strong> below to start building.</span>`;
+    stack.appendChild(emp);
+  } else if (blocks.length > 0 && emp) {
+    emp.remove();
+  }
+}
+
+/* ── Init block body content ─────────────────────────────── */
+function initBlockContent(block) {
+  const body = block.el.querySelector('.cb-body');
+
+  if (block.type === 'rich_text' || block.type === 'hint') {
+    const ph = block.type === 'hint'
+      ? 'Write a helpful hint for stuck students…'
+      : 'Write challenge description, context, or instructions…';
+    const edDiv = document.createElement('div');
+    body.appendChild(edDiv);
+    const q = new Quill(edDiv, {
+      theme: 'snow',
+      placeholder: ph,
+      modules: {
+        toolbar: [
+          [{ header: [1,2,3,false] }],
+          ['bold','italic','underline','strike','blockquote'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['link','image','code-block'],
+          ['clean']
+        ]
       }
+    });
+    block.quill = q;
+    // Hydrate
+    if (block.data && typeof block.data === 'string') {
+      q.root.innerHTML = block.data;
+    }
+  }
 
-      if (orderError) {
-         alert("Block Arrangement Error:\n\n" + orderError + "\n\nPlease follow the guide:\n1. Rich Text\n2. Code Editor\n3. Hint Box\n4+. (Optional Video/Repo)");
-         saveBtn.innerText = 'Save Challenge';
-         saveBtn.disabled = false;
-         return;
-      }
+  else if (block.type === 'video' || block.type === 'repo') {
+    const ph = block.type === 'video'
+      ? 'https://youtube.com/watch?v=...'
+      : 'https://github.com/user/repo';
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'si'; inp.placeholder = ph;
+    inp.value = (block.data && typeof block.data === 'string') ? block.data : '';
+    body.appendChild(inp);
+    block.input = inp;
+  }
 
-      // Extract blocks
-      const blocks = [];
-      let calculatedEnvironment = 'standard_script';
-      
-      document.querySelectorAll('#canvas-area .content-block').forEach(blockEl => {
-        const type = blockEl.getAttribute('data-block-type');
-        
-        if (type === 'rich_text' || type === 'hint') {
-          if (blockEl.quillInstance) {
-            const htmlContent = blockEl.quillInstance.root.innerHTML;
-            if (blockEl.quillInstance.getText().trim() !== '') {
-               blocks.push({ type, content: htmlContent });
-            }
-          }
-        } 
-        else if (type === 'code_editor') {
-          if (blockEl.monacoInstance && blockEl.codeFiles) {
-             // Save active tab before serializing
-             blockEl.codeFiles[blockEl.activeFileIndex].content = blockEl.monacoInstance.getValue();
-             blocks.push({ type, content: blockEl.codeFiles });
-             
-             // Environment detection
-             if (blockEl.codeFiles.length > 1) {
-                calculatedEnvironment = 'multi_file_project';
-             }
-             
-             for (const f of blockEl.codeFiles) {
-                const ext = f.name.split('.').pop().toLowerCase();
-                if (['html', 'css', 'js'].includes(ext)) {
-                    calculatedEnvironment = 'web_frontend';
-                    break; // Front-end takes absolute precedence
-                } else if (ext === 'sql') {
-                    calculatedEnvironment = 'database_query';
-                    break; // SQL takes precedence over standard
-                }
-             }
-          }
-        } 
-        else {
-           // Basic inputs like video, repo
-           const valueEl = blockEl.querySelector('.block-value');
-           if (valueEl && valueEl.value.trim() !== '') {
-             blocks.push({
-               type: type,
-               content: valueEl.value.trim()
-             });
-           }
-        }
-      });
+  else if (block.type === 'code_editor') {
+    initCodeEditor(block);
+  }
+}
 
-      // Construct Payload
-      const payload = {
-        title: form.title.value,
-        module_id: parseInt("{{ challenge.module_id if challenge else prefill_module_id }}"),
-        environment: calculatedEnvironment,
-        content_blocks: blocks,
-        files: [], // Kept empty for now
-        test_cases: [] // Kept empty for now
+/* ══════════════════════════════════════════════════════════
+   CODE EDITOR  — the heart of the builder
+   ══════════════════════════════════════════════════════════ */
+function initCodeEditor(block) {
+  const body = block.el.querySelector('.cb-body');
+
+  // Files state
+  let files;
+  if (block.data && Array.isArray(block.data)) {
+    files = block.data.map((f, i) => ({
+      name:    f.name    || `file_${i+1}.py`,
+      content: f.content || '',
+      hidden:  !!f.hidden,
+      isMain:  f.isMain !== undefined ? f.isMain : (i === 0)
+    }));
+    if (!files.some(f => f.isMain)) files[0].isMain = true;
+  } else {
+    files = [{ name: 'main.py', content: '# Write the buggy code here for students to debug\n', hidden: false, isMain: true }];
+  }
+  block.files = files;
+
+  let activeIdx = 0;
+
+  // Build DOM
+  body.innerHTML = `
+    <div class="ce-wrap">
+      <div class="ce-tabs-bar">
+        <div class="ce-tabs-scroll" id="ts-${block.id}"></div>
+        <button type="button" class="ce-add-file" id="af-${block.id}" title="Add file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="ce-monaco" id="m-${block.id}"></div>
+      <div class="ce-strip">
+        <span class="ep-star">★</span>
+        <span class="ep-name" id="epn-${block.id}">${files.find(f=>f.isMain)?.name || files[0].name}</span>
+        <span>is the entry-point — students will debug this file</span>
+      </div>
+    </div>`;
+
+  const tabsScroll = body.querySelector(`#ts-${block.id}`);
+  const addFileBtn = body.querySelector(`#af-${block.id}`);
+  const epName     = body.querySelector(`#epn-${block.id}`);
+  const monaCont   = body.querySelector(`#m-${block.id}`);
+
+  const langOf = fn => {
+    const e = fn.split('.').pop().toLowerCase();
+    return { py:'python', js:'javascript', ts:'typescript', html:'html', css:'css', sql:'sql', java:'java', c:'c', cpp:'cpp', rb:'ruby', go:'go', rs:'rust' }[e] || 'plaintext';
+  };
+
+  const setLang = () => {
+    if (block.monaco) monaco.editor.setModelLanguage(block.monaco.getModel(), langOf(files[activeIdx].name));
+  };
+
+  const updateStrip = () => {
+    const m = files.find(f => f.isMain);
+    if (m) epName.textContent = m.name;
+  };
+
+  /* ── Render tabs ──────────────────────────────────────── */
+  const renderTabs = () => {
+    tabsScroll.innerHTML = '';
+    files.forEach((f, i) => {
+      const tab = document.createElement('div');
+      tab.className = 'ce-tab' + (i === activeIdx ? ' active' : '');
+
+      // ★ star
+      const star = document.createElement('button');
+      star.type = 'button';
+      star.className = 'ti star' + (f.isMain ? ' on' : '');
+      star.textContent = '★';
+      star.title = f.isMain ? 'Main file' : 'Set as main';
+      star.onclick = e => {
+        e.stopPropagation();
+        files.forEach(x => x.isMain = false);
+        f.isMain = true;
+        renderTabs(); updateStrip();
       };
 
-      try {
-        const challengeId = "{{ challenge.id if challenge else '' }}";
-        const url = challengeId ? '/api/admin/challenges/' + challengeId : '/api/admin/challenges';
-        const method = challengeId ? 'PUT' : 'POST';
+      // name
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'tf'; inp.value = f.name;
+      inp.onclick = e => e.stopPropagation();
+      inp.onchange = () => { f.name = inp.value; setLang(); updateStrip(); };
 
-        const res = await fetch(url, {
-          method: method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+      // eye
+      const eye = document.createElement('button');
+      eye.type = 'button';
+      eye.className = 'ti';
+      eye.title = f.hidden ? 'Hidden' : 'Visible';
+      eye.innerHTML = f.hidden
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      eye.onclick = e => {
+        e.stopPropagation();
+        if (f.isMain) { toast('Main file must stay visible.'); return; }
+        f.hidden = !f.hidden; renderTabs();
+      };
 
-        if (!res.ok) throw new Error("Server rejected save");
+      // ×
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'ti del'; del.textContent = '×';
+      del.onclick = e => {
+        e.stopPropagation();
+        if (f.isMain) { toast('Set another file as main first.'); return; }
+        if (files.length <= 1) { toast('Need at least one file.'); return; }
+        if (block.monaco) files[activeIdx].content = block.monaco.getValue();
+        files.splice(i, 1);
+        if (activeIdx >= files.length) activeIdx = files.length - 1;
+        else if (activeIdx > i) activeIdx--;
+        renderTabs(); updateStrip();
+        if (block.monaco) { block.monaco.setValue(files[activeIdx].content); setLang(); }
+      };
 
-        window.location.href = `/admin/challenges?module_id=${payload.module_id}`;
-      } catch (err) {
-        console.error(err);
-        alert("Failed to save challenge.");
-        saveBtn.innerText = 'Save Challenge';
-        saveBtn.disabled = false;
-      }
+      // click tab = switch
+      tab.onclick = () => {
+        if (block.monaco) files[activeIdx].content = block.monaco.getValue();
+        activeIdx = i; renderTabs();
+        if (block.monaco) { block.monaco.setValue(f.content); setLang(); }
+      };
+
+      tab.append(star, inp, eye, del);
+      tabsScroll.appendChild(tab);
     });
+  };
 
+  /* ── Add file ─────────────────────────────────────────── */
+  addFileBtn.onclick = () => {
+    if (files.length >= 5) { toast('Maximum 5 files per challenge.'); return; }
+    if (block.monaco) files[activeIdx].content = block.monaco.getValue();
+    files.push({ name: `file_${files.length+1}.py`, content: '', hidden: false, isMain: false });
+    activeIdx = files.length - 1;
+    renderTabs();
+    if (block.monaco) { block.monaco.setValue(''); setLang(); }
+    // Scroll tabs to show the new tab
+    setTimeout(() => tabsScroll.scrollLeft = tabsScroll.scrollWidth, 50);
+  };
+
+  renderTabs();
+
+  // Enable mouse-wheel horizontal scrolling on the tab bar
+  tabsScroll.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > 0) {
+      e.preventDefault();
+      tabsScroll.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+
+  /* ── Monaco init ──────────────────────────────────────── */
+  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.41.0/min/vs' }});
+  require(['vs/editor/editor.main'], () => {
+    block.monaco = monaco.editor.create(monaCont, {
+      value: files[activeIdx].content,
+      language: langOf(files[activeIdx].name),
+      theme: 'vs-dark',
+      minimap: { enabled: false },
+      automaticLayout: true,
+      fontSize: 14,
+      lineNumbers: 'on',
+      scrollBeyondLastLine: false,
+      padding: { top: 14 }
+    });
   });
+
+  // Expose for serialization
+  block.getFiles = () => {
+    if (block.monaco) files[activeIdx].content = block.monaco.getValue();
+    return files;
+  };
+}
+
+/* ── Hydrate existing blocks ─────────────────────────────── */
+EXISTING.forEach(b => addBlock(b.type, b.content));
+if (blocks.length === 0) updateEmptyState();
+
+/* ══════════════════════════════════════════════════════════
+   FORM SUBMIT
+   ══════════════════════════════════════════════════════════ */
+document.getElementById('cf').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('save-btn');
+
+  // Required check
+  const types = blocks.map(b => b.type);
+  const miss = [];
+  if (!types.includes('rich_text'))   miss.push('Rich Text');
+  if (!types.includes('code_editor')) miss.push('Code Editor');
+  if (!types.includes('hint'))        miss.push('Hint Box');
+  if (miss.length) { toast('Missing required: ' + miss.join(', ')); return; }
+
+  btn.innerHTML = '<span style="opacity:.7">Saving…</span>';
+  btn.disabled = true;
+
+  // Serialize blocks
+  const contentBlocks = [];
+  let env = 'standard_script';
+
+  blocks.forEach(b => {
+    if (b.type === 'rich_text' || b.type === 'hint') {
+      if (b.quill && b.quill.getText().trim())
+        contentBlocks.push({ type: b.type, content: b.quill.root.innerHTML });
+    } else if (b.type === 'code_editor') {
+      const files = b.getFiles();
+      contentBlocks.push({ type: b.type, content: files });
+      if (files.length > 1) env = 'multi_file_project';
+      for (const f of files) {
+        const ext = f.name.split('.').pop().toLowerCase();
+        if (['html','css','js'].includes(ext)) { env = 'web_frontend'; break; }
+        if (ext === 'sql') { env = 'database_query'; break; }
+      }
+    } else {
+      if (b.input && b.input.value.trim())
+        contentBlocks.push({ type: b.type, content: b.input.value.trim() });
+    }
+  });
+
+  // Files payload from code editor
+  const filesPayload = [];
+  const ceBlock = blocks.find(b => b.type === 'code_editor');
+  if (ceBlock) {
+    ceBlock.getFiles().forEach(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      const langMap = { py:'python', js:'javascript', ts:'typescript', html:'html', css:'css', sql:'sql', java:'java', c:'c', cpp:'cpp' };
+      filesPayload.push({ name: f.name, language: langMap[ext]||'plaintext', content: f.content, is_entry_point: !!f.isMain });
+    });
+  }
+
+  const xpVal = document.getElementById('inp-xp').value.trim();
+  const xpOverride = xpVal === '' ? null : parseInt(xpVal);
+
+  const payload = {
+    title:          document.getElementById('inp-title').value,
+    module_id:      parseInt("{{ challenge.module_id if challenge else prefill_module_id }}"),
+    environment:    env,
+    content_blocks: contentBlocks,
+    files:          filesPayload,
+    test_cases:     [],
+    xp_override:    xpOverride,
+    language_id:    parseInt(document.getElementById('inp-lang').value)
+  };
+
+  try {
+    const cid = "{{ challenge.id if challenge else '' }}";
+    const url = cid ? `/api/admin/challenges/${cid}` : '/api/admin/challenges';
+    const res = await fetch(url, {
+      method: cid ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw 0;
+    localStorage.removeItem(DRAFT_KEY); // Clear draft on success
+    window.location.href = `/admin/challenges?module_id=${payload.module_id}`;
+  } catch {
+    toast('Save failed — please try again.');
+    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Challenge`;
+    btn.disabled = false;
+  }
+});
+
+/* ── Auto-save draft every 30s ──────────────────────────── */
+setInterval(() => {
+  if (blocks.length === 0 && !document.getElementById('inp-title').value.trim()) return;
+  
+  const contentBlocks = [];
+  blocks.forEach(b => {
+    if (b.type === 'rich_text' || b.type === 'hint') {
+      if (b.quill) contentBlocks.push({ type: b.type, content: b.quill.root.innerHTML });
+    } else if (b.type === 'code_editor') {
+      contentBlocks.push({ type: b.type, content: b.getFiles() });
+    } else {
+      if (b.input) contentBlocks.push({ type: b.type, content: b.input.value });
+    }
+  });
+
+  const xpVal = document.getElementById('inp-xp').value.trim();
+  
+  const draft = {
+    ts: Date.now(),
+    title: document.getElementById('inp-title').value.trim(),
+    xp: xpVal === '' ? null : parseInt(xpVal),
+    lang: document.getElementById('inp-lang').value,
+    blocks: contentBlocks
+  };
+  
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  
+  const status = document.getElementById('draft-status');
+  status.style.display = 'inline-flex';
+  status.style.opacity = '1';
+  setTimeout(() => { status.style.opacity = '0.5'; }, 2000);
+}, 30000);
+
+}); // DOMContentLoaded
 </script>
 {% endblock %}
