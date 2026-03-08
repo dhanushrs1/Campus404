@@ -17,11 +17,12 @@ router = APIRouter()
 
 @router.get("/admin/challenges", response_class=HTMLResponse)
 async def admin_challenges(request: Request, module_id: Optional[int] = None, db: Session = Depends(get_db)):
-    if not module_id:
-        return RedirectResponse("/admin/labs", status_code=303)
-        
-    query = db.query(Challenge).filter(Challenge.module_id == module_id)
-    active_module = db.query(Module).filter(Module.id == module_id).first()
+    if module_id:
+        query = db.query(Challenge).filter(Challenge.module_id == module_id)
+        active_module = db.query(Module).filter(Module.id == module_id).first()
+    else:
+        query = db.query(Challenge)
+        active_module = None
         
     return templates.TemplateResponse("admin/content/challenges.html", {
         "request": request, "active": "challenges",
@@ -32,16 +33,15 @@ async def admin_challenges(request: Request, module_id: Optional[int] = None, db
 
 @router.get("/admin/challenges/new", response_class=HTMLResponse)
 async def admin_challenges_new(request: Request, module_id: Optional[int] = None, db: Session = Depends(get_db)):
-    if not module_id:
-        return RedirectResponse("/admin/labs", status_code=303)
-        
     auto_level = 1
     module_name = ""
-    mod = db.query(Module).filter(Module.id == module_id).first()
-    if mod:
-        module_name = mod.title
-    max_order = db.query(func.max(Challenge.order_number)).filter(Challenge.module_id == module_id).scalar()
-    auto_level = (max_order or 0) + 1
+    
+    if module_id:
+        mod = db.query(Module).filter(Module.id == module_id).first()
+        if mod:
+            module_name = mod.title
+        max_order = db.query(func.max(Challenge.order_number)).filter(Challenge.module_id == module_id).scalar()
+        auto_level = (max_order or 0) + 1
 
     return templates.TemplateResponse("admin/content/challenge_form.html", {
         "request": request, "active": "challenges",

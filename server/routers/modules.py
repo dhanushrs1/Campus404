@@ -16,11 +16,12 @@ router = APIRouter()
 
 @router.get("/admin/modules", response_class=HTMLResponse)
 async def admin_modules(request: Request, lab_id: Optional[int] = None, db: Session = Depends(get_db)):
-    if not lab_id:
-        return RedirectResponse("/admin/labs", status_code=303)
-        
-    query = db.query(Module).filter(Module.lab_id == lab_id)
-    active_lab = db.query(Lab).filter(Lab.id == lab_id).first()
+    if lab_id:
+        query = db.query(Module).filter(Module.lab_id == lab_id)
+        active_lab = db.query(Lab).filter(Lab.id == lab_id).first()
+    else:
+        query = db.query(Module)
+        active_lab = None
         
     return templates.TemplateResponse("admin/content/modules.html", {
         "request": request, "active": "modules",
@@ -31,9 +32,6 @@ async def admin_modules(request: Request, lab_id: Optional[int] = None, db: Sess
 
 @router.get("/admin/modules/new", response_class=HTMLResponse)
 async def admin_modules_new(request: Request, lab_id: Optional[int] = None, db: Session = Depends(get_db)):
-    if not lab_id:
-        return RedirectResponse("/admin/labs", status_code=303)
-        
     return templates.TemplateResponse("admin/content/module_form.html", {
         "request": request, "active": "modules",
         "module": None, "labs": db.query(Lab).all(),

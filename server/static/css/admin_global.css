@@ -446,7 +446,7 @@ td.mono  { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-
 
 .btn-primary {
   background: linear-gradient(135deg, var(--brand), var(--accent));
-  color: #fff;
+  color: #fff!important;
   box-shadow: 0 2px 10px rgba(99,102,241,0.35);
 }
 .btn-primary:hover {
