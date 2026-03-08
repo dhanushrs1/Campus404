@@ -57,7 +57,7 @@ async def admin_media(
         query = query.filter(
             MediaItem.title.contains(q) | MediaItem.original_name.contains(q)
         )
-    return templates.TemplateResponse("admin/media.html", {
+    return templates.TemplateResponse("admin/content/media.html", {
         "request": request,
         "active": "media",
         "items": query.all(),
@@ -233,7 +233,7 @@ async def admin_media_edit(item_id: int, request: Request, db: Session = Depends
     item = db.query(MediaItem).filter(MediaItem.id == item_id).first()
     if not item:
         return RedirectResponse("/admin/media?msg=Item+not+found&msg_type=error", status_code=303)
-    return templates.TemplateResponse("admin/media_edit.html", {
+    return templates.TemplateResponse("admin/content/media_edit.html", {
         "request": request,
         "active": "media",
         "item": item,

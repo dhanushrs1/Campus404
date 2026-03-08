@@ -1,6 +1,6 @@
 /* ================================================================
-   Campus404 — Custom Admin Panel
-   Premium Dark UI · Clean · Icon-Driven · Professional Typography
+   Campus404 — Admin Global Styles
+   Core design system shared across all admin pages
    ================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -205,7 +205,7 @@ body {
 
 /* Sidebar Footer */
 .sb-footer {
-  padding: 14px 18px;
+  padding: 12px 14px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -213,15 +213,32 @@ body {
   flex-shrink: 0;
 }
 
-.sb-footer svg { width: 10px; height: 10px; color: var(--success); }
+.sb-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sb-footer svg.status-dot { width: 10px; height: 10px; color: var(--success); flex-shrink: 0; }
 .sb-footer-label {
   font-size: 0.69rem;
   color: var(--text-3);
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .version-pill {
-  margin-left: auto;
   background: var(--brand-soft);
   color: var(--brand-light);
   border: 1px solid var(--brand-border);
@@ -230,6 +247,7 @@ body {
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 /* ── Main Content ─────────────────────────────────────────── */
@@ -313,62 +331,6 @@ body {
 .flash svg { width: 16px; height: 16px; flex-shrink: 0; }
 .flash-success { background: var(--success-soft); color: var(--success); border: 1px solid rgba(16,185,129,0.25); }
 .flash-error   { background: var(--danger-soft);  color: var(--danger);  border: 1px solid rgba(239,68,68,0.25); }
-
-/* ── Stat Cards Grid ─────────────────────────────────────── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  transition: border-color var(--t), box-shadow var(--t);
-  text-decoration: none;
-  color: inherit;
-}
-
-.stat-card:hover {
-  border-color: var(--brand-border);
-  box-shadow: var(--shadow-brand);
-}
-
-.stat-icon {
-  width: 46px; height: 46px;
-  border-radius: var(--radius-md);
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-icon svg { width: 22px; height: 22px; stroke-width: 1.75; }
-
-.stat-icon.brand  { background: var(--brand-soft);   color: var(--brand-light); }
-.stat-icon.green  { background: var(--success-soft);  color: var(--success); }
-.stat-icon.yellow { background: var(--warning-soft);  color: var(--warning); }
-.stat-icon.blue   { background: var(--info-soft);     color: var(--info); }
-.stat-icon.violet { background: rgba(167,139,250,0.12); color: var(--accent); }
-
-.stat-info { display: flex; flex-direction: column; gap: 2px; }
-.stat-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-3);
-}
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text-1);
-  line-height: 1;
-}
 
 /* ── Card ────────────────────────────────────────────────── */
 .card {
@@ -678,46 +640,6 @@ select option { background: var(--bg-card); }
   color: var(--text-1);
 }
 
-/* ── Recent submissions mini-table ───────────────────────── */
-.mini-activity {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.activity-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--border);
-}
-.activity-row:last-child { border-bottom: none; }
-
-.activity-avatar {
-  width: 32px; height: 32px;
-  background: var(--brand-soft);
-  border: 1px solid var(--brand-border);
-  border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: var(--brand-light);
-  flex-shrink: 0;
-  font-family: var(--font-mono);
-}
-
-.activity-info { flex: 1; min-width: 0; }
-.activity-main { font-size: 0.83rem; font-weight: 600; color: var(--text-1); }
-.activity-sub  { font-size: 0.72rem; color: var(--text-3); margin-top: 1px; }
-
-.activity-time {
-  font-size: 0.68rem;
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  flex-shrink: 0;
-}
-
 /* ── Danger zone ─────────────────────────────────────────── */
 .danger-zone {
   border: 1px solid rgba(239,68,68,0.2);
@@ -764,154 +686,131 @@ a:hover { color: var(--accent); }
 @media (max-width: 900px) {
   .sidebar { transform: translateX(-100%); transition: transform var(--t); }
   .main { margin-left: 0; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
   .form-grid-2 { grid-template-columns: 1fr; }
 }
 
+
 /* ═══════════════════════════════════════════════════════════
-   Settings — Tab Bar
-   Pure CSS, URL-driven (no JavaScript required)
+   Light Mode — Token Overrides
+   Applied when <html data-theme="light"> is set.
+   All components inherit these via the same var() references.
    ═══════════════════════════════════════════════════════════ */
-.tab-bar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 5px;
-  width: fit-content;
+[data-theme="light"] {
+  --bg-base:       #f4f6fa;
+  --bg-surface:    #ffffff;
+  --bg-card:       #ffffff;
+  --bg-hover:      #eef1f7;
+  --bg-active:     #e4e9f6;
+
+  --brand:         #5457e3;
+  --brand-light:   #6366f1;
+  --brand-dark:    #4338ca;
+  --brand-glow:    rgba(99,102,241,0.12);
+  --brand-border:  rgba(99,102,241,0.22);
+
+  --accent:        #7c5cfc;
+  --success:       #059669;
+  --warning:       #d97706;
+  --danger:        #dc2626;
+  --info:          #2563eb;
+
+  --success-soft:  rgba(5,150,105,0.1);
+  --warning-soft:  rgba(217,119,6,0.1);
+  --danger-soft:   rgba(220,38,38,0.1);
+  --info-soft:     rgba(37,99,235,0.1);
+  --brand-soft:    rgba(99,102,241,0.09);
+
+  --text-1:        #111827;
+  --text-2:        #4b5563;
+  --text-3:        #9ca3af;
+
+  --border:        rgba(0,0,0,0.07);
+  --border-md:     rgba(0,0,0,0.11);
+
+  --shadow-sm:     0 1px 4px rgba(0,0,0,0.08);
+  --shadow-md:     0 4px 20px rgba(0,0,0,0.10);
+  --shadow-lg:     0 8px 40px rgba(0,0,0,0.13);
+  --shadow-brand:  0 4px 20px rgba(99,102,241,0.18);
 }
 
-.tab-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  font-size: 0.81rem;
-  font-weight: 600;
-  color: var(--text-2);
-  text-decoration: none;
-  transition: all var(--t);
-  white-space: nowrap;
-}
-
-.tab-btn svg {
-  width: 14px; height: 14px;
-  flex-shrink: 0;
-  stroke-width: 1.75;
-}
-
-.tab-btn:hover {
-  background: var(--bg-hover);
+/* Light-mode specific tweaks */
+[data-theme="light"] body {
+  background: var(--bg-base);
   color: var(--text-1);
 }
 
-.tab-btn.active {
-  background: var(--brand-soft);
-  color: var(--brand-light);
-  border: 1px solid var(--brand-border);
-  font-weight: 700;
-  box-shadow: 0 2px 8px var(--brand-glow);
+[data-theme="light"] .topbar {
+  background: rgba(255,255,255,0.88);
 }
 
-.tab-btn.active svg { color: var(--brand-light); }
-
-/* ═══════════════════════════════════════════════════════════
-   Settings — Page Layout
-   ═══════════════════════════════════════════════════════════ */
-.settings-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
+[data-theme="light"] thead th {
+  background: rgba(0,0,0,0.025);
 }
 
-.setting-row {
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--border);
-}
-.setting-row:last-child {
-  padding-bottom: 0;
-  border-bottom: none;
+[data-theme="light"] .sidebar {
+  box-shadow: 1px 0 16px rgba(0,0,0,0.07);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   Toggle Switch
-   ═══════════════════════════════════════════════════════════ */
-.toggle-wrap {
-  display: flex;
-  align-items: center;
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+  background: #fff;
 }
 
-.toggle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  user-select: none;
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.22);
 }
 
-/* Hide the real checkbox off-screen */
-.toggle > input[type="hidden"] { display: none; }
-.toggle > input[type="checkbox"] {
-  position: absolute;
-  width: 1px; height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.toggle-track {
-  width: 44px; height: 24px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border-md);
-  border-radius: 999px;
-  position: relative;
-  transition: background var(--t), border-color var(--t);
-  flex-shrink: 0;
-}
-
-.toggle-thumb {
-  width: 18px; height: 18px;
-  background: var(--text-3);
-  border-radius: 50%;
-  position: absolute;
-  top: 2px; left: 2px;
-  transition: transform var(--t), background var(--t), box-shadow var(--t);
-}
-
-.toggle > input[type="checkbox"]:checked ~ .toggle-track {
-  background: var(--brand-soft);
-  border-color: var(--brand-border);
-}
-
-.toggle > input[type="checkbox"]:checked ~ .toggle-track .toggle-thumb {
-  transform: translateX(20px);
-  background: var(--brand-light);
-  box-shadow: 0 0 8px var(--brand-glow);
-}
-
-.toggle-label {
-  font-size: 0.82rem;
-  font-weight: 500;
+[data-theme="light"] .badge-muted {
+  background: rgba(0,0,0,0.06);
   color: var(--text-2);
 }
 
-/* ── Responsive (settings) ──────────────────────────────── */
-@media (max-width: 900px) {
-  .settings-layout {
-    flex-direction: column;
-  }
-  .settings-layout > [style*="width:280px"] {
-    width: 100% !important;
-  }
-  .tab-bar {
-    width: 100%;
-  }
+[data-theme="light"] a { color: var(--brand-light); }
+[data-theme="light"] a:hover { color: var(--accent); }
+
+/* ── Theme Toggle Button ──────────────────────────────────── */
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-2);
+  transition: all var(--t);
+  flex-shrink: 0;
+  outline: none;
+  padding: 0;
 }
 
-/* ── Health Pulse (dashboard status dots) ────────────────── */
-@keyframes health-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.45; }
+.theme-toggle-btn:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand-border);
+  color: var(--brand-light);
+  box-shadow: 0 0 10px var(--brand-glow);
+}
+
+.theme-toggle-btn svg {
+  width: 16px; height: 16px;
+  stroke-width: 2;
+  transition: transform 0.35s var(--ease), opacity 0.25s var(--ease);
+}
+
+/* Sun icon — shown in dark mode (click to go light) */
+.theme-toggle-btn .icon-sun  { display: block; }
+.theme-toggle-btn .icon-moon { display: none;  }
+
+[data-theme="light"] .theme-toggle-btn .icon-sun  { display: none;  }
+[data-theme="light"] .theme-toggle-btn .icon-moon { display: block; }
+
+/* Spin animation on toggle */
+.theme-toggle-btn.spinning svg {
+  transform: rotate(180deg);
+  opacity: 0.5;
 }

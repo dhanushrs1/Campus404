@@ -58,7 +58,7 @@ async def admin_analytics(request: Request, db: Session = Depends(get_db)):
     # Sort by pass rate ascending (hardest first) — None at bottom
     stats.sort(key=lambda s: (s["rate"] is None, s["rate"] or 0))
 
-    return templates.TemplateResponse("admin/analytics.html", {
+    return templates.TemplateResponse("admin/overview/analytics.html", {
         "request": request,
         "active":  "analytics",
         "stats":   stats,

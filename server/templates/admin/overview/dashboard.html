@@ -4,6 +4,10 @@
 {% block breadcrumb %}Dashboard{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="/static/css/admin_dashboard.css">
+{% endblock %}
+
 {% block content %}
 
 <!-- Stats Grid -->
@@ -72,12 +76,12 @@
   </div>
   <div class="card-body" style="display:flex;gap:28px;flex-wrap:wrap;">
     <div style="display:flex;align-items:center;gap:10px;">
-      <span style="width:10px;height:10px;border-radius:50%;background:{{ 'var(--success)' if db_ok else 'var(--danger)' }};box-shadow:0 0 8px {{ 'var(--success)' if db_ok else 'var(--danger)' }};flex-shrink:0;animation:health-pulse 2s ease-in-out infinite;"></span>
+      <span class="health-dot {{ 'health-ok' if db_ok else 'health-fail' }}"></span>
       <span style="font-size:0.84rem;font-weight:600;color:var(--text-1);">MySQL Database</span>
       <span class="badge {{ 'badge-success' if db_ok else 'badge-danger' }}">{{ 'Online' if db_ok else 'Offline' }}</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <span style="width:10px;height:10px;border-radius:50%;background:{{ 'var(--success)' if judge0_ok else 'var(--danger)' }};box-shadow:0 0 8px {{ 'var(--success)' if judge0_ok else 'var(--danger)' }};flex-shrink:0;animation:health-pulse 2s ease-in-out infinite;animation-delay:0.3s;"></span>
+      <span class="health-dot health-delay {{ 'health-ok' if judge0_ok else 'health-fail' }}"></span>
       <span style="font-size:0.84rem;font-weight:600;color:var(--text-1);">Judge0 Sandbox</span>
       <span class="badge {{ 'badge-success' if judge0_ok else 'badge-danger' }}">{{ 'Online' if judge0_ok else 'Offline' }}</span>
     </div>

@@ -33,7 +33,7 @@ async def admin_submissions(
     if status:
         query = query.filter(Submission.status == status)
 
-    return templates.TemplateResponse("admin/submissions.html", {
+    return templates.TemplateResponse("admin/people/submissions.html", {
         "request":     request,
         "active":      "submissions",
         "submissions": query.all(),
@@ -57,7 +57,7 @@ async def admin_submission_playback(
         .filter(Submission.id == submission_id)
         .first()
     )
-    return templates.TemplateResponse("admin/submission_playback.html", {
+    return templates.TemplateResponse("admin/people/submission_playback.html", {
         "request": request,
         "active":  "submissions",
         "sub":     sub,

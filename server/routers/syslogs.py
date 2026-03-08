@@ -33,7 +33,7 @@ AVAILABLE_CONTAINERS = {
 @router.get("/admin/logs", response_class=HTMLResponse)
 async def admin_logs_page(request: Request, db: Session = Depends(get_db)):
     """Render the log viewer page."""
-    return templates.TemplateResponse("admin/logs.html", {
+    return templates.TemplateResponse("admin/system/logs.html", {
         "request": request,
         "active": "system_logs",
         "containers": AVAILABLE_CONTAINERS,

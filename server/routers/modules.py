@@ -22,7 +22,7 @@ async def admin_modules(request: Request, lab_id: Optional[int] = None, db: Sess
     query = db.query(Module).filter(Module.lab_id == lab_id)
     active_lab = db.query(Lab).filter(Lab.id == lab_id).first()
         
-    return templates.TemplateResponse("admin/modules.html", {
+    return templates.TemplateResponse("admin/content/modules.html", {
         "request": request, "active": "modules",
         "modules": query.order_by(Module.lab_id, Module.order_number).all(),
         "active_lab": active_lab,
@@ -34,7 +34,7 @@ async def admin_modules_new(request: Request, lab_id: Optional[int] = None, db: 
     if not lab_id:
         return RedirectResponse("/admin/labs", status_code=303)
         
-    return templates.TemplateResponse("admin/module_form.html", {
+    return templates.TemplateResponse("admin/content/module_form.html", {
         "request": request, "active": "modules",
         "module": None, "labs": db.query(Lab).all(),
         "action": "/admin/modules/create",
@@ -60,7 +60,7 @@ async def admin_modules_create(
 
 @router.get("/admin/modules/{module_id}/edit", response_class=HTMLResponse)
 async def admin_modules_edit(module_id: int, request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("admin/module_form.html", {
+    return templates.TemplateResponse("admin/content/module_form.html", {
         "request": request, "active": "modules",
         "module": db.query(Module).filter(Module.id == module_id).first(),
         "labs": db.query(Lab).all(),

@@ -20,7 +20,7 @@ async def admin_leaderboard(request: Request, db: Session = Depends(get_db)):
         .order_by(User.total_xp.desc(), User.username)
         .all()
     )
-    return templates.TemplateResponse("admin/leaderboard.html", {
+    return templates.TemplateResponse("admin/people/leaderboard.html", {
         "request": request,
         "active":  "leaderboard",
         "users":   users,

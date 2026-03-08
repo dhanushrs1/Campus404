@@ -20,7 +20,7 @@ async def admin_labs(request: Request, db: Session = Depends(get_db)):
     counts = {}
     for module in db.query(Module).all():
         counts[module.lab_id] = counts.get(module.lab_id, 0) + 1
-    return templates.TemplateResponse("admin/labs.html", {
+    return templates.TemplateResponse("admin/content/labs.html", {
         "request": request, "active": "labs",
         "labs": labs,
         "module_counts": counts,
@@ -29,7 +29,7 @@ async def admin_labs(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/admin/labs/new", response_class=HTMLResponse)
 async def admin_labs_new(request: Request):
-    return templates.TemplateResponse("admin/lab_form.html", {
+    return templates.TemplateResponse("admin/content/lab_form.html", {
         "request": request, "active": "labs",
         "lab": None, "action": "/admin/labs/create",
     })
@@ -53,7 +53,7 @@ async def admin_labs_create(
 
 @router.get("/admin/labs/{lab_id}/edit", response_class=HTMLResponse)
 async def admin_labs_edit(lab_id: int, request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("admin/lab_form.html", {
+    return templates.TemplateResponse("admin/content/lab_form.html", {
         "request": request, "active": "labs",
         "lab": db.query(Lab).filter(Lab.id == lab_id).first(),
         "action": f"/admin/labs/{lab_id}/update",

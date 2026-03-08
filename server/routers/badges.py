@@ -15,7 +15,7 @@ router = APIRouter()
 
 @router.get("/admin/badges", response_class=HTMLResponse)
 async def admin_badges(request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("admin/badges.html", {
+    return templates.TemplateResponse("admin/people/badges.html", {
         "request": request, "active": "badges",
         "badges": db.query(Badge).order_by(Badge.required_xp).all(),
     })
@@ -23,7 +23,7 @@ async def admin_badges(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/admin/badges/new", response_class=HTMLResponse)
 async def admin_badges_new(request: Request):
-    return templates.TemplateResponse("admin/badge_form.html", {
+    return templates.TemplateResponse("admin/people/badge_form.html", {
         "request": request, "active": "badges",
         "badge": None, "action": "/admin/badges/create",
     })
@@ -47,7 +47,7 @@ async def admin_badges_create(
 
 @router.get("/admin/badges/{badge_id}/edit", response_class=HTMLResponse)
 async def admin_badges_edit(badge_id: int, request: Request, db: Session = Depends(get_db)):
-    return templates.TemplateResponse("admin/badge_form.html", {
+    return templates.TemplateResponse("admin/people/badge_form.html", {
         "request": request, "active": "badges",
         "badge": db.query(Badge).filter(Badge.id == badge_id).first(),
         "action": f"/admin/badges/{badge_id}/update",

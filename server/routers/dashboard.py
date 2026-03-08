@@ -46,7 +46,7 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         .limit(8)
         .all()
     )
-    return templates.TemplateResponse("admin/dashboard.html", {
+    return templates.TemplateResponse("admin/overview/dashboard.html", {
         "request":            request,
         "active":             "dashboard",
         "user_count":         db.query(User).count(),

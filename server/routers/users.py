@@ -22,7 +22,7 @@ async def admin_users(
     msg: str = None,
     msg_type: str = "success",
 ):
-    return templates.TemplateResponse("admin/users.html", {
+    return templates.TemplateResponse("admin/people/users.html", {
         "request": request, "active": "users",
         "users":   db.query(User).order_by(User.id).all(),
         "msg": msg, "msg_type": msg_type,
@@ -48,7 +48,7 @@ async def admin_user_detail(
         incomplete_sorted = sorted(incomplete, key=lambda p: p.challenge.order_number if p.challenge else 0)
         current_challenge = incomplete_sorted[0].challenge if incomplete_sorted else None
 
-    return templates.TemplateResponse("admin/user_detail.html", {
+    return templates.TemplateResponse("admin/people/user_detail.html", {
         "request":      request,
         "active":       "users",
         "user":         user,

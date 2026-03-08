@@ -26,7 +26,7 @@ async def admin_settings(
     by_tab: dict = {}
     for s in settings_list:
         by_tab.setdefault(s.tab, []).append(s)
-    return templates.TemplateResponse("admin/settings.html", {
+    return templates.TemplateResponse("admin/system/settings.html", {
         "request": request, "active": "settings",
         "by_tab": by_tab,
         "active_tab": tab,

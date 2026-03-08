@@ -23,7 +23,7 @@ async def admin_challenges(request: Request, module_id: Optional[int] = None, db
     query = db.query(Challenge).filter(Challenge.module_id == module_id)
     active_module = db.query(Module).filter(Module.id == module_id).first()
         
-    return templates.TemplateResponse("admin/challenges.html", {
+    return templates.TemplateResponse("admin/content/challenges.html", {
         "request": request, "active": "challenges",
         "challenges": query.order_by(Challenge.module_id, Challenge.order_number).all(),
         "active_module": active_module,
@@ -43,7 +43,7 @@ async def admin_challenges_new(request: Request, module_id: Optional[int] = None
     max_order = db.query(func.max(Challenge.order_number)).filter(Challenge.module_id == module_id).scalar()
     auto_level = (max_order or 0) + 1
 
-    return templates.TemplateResponse("admin/challenge_form.html", {
+    return templates.TemplateResponse("admin/content/challenge_form.html", {
         "request": request, "active": "challenges",
         "challenge": None, 
         "modules": db.query(Module).all(),
@@ -65,7 +65,7 @@ async def admin_challenges_edit(challenge_id: int, request: Request, db: Session
     if challenge and challenge.module:
          module_name = challenge.module.title
 
-    return templates.TemplateResponse("admin/challenge_form.html", {
+    return templates.TemplateResponse("admin/content/challenge_form.html", {
         "request": request, "active": "challenges",
         "challenge": challenge,
         "modules": db.query(Module).all(),
