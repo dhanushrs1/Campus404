@@ -1,0 +1,88 @@
+.admin-dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.admin-page-header h1 {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--c-obsidian);
+  margin-bottom: 0.5rem;
+}
+
+.admin-page-header p {
+  color: #666;
+  font-size: 1rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.metric-card {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid #E5E5E3;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.metric-value {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--c-obsidian);
+  margin-bottom: 0.5rem;
+}
+
+.metric-trend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #888;
+}
+
+.metric-trend.positive {
+  color: #10B981;
+}
+
+.text-success {
+  color: #10B981;
+}
+
+.recent-activity-section h2 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--c-obsidian);
+}
+
+.activity-card {
+  background-color: #fff;
+  padding: 3rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid #E5E5E3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-text {
+  color: #999;
+  font-style: italic;
+}

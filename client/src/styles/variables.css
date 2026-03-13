@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Sora:wght@400;600;700;800&display=swap');
+
+:root {
+  /* High-Contrast Editorial Tech Colors */
+  --c-alabaster: #F4F4F2;
+  --c-obsidian: #111111;
+  --c-cobalt: #0047FF;
+  --c-lime: #D4FF00;
+  
+  /* Fonts */
+  --font-heading: 'Sora', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+  
+  /* Global Layout/Transitions */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-float: 0 12px 24px -6px rgba(0, 71, 255, 0.1);
+}
