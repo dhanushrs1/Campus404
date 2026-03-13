@@ -24,11 +24,11 @@ const Register = () => {
     const checkUsername = async () => {
       setUsernameStatus('checking');
       try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const lowerUser = formData.username.toLowerCase();
-        const isTaken = ['admin', 'test', 'campus'].includes(lowerUser);
-        setUsernameStatus(isTaken ? 'taken' : 'available');
+        const res = await fetch(`/api/auth/check-username/${formData.username}`);
+        const data = await res.json();
+        setUsernameStatus(data.available ? 'available' : 'taken');
       } catch (error) {
+        // If API is unreachable, don't block the form
         setUsernameStatus(null);
       }
     };
@@ -53,11 +53,29 @@ const Register = () => {
     
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      localStorage.setItem('token', 'mock_jwt_token_register');
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          first_name: formData.firstName,
+          last_name: formData.lastName
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Registration failed');
+      }
+
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('role', data.role);
       navigate('/dashboard');
     } catch (error) {
-      console.error(error);
+      alert(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -87,51 +105,50 @@ const Register = () => {
           
           <form onSubmit={handleRegister} className="register-form">
             <div className="name-row">
-              <div className="input-group">
-                <label htmlFor="firstName">First Name</label>
+              <div className="input-group floating-group">
                 <input 
                   type="text" 
                   id="firstName" 
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
-                  placeholder="First"
+                  placeholder=" "
                   required
-                  className="register-input"
+                  className="register-input floating-input"
                 />
+                <label htmlFor="firstName" className="floating-label">First Name</label>
               </div>
-              <div className="input-group">
-                <label htmlFor="lastName">Last Name</label>
+              <div className="input-group floating-group">
                 <input 
                   type="text" 
                   id="lastName" 
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
-                  placeholder="Last"
+                  placeholder=" "
                   required
-                  className="register-input"
+                  className="register-input floating-input"
                 />
+                <label htmlFor="lastName" className="floating-label">Last Name</label>
               </div>
             </div>
             
-            <div className="input-group">
-              <label htmlFor="email">Email</label>
+            <div className="input-group floating-group">
               <input 
                 type="email" 
                 id="email" 
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="Enter your email"
+                placeholder=" "
                 required
-                className="register-input"
+                className="register-input floating-input"
               />
+              <label htmlFor="email" className="floating-label">Email</label>
             </div>
 
             <div className="input-group">
-              <label htmlFor="username">Username</label>
-              <div className="username-wrapper">
+              <div className="username-wrapper floating-group">
                 <span className="username-prefix">@</span>
                 <input 
                   type="text" 
@@ -139,28 +156,29 @@ const Register = () => {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  placeholder="username"
+                  placeholder=" "
                   required
-                  className="register-input has-prefix"
+                  className="register-input floating-input has-prefix"
                 />
+                <label htmlFor="username" className="floating-label prefix-label">Username</label>
               </div>
               {usernameStatus === 'checking' && <span className="username-hint checking">Checking availability...</span>}
               {usernameStatus === 'available' && <span className="username-hint available">Username is available!</span>}
               {usernameStatus === 'taken' && <span className="username-hint taken">Username is already taken.</span>}
             </div>
             
-            <div className="input-group">
-              <label htmlFor="password">Password</label>
+            <div className="input-group floating-group">
               <input 
                 type="password" 
                 id="password" 
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Create a strong password"
+                placeholder=" "
                 required
-                className="register-input"
+                className="register-input floating-input"
               />
+              <label htmlFor="password" className="floating-label">Password</label>
             </div>
             
             <button 

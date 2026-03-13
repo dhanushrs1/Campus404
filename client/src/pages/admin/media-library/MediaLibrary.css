@@ -1,0 +1,419 @@
+/* ================================================================
+   MediaLibrary — Campus404 Admin Panel
+================================================================ */
+
+.ml-wrap {
+  max-width: 1400px;
+  position: relative;
+}
+
+/* ── Toast ── */
+.ml-toast {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.75rem;
+  z-index: 9999;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  animation: toastIn 0.25s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.ml-toast.success { background: #111; color: #D4FF00; }
+.ml-toast.error   { background: #ef4444; color: #fff; }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ── */
+.ml-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.ml-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #111;
+  margin: 0 0 4px;
+}
+
+.ml-subtitle {
+  font-size: 0.83rem;
+  color: #888;
+  margin: 0;
+}
+
+/* ── Upload Zone ── */
+.ml-upload-zone {
+  border: 2px dashed #d1d5db;
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  background: #fafafa;
+  transition: all 0.2s ease;
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.ml-upload-zone:hover, .ml-upload-zone.drag-over {
+  border-color: #0047FF;
+  background: #f0f4ff;
+}
+
+.ml-upload-icon {
+  color: #aaa;
+  margin-bottom: 0.75rem;
+  transition: color 0.2s;
+}
+.ml-upload-zone:hover .ml-upload-icon,
+.ml-upload-zone.drag-over .ml-upload-icon { color: #0047FF; }
+
+.ml-upload-text {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 0.375rem;
+}
+
+.ml-upload-hint {
+  font-size: 0.76rem;
+  color: #aaa;
+  line-height: 1.6;
+}
+
+/* ── Progress bar ── */
+.ml-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #e5e7eb;
+}
+
+.ml-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0047FF, #D4FF00);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.3s ease;
+}
+
+/* ── Filter Tabs ── */
+.ml-filter-row {
+  margin-bottom: 1.25rem;
+}
+
+.ml-type-tabs {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.ml-tab {
+  padding: 0.4rem 0.875rem;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 999px;
+  background: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ml-tab:hover { border-color: #0047FF; color: #0047FF; }
+.ml-tab.active { background: #0047FF; border-color: #0047FF; color: #fff; }
+
+/* ── Body (grid + detail) ── */
+.ml-body {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+/* ── Grid ── */
+.ml-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+  transition: opacity 0.2s;
+}
+
+.ml-grid.loading { opacity: 0.5; pointer-events: none; }
+
+.ml-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #aaa;
+  font-style: italic;
+}
+
+.ml-item {
+  background: #fff;
+  border: 1.5px solid #ebebf0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ml-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+.ml-item.selected { border-color: #0047FF; box-shadow: 0 0 0 3px rgba(0,71,255,0.15); }
+
+.ml-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #f7f8fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ml-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ml-file-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ml-file-icon span {
+  font-family: 'Sora', monospace;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #0047FF;
+  background: #eff3ff;
+  padding: 0.375rem 0.625rem;
+  border-radius: 8px;
+}
+
+.ml-file-icon.large { width: 100%; height: 200px; }
+.ml-file-icon.large span { font-size: 1.5rem; }
+
+.ml-item-meta {
+  padding: 0.5rem 0.625rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.ml-item-name {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.72rem;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* ── Detail Panel ── */
+.ml-detail {
+  width: 280px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1.5px solid #ebebf0;
+  border-radius: 16px;
+  padding: 1rem;
+  position: sticky;
+  top: 80px;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.ml-detail-close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #aaa;
+  cursor: pointer;
+  line-height: 1;
+}
+.ml-detail-close:hover { color: #111; }
+
+.ml-detail-preview {
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f7f8fc;
+  margin-bottom: 1rem;
+}
+
+.ml-detail-preview img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.ml-detail-name {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 0.75rem;
+  word-break: break-all;
+}
+
+.ml-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  margin-bottom: 0.875rem;
+}
+
+.ml-detail-table td { padding: 0.3rem 0; color: #555; }
+.ml-detail-table td:first-child { color: #aaa; width: 70px; }
+
+.ml-path-cell { word-break: break-all; font-family: monospace; font-size: 0.7rem; color: #888 !important; }
+
+.ml-detail-url-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ml-url-input {
+  flex: 1;
+  padding: 0.4rem 0.625rem;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-family: monospace;
+  color: #333;
+  background: #f9f9f9;
+  outline: none;
+  min-width: 0;
+}
+
+.ml-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.625rem;
+  background: #0047FF;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+.ml-copy-btn:hover { background: #003acc; }
+
+.ml-detail-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ml-btn-outline {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 8px;
+  text-align: center;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #555;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.ml-btn-outline:hover { border-color: #0047FF; color: #0047FF; }
+
+.ml-btn-danger {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  background: none;
+  border: 1.5px solid #fca5a5;
+  border-radius: 8px;
+  color: #ef4444;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ml-btn-danger:hover { background: #fff5f5; border-color: #ef4444; }
+
+.ml-editor-note {
+  font-size: 0.72rem;
+  color: #aaa;
+  text-align: center;
+  margin: 0.5rem 0 0;
+}
+
+/* ── Pagination ── */
+.ml-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.ml-page-info { font-size: 0.82rem; color: #888; }
+
+.ml-page-btns { display: flex; gap: 0.375rem; align-items: center; }
+
+.ml-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.5rem;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 8px;
+  background: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ml-page-btn:hover:not(:disabled) { border-color: #0047FF; color: #0047FF; }
+.ml-page-btn:disabled { opacity: 0.4; cursor: default; }
+
+.ml-page-current {
+  min-width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: #0047FF;
+  color: #fff;
+  border-radius: 8px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+}

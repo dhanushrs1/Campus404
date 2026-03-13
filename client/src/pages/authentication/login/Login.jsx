@@ -13,20 +13,28 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Login failed');
+      }
       
-      const mockRole = identifier.toLowerCase().includes('admin') ? 'admin' : 'student';
-      const mockToken = 'mock_jwt_token_12345';
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('role', data.role);
       
-      localStorage.setItem('token', mockToken);
-      
-      if (mockRole === 'admin' || mockRole === 'editor') {
+      if (data.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
       }
     } catch (error) {
-      console.error(error);
+      alert(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -56,33 +64,31 @@ const Login = () => {
           <p className="login-subtitle">Log in to your account to continue.</p>
           
           <form onSubmit={handleLogin} className="login-form">
-            <div className="input-group">
-              <label htmlFor="identifier">Email or Username</label>
+            <div className="input-group floating-group">
               <input 
                 type="text" 
                 id="identifier" 
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="Enter email or username"
+                placeholder=" "
                 required
-                className="login-input"
+                className="login-input floating-input"
               />
+              <label htmlFor="identifier" className="floating-label">Email or Username</label>
             </div>
             
-            <div className="input-group">
-              <div className="label-row">
-                <label htmlFor="password">Password</label>
-                <Link to="/forgot-password" className="forgot-link">Forgot Password?</Link>
-              </div>
+            <div className="input-group floating-group">
               <input 
                 type="password" 
                 id="password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder=" "
                 required
-                className="login-input"
+                className="login-input floating-input"
               />
+              <label htmlFor="password" className="floating-label">Password</label>
+              <Link to="/forgot-password" className="forgot-link floating-forgot">Forgot?</Link>
             </div>
             
             <button type="submit" className="login-button" disabled={isLoading}>

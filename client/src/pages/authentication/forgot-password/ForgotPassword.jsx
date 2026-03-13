@@ -59,17 +59,17 @@ const ForgotPassword = () => {
               <p className="forgot-subtitle">Enter your registered email address and we'll send you a link to reset your password.</p>
               
               <form onSubmit={handleSubmit} className="forgot-form">
-                <div className="input-group">
-                  <label htmlFor="email">Email Address</label>
+                <div className="input-group floating-group">
                   <input 
                     type="email" 
                     id="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
+                    placeholder=" "
                     required
-                    className="forgot-input"
+                    className="forgot-input floating-input"
                   />
+                  <label htmlFor="email" className="floating-label">Email Address</label>
                 </div>
                 
                 <button type="submit" className="forgot-button" disabled={isLoading}>

@@ -1,15 +1,36 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import sys
 import os
+from pathlib import Path
 
-# Add parent directory to path so local execution can find "sandbox" module directly
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add the repo root to sys.path so 'sandbox' module is always resolvable
+# This must happen BEFORE any imports that depend on it
+_repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _repo_root not in sys.path:
+    sys.path.insert(0, _repo_root)
 
 from database import Base, engine
-import models
+import models                              # User model
+import curriculum.models                   # Lab, Module, Challenge — imported for Base.metadata
 from authentications.router import router as auth_router
-from sandbox import judge_api
+from admin.users    import router as admin_users_router
+from admin.stats    import router as admin_stats_router
+from admin.uploads  import router as upload_router
+from curriculum.router import router as curriculum_router
+
+# Ensure uploads directory exists at startup
+UPLOADS_DIR = Path("/app/uploads")
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Sandbox import is optional — gracefully skip if unavailable
+try:
+    from sandbox import judge_api
+    _sandbox_available = True
+except ModuleNotFoundError:
+    judge_api = None
+    _sandbox_available = False
 
 # ── 1. Create tables ──────────────────────────────────────────────────
 Base.metadata.create_all(engine)
@@ -21,19 +42,28 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS 
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], 
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── 3. Include Routers ────────────────────────────────────────────────
-app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(judge_api.router, prefix="/api/judge", tags=["sandbox"])
+# ── 3. Mount static uploads directory ─────────────────────────────────
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
+
+# ── 4. Include Routers ────────────────────────────────────────────────
+app.include_router(auth_router,        prefix="/api/auth",         tags=["Authentication"])
+app.include_router(admin_users_router, prefix="/api/admin/users",  tags=["Admin – Users"])
+app.include_router(admin_stats_router, prefix="/api/admin/stats",  tags=["Admin – Stats"])
+app.include_router(upload_router,      prefix="/api/admin",        tags=["Admin – Media"])   # /api/admin/upload
+app.include_router(upload_router,      prefix="/api",              tags=["Media – Public"])  # /api/upload alias for RTE
+app.include_router(curriculum_router,  prefix="/api",              tags=["Curriculum"])       # /api/labs, /api/modules, /api/challenges
+if _sandbox_available:
+    app.include_router(judge_api.router, prefix="/api/judge", tags=["Sandbox"])
 
 @app.get("/")
 def read_root():
-    return {"message": "Campus404 Backend API is running natively."}
+    return {"message": "Campus404 Backend API is running.", "sandbox": _sandbox_available}
