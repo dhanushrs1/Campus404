@@ -2,7 +2,7 @@
 .bpm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(10, 25, 47, 0.4);
   backdrop-filter: blur(2px);
   z-index: 99999;
   display: flex;
@@ -17,7 +17,7 @@
   max-width: 600px;
   max-height: 85vh;
   border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(10, 25, 47, 0.2);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -42,7 +42,7 @@
   font-family: 'Sora', sans-serif;
   font-size: 1.1rem;
   font-weight: 800;
-  color: #111;
+  color: #0A192F;
   margin: 0;
 }
 
@@ -60,7 +60,7 @@
 }
 .bpm-close:hover {
   background: #f0f0f5;
-  color: #111;
+  color: #0A192F;
 }
 
 .bpm-body {
@@ -93,13 +93,13 @@
 .bpm-item:hover:not(.locked) {
   border-color: #abbdfa;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(72, 202, 228, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 58, 204, 0.08);
 }
 
 .bpm-item.selected {
-  border-color: #48CAE4;
+  border-color: #003acc;
   background: #f0f4ff;
-  box-shadow: 0 0 0 1px #48CAE4;
+  box-shadow: 0 0 0 1px #003acc;
 }
 
 .bpm-item.locked {
@@ -130,7 +130,7 @@
   font-family: 'Nunito', sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #222;
+  color: #0A192F;
   text-align: center;
   word-break: break-word;
 }
@@ -188,7 +188,7 @@
 
 .bpm-btn-insert {
   padding: 0.625rem 1.5rem;
-  background: #48CAE4;
+  background: #003acc;
   color: #fff;
   border: none;
   border-radius: 10px;

@@ -1,15 +1,15 @@
 /* ModuleForm */
 .mf-wrap { max-width: 680px; position: relative; }
-.mf-toast { position:fixed;top:1.5rem;right:1.75rem;z-index:9999;padding:.75rem 1.25rem;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.875rem;animation:toastIn .25s ease;box-shadow:0 8px 24px rgba(0,0,0,.15); }
-.mf-toast.success{background:#111;color:#0096C7;} .mf-toast.error{background:#ef4444;color:#fff;}
+.mf-toast { position:fixed;top:1.5rem;right:1.75rem;z-index:9999;padding:.75rem 1.25rem;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.875rem;animation:toastIn .25s ease;box-shadow:0 8px 24px rgba(10, 25, 47,.15); }
+.mf-toast.success{background:#0A192F;color:#337bff;} .mf-toast.error{background:#ef4444;color:#fff;}
 @keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 
 .mf-breadcrumb { display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:#aaa;margin-bottom:1rem;flex-wrap:wrap; }
-.mf-breadcrumb button { background:none;border:none;color:#48CAE4;font-weight:700;cursor:pointer;font-size:.78rem;padding:0; }
+.mf-breadcrumb button { background:none;border:none;color:#003acc;font-weight:700;cursor:pointer;font-size:.78rem;padding:0; }
 .mf-bc-lab { color:#555;font-weight:600; }
 
 .mf-header { margin-bottom:1.25rem; }
-.mf-title  { font-family:'Sora',sans-serif;font-size:1.35rem;font-weight:800;color:#111;margin:0 0 4px; }
+.mf-title  { font-family:'Sora',sans-serif;font-size:1.35rem;font-weight:800;color:#0A192F;margin:0 0 4px; }
 .mf-subtitle { font-size:.83rem;color:#888;margin:0; }
 .mf-label-row { display:flex;align-items:baseline;justify-content:space-between; }
 .mf-char-count { font-size:.72rem;color:#aaa;font-family:'Nunito',sans-serif; }
@@ -21,8 +21,8 @@
 .mf-step span { width:26px;height:26px;border-radius:50%;background:#e5e5e5;color:#aaa;display:grid;place-items:center;font-size:.75rem;font-weight:800;flex-shrink:0; }
 .mf-step.done { color:#059669; }
 .mf-step.done span { background:#dcfce7;color:#059669; }
-.mf-step.current { color:#48CAE4; }
-.mf-step.current span { background:#48CAE4;color:#fff; }
+.mf-step.current { color:#003acc; }
+.mf-step.current span { background:#003acc;color:#fff; }
 .mf-step-line { flex:1;height:2px;background:#e5e5e5;min-width:20px;margin:0 .5rem; }
 .mf-step-line.done { background:#059669; }
 
@@ -31,8 +31,8 @@
 .mf-field { display:flex;flex-direction:column;gap:.375rem; }
 .mf-field label { font-family:'Sora',sans-serif;font-size:.78rem;font-weight:700;color:#444; }
 .req { color:#ef4444; }
-.mf-field input, .mf-field textarea, .mf-select { padding:.625rem .875rem;border:1.5px solid #e5e5e5;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;color:#111;outline:none;transition:border-color .2s;resize:vertical; }
-.mf-field input:focus, .mf-field textarea:focus, .mf-select:focus { border-color:#48CAE4; }
+.mf-field input, .mf-field textarea, .mf-select { padding:.625rem .875rem;border:1.5px solid #e5e5e5;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;color:#0A192F;outline:none;transition:border-color .2s;resize:vertical; }
+.mf-field input:focus, .mf-field textarea:focus, .mf-select:focus { border-color:#003acc; }
 .mf-field input.error, .mf-select.error { border-color:#ef4444; }
 .mf-err { font-size:.75rem;color:#ef4444; }
 .mf-err-banner { background:#fff5f5;border:1px solid #fca5a5;border-radius:8px;padding:.625rem .875rem;color:#ef4444;font-size:.82rem;font-weight:700; }
@@ -45,12 +45,12 @@
 .mf-existing-title { font-family:'Sora',sans-serif;font-size:.78rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin:0 0 .75rem; }
 .mf-existing-item { display:flex;align-items:center;gap:.75rem;padding:.4rem 0;border-bottom:1px solid #f4f4f6; }
 .mf-existing-item:last-child { border-bottom:none; }
-.mf-existing-num { width:22px;height:22px;border-radius:6px;background:#f0f4ff;color:#48CAE4;font-size:.72rem;font-weight:800;display:grid;place-items:center;flex-shrink:0; }
-.mf-existing-name { flex:1;font-family:'Nunito',sans-serif;font-size:.82rem;font-weight:700;color:#111; }
+.mf-existing-num { width:22px;height:22px;border-radius:6px;background:#f0f4ff;color:#003acc;font-size:.72rem;font-weight:800;display:grid;place-items:center;flex-shrink:0; }
+.mf-existing-name { flex:1;font-family:'Nunito',sans-serif;font-size:.82rem;font-weight:700;color:#0A192F; }
 .mf-existing-stats { font-size:.72rem;color:#aaa; }
 
 .mf-actions { display:flex;gap:.5rem; }
-.mf-btn-save { display:flex;align-items:center;gap:.5rem;padding:.625rem 1.25rem;background:#48CAE4;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .15s; }
+.mf-btn-save { display:flex;align-items:center;gap:.5rem;padding:.625rem 1.25rem;background:#003acc;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .15s; }
 .mf-btn-save:hover:not(:disabled) { background:#003acc; }
 .mf-btn-save:disabled { opacity:.6;cursor:default; }
 .mf-btn-cancel { padding:.55rem 1rem;background:none;border:1.5px solid #e5e5e5;border-radius:10px;color:#888;font-family:'Nunito',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;transition:all .15s; }
@@ -72,7 +72,7 @@
   align-items: center;
   gap: 1rem;
   background: #fff;
-  border: 2px solid #48CAE4;
+  border: 2px solid #003acc;
   border-radius: 10px;
   padding: 0.75rem 1rem;
   position: relative;
@@ -103,7 +103,7 @@
 .mf-sb-name {
   font-family: 'Nunito', sans-serif;
   font-weight: 800;
-  color: #111;
+  color: #0A192F;
   font-size: 0.9rem;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .mf-btn-select-badge {
-  background: #48CAE4;
+  background: #003acc;
   color: #fff;
   border: none;
   padding: 0.5rem 1rem;
@@ -166,6 +166,6 @@
 }
 
 .mf-btn-manage-badges:hover {
-  border-color: #111;
-  color: #111;
+  border-color: #0A192F;
+  color: #0A192F;
 }

@@ -11,7 +11,7 @@
   background: #fff; border-radius: 20px;
   width: 800px; max-width: 96vw; max-height: 88vh;
   display: flex; flex-direction: column; overflow: hidden;
-  box-shadow: 0 32px 80px rgba(0,0,0,.22);
+  box-shadow: 0 32px 80px rgba(10, 25, 47,.22);
   animation: mpmSlideUp .22s ease;
 }
 @keyframes mpmSlideUp { from { opacity:0; transform:translateY(16px) } to { opacity:1; transform:translateY(0) } }
@@ -21,7 +21,7 @@
   display: flex; align-items: center; justify-content: space-between;
   padding: .875rem 1.25rem; border-bottom: 1px solid #f0f0f5;
 }
-.mpm-title { font-family:'Sora',sans-serif; font-size:.95rem; font-weight:700; color:#111; margin:0; }
+.mpm-title { font-family:'Sora',sans-serif; font-size:.95rem; font-weight:700; color:#0A192F; margin:0; }
 .mpm-close {
   width:28px; height:28px; border:none; background:#f4f4f6; border-radius:8px;
   display:grid; place-items:center; cursor:pointer; color:#888; transition:all .15s;
@@ -36,10 +36,10 @@
   font-weight:700; color:#888; cursor:pointer; border-bottom:2px solid transparent;
   margin-bottom:-1px; transition:color .15s;
 }
-.mpm-tab:hover { color:#48CAE4; }
-.mpm-tab.active { color:#48CAE4; border-bottom-color:#48CAE4; }
+.mpm-tab:hover { color:#003acc; }
+.mpm-tab.active { color:#003acc; border-bottom-color:#003acc; }
 .mpm-count {
-  background:#48CAE4; color:#fff; font-size:.65rem; font-weight:800;
+  background:#003acc; color:#fff; font-size:.65rem; font-weight:800;
   padding:.15rem .375rem; border-radius:999px; min-width:18px; text-align:center;
 }
 
@@ -49,9 +49,9 @@
 /* Library */
 .mpm-library { padding:.875rem; display:flex; flex-direction:column; gap:.75rem; }
 .mpm-loading,.mpm-empty { display:flex; flex-direction:column; align-items:center; gap:.5rem; padding:3rem 1rem; color:#aaa; text-align:center; }
-.mpm-spinner { width:28px; height:28px; border:3px solid #e5e5e5; border-top-color:#48CAE4; border-radius:50%; animation:spin .7s linear infinite; }
+.mpm-spinner { width:28px; height:28px; border:3px solid #e5e5e5; border-top-color:#003acc; border-radius:50%; animation:spin .7s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg) } }
-.mpm-btn-link { background:none;border:none;color:#48CAE4;font-weight:700;cursor:pointer;font-size:.85rem; }
+.mpm-btn-link { background:none;border:none;color:#003acc;font-weight:700;cursor:pointer;font-size:.85rem; }
 
 .mpm-grid {
   display: grid;
@@ -63,24 +63,24 @@
   border:2px solid transparent; background:#f7f8fc; padding:0;
   transition:all .15s; position:relative;
 }
-.mpm-item:hover { border-color:#48CAE4; transform:scale(1.03); }
-.mpm-item.selected { border-color:#48CAE4; box-shadow:0 0 0 3px rgba(72, 202, 228,.2); }
+.mpm-item:hover { border-color:#003acc; transform:scale(1.03); }
+.mpm-item.selected { border-color:#003acc; box-shadow:0 0 0 3px rgba(0, 58, 204,.2); }
 .mpm-item.selected::after {
   content:'✓'; position:absolute; top:4px; right:5px;
-  background:#48CAE4; color:#fff; font-size:.62rem; font-weight:900;
+  background:#003acc; color:#fff; font-size:.62rem; font-weight:900;
   width:16px; height:16px; border-radius:50%; display:grid; place-items:center;
 }
 .mpm-item img { width:100%; height:100%; object-fit:cover; display:block; }
 .mpm-file-badge {
   width:100%; height:100%; display:grid; place-items:center;
   font-family:'Sora',monospace; font-size:.65rem; font-weight:800;
-  color:#48CAE4; background:#eff3ff;
+  color:#003acc; background:#eff3ff;
 }
 
 /* Pagination */
 .mpm-pagination { display:flex; align-items:center; justify-content:center; gap:1rem; font-size:.78rem; color:#888; }
 .mpm-pg-btn { padding:.35rem .75rem; border:1.5px solid #e5e5e5; border-radius:8px; background:#fff; font-family:'Nunito',sans-serif; font-size:.78rem; font-weight:700; color:#555; cursor:pointer; transition:all .15s; }
-.mpm-pg-btn:hover:not(:disabled) { border-color:#48CAE4; color:#48CAE4; }
+.mpm-pg-btn:hover:not(:disabled) { border-color:#003acc; color:#003acc; }
 .mpm-pg-btn:disabled { opacity:.4; cursor:default; }
 
 /* Upload tab */
@@ -91,7 +91,7 @@
   text-align:center; cursor:pointer; background:#fafafa; transition:all .2s;
   color:#aaa; font-family:'Nunito',sans-serif; font-size:.875rem;
 }
-.mpm-dropzone:hover,.mpm-dropzone.drag-over { border-color:#48CAE4; background:#f0f4ff; color:#48CAE4; }
+.mpm-dropzone:hover,.mpm-dropzone.drag-over { border-color:#003acc; background:#f0f4ff; color:#003acc; }
 .mpm-dropzone.uploading { pointer-events:none; opacity:.7; }
 .mpm-dropzone small { font-size:.72rem; line-height:1.6; }
 .mpm-dropzone p { margin:0; }
@@ -105,7 +105,7 @@
 .mpm-footer-hint { align-items:center; color:#aaa; font-size:.78rem; }
 .mpm-selected-preview { display:flex; align-items:center; gap:.75rem; }
 .mpm-selected-preview img { width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid #ebebf0; }
-.mpm-selected-name { font-family:'Nunito',sans-serif; font-size:.78rem; font-weight:700; color:#111; display:block; }
+.mpm-selected-name { font-family:'Nunito',sans-serif; font-size:.78rem; font-weight:700; color:#0A192F; display:block; }
 .mpm-selected-size { font-size:.72rem; color:#aaa; }
 
 /* Alt text row */
@@ -113,9 +113,9 @@
 .mpm-alt-row label { font-family:'Sora',sans-serif; font-size:.72rem; font-weight:700; color:#888; }
 .mpm-alt-row input {
   padding:.5rem .75rem; border:1.5px solid #e5e5e5; border-radius:8px;
-  font-family:'Nunito',sans-serif; font-size:.83rem; color:#111; outline:none; transition:border-color .2s;
+  font-family:'Nunito',sans-serif; font-size:.83rem; color:#0A192F; outline:none; transition:border-color .2s;
 }
-.mpm-alt-row input:focus { border-color:#48CAE4; }
+.mpm-alt-row input:focus { border-color:#003acc; }
 
 /* Insert actions */
 .mpm-footer-actions { display:flex; gap:.5rem; justify-content:flex-end; }
@@ -126,7 +126,7 @@
 .mpm-btn-cancel:hover { border-color:#aaa; color:#333; }
 .mpm-btn-insert {
   display:flex; align-items:center; gap:.375rem; padding:.475rem 1rem;
-  background:#48CAE4; color:#fff; border:none; border-radius:8px;
+  background:#003acc; color:#fff; border:none; border-radius:8px;
   font-family:'Nunito',sans-serif; font-size:.82rem; font-weight:700; cursor:pointer; transition:background .15s;
 }
 .mpm-btn-insert:hover { background:#003acc; }

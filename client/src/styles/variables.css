@@ -3,10 +3,10 @@
 :root {
   /* Clean Professional Theme Colors */
   --c-alabaster: #F4F4F2;
-  --c-obsidian: #111111;
-  --c-cobalt: #48CAE4;  /* Primary Buttons/Progress */
-  --c-cobalt-hover: #0096C7; /* Hover State */
-  --c-lime: #0096C7; /* Replaced lime with nice secondary blue */
+  --c-obsidian: #0A192F;
+  --c-cobalt: #003acc;  /* Primary Buttons/Progress */
+  --c-cobalt-hover: #0050ff; /* Hover State */
+  --c-lime: #337bff; /* Replaced lime with nice secondary blue */
   
   /* Fonts */
   --font-heading: 'Sora', sans-serif;
@@ -20,5 +20,5 @@
   
   --transition-fast: 0.2s ease;
   --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --shadow-float: 0 12px 24px -6px rgba(72, 202, 228, 0.2); /* Blue glow */
+  --shadow-float: 0 12px 24px -6px rgba(0, 58, 204, 0.2); /* Blue glow */
 }

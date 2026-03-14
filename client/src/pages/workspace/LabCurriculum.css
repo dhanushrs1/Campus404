@@ -2,10 +2,10 @@
 
 /* ── Loading / Error ─────────────────────────────────────── */
 .lc-loading { min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;background:#0a0a14;color:#ccc;font-family:'Nunito',sans-serif; }
-.lc-loading-ring { width:48px;height:48px;border:4px solid rgba(255,255,255,.1);border-top-color:#48CAE4;border-radius:50%;animation:spin .8s linear infinite; }
+.lc-loading-ring { width:48px;height:48px;border:4px solid rgba(255,255,255,.1);border-top-color:#003acc;border-radius:50%;animation:spin .8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg) } }
 .lc-error { min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;font-family:'Nunito',sans-serif; }
-.lc-error button { padding:.6rem 1.25rem;background:#48CAE4;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700; }
+.lc-error button { padding:.6rem 1.25rem;background:#003acc;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700; }
 
 /* ── Page ─────────────────────────────────────────────────── */
 .lc-page { min-height:100vh;background:#f5f5f8; }
@@ -93,7 +93,7 @@
 }
 .lc-hero-pfill {
   height: 100%;
-  background: #48CAE4;
+  background: #003acc;
   border-radius: 999px;
   transition: width .6s ease;
 }
@@ -144,8 +144,8 @@
   overflow: hidden;
   transition: box-shadow .2s, border-color .2s;
 }
-.lc-mod:hover:not(.locked) { box-shadow: 0 8px 32px rgba(72, 202, 228, 0.2); }
-.lc-mod.open { border-color: #48CAE444; box-shadow: 0 4px 20px rgba(72, 202, 228,.08); }
+.lc-mod:hover:not(.locked) { box-shadow: 0 8px 32px rgba(0, 58, 204, 0.2); }
+.lc-mod.open { border-color: #003acc44; box-shadow: 0 4px 20px rgba(0, 58, 204,.08); }
 .lc-mod.completed { border-color: #05966944; }
 .lc-mod.locked { opacity: .65; }
 
@@ -169,7 +169,7 @@
   height: 32px;
   border-radius: 50%;
   background: #f1f4ff;
-  color: #48CAE4;
+  color: #003acc;
   display: grid;
   place-items: center;
   font-family: 'Sora', sans-serif;
@@ -192,12 +192,12 @@
   font-family: 'Sora', sans-serif;
   font-size: .95rem;
   font-weight: 700;
-  color: #111;
+  color: #0A192F;
 }
 .lc-mod-desc { font-size: .8rem; color: #888; margin: 0 0 .5rem; }
 .lc-mod-meta { font-size: .75rem; color: #aaa; display: flex; gap: .5rem; flex-wrap: wrap; }
 .lc-mod-pbar { height: 4px; background: #f0f0f5; border-radius: 999px; overflow: hidden; margin-top: .625rem; }
-.lc-mod-pfill { height: 100%; background: linear-gradient(90deg, #48CAE4, #60a5fa); border-radius: 999px; transition: width .5s; }
+.lc-mod-pfill { height: 100%; background: linear-gradient(90deg, #003acc, #60a5fa); border-radius: 999px; transition: width .5s; }
 .lc-mod.completed .lc-mod-pfill { background: linear-gradient(90deg, #059669, #34d399); }
 
 .lc-badge-chip {
@@ -213,7 +213,7 @@
   border: 1px solid #fde68a;
   white-space: nowrap;
 }
-.lc-badge-chip.earned { background: #0096C7; color: #3a5900; border-color: #b5e000; }
+.lc-badge-chip.earned { background: #337bff; color: #3a5900; border-color: #b5e000; }
 .lc-badge-chip-img { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; }
 .lc-lock-label { font-size: .68rem; color: #ef4444; font-weight: 700; }
 .lc-mod-chevron { margin-top: 2px; color: #aaa; flex-shrink: 0; }
@@ -267,7 +267,7 @@
   content: '';
   position: absolute;
   top: -16px; left: -16px; right: -16px; bottom: -16px;
-  border: 3px dashed #48CAE4;
+  border: 3px dashed #003acc;
   border-radius: 50%;
   opacity: 0.3;
   animation: lc-spin 15s linear infinite;
@@ -285,7 +285,7 @@
   display: grid;
   place-items: center;
   cursor: pointer;
-  box-shadow: 0 8px 0 #d4d4d8, 0 15px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 0 #d4d4d8, 0 15px 20px rgba(10, 25, 47,0.08);
   transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   padding: 0;
@@ -303,15 +303,15 @@
 }
 
 .lc-game-node-wrap.current .lc-game-node-btn {
-  background: #48CAE4;
+  background: #003acc;
   color: #fff;
-  box-shadow: 0 8px 0 #0037cc, 0 15px 25px rgba(72, 202, 228,0.3);
+  box-shadow: 0 8px 0 #0037cc, 0 15px 25px rgba(0, 58, 204,0.3);
   transform: scale(1.08);
 }
 
 .lc-game-node-btn:active:not(:disabled) {
   transform: translateY(8px) !important;
-  box-shadow: 0 0 0 transparent, 0 5px 10px rgba(0,0,0,0.1) !important;
+  box-shadow: 0 0 0 transparent, 0 5px 10px rgba(10, 25, 47,0.1) !important;
 }
 
 .lc-game-node-btn:disabled {
@@ -331,7 +331,7 @@
   align-items: center;
   justify-content: center;
   color: #a1a1aa;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(10, 25, 47,0.1);
   z-index: 3;
 }
 
@@ -342,7 +342,7 @@
   background: #fff;
   padding: 0.5rem 1rem;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 15px rgba(10, 25, 47,0.08);
   border: 2px solid #f0f0f5;
   white-space: nowrap;
   pointer-events: none;
@@ -366,7 +366,7 @@
 .lc-gn-title {
   font-weight: 800;
   font-size: 0.95rem;
-  color: #111;
+  color: #0A192F;
 }
 
 .lc-gn-xp {
@@ -377,14 +377,14 @@
 }
 
 .lc-game-node-wrap.current .lc-gn-xp {
-  color: #48CAE4;
+  color: #003acc;
 }
 
 .lc-gn-start-bubble {
   position: absolute;
   top: -65px;
   background: #fff;
-  color: #48CAE4;
+  color: #003acc;
   border: 2px solid #e5e5e5;
   padding: 0.5rem 1.25rem;
   border-radius: 14px;
@@ -393,7 +393,7 @@
   font-size: 0.9rem;
   letter-spacing: 0.05em;
   cursor: pointer;
-  box-shadow: 0 6px 0 #e5e5e5, 0 10px 20px rgba(72, 202, 228, 0.15);
+  box-shadow: 0 6px 0 #e5e5e5, 0 10px 20px rgba(0, 58, 204, 0.15);
   animation: lc-bounceBubble 2s infinite ease-in-out;
   z-index: 10;
 }
@@ -412,7 +412,7 @@
 }
 .lc-gn-start-bubble:hover { 
   transform: translateY(-2px);
-  box-shadow: 0 8px 0 #e5e5e5, 0 12px 25px rgba(72, 202, 228, 0.2); 
+  box-shadow: 0 8px 0 #e5e5e5, 0 12px 25px rgba(0, 58, 204, 0.2); 
   color: #003acc;
 }
 .lc-gn-start-bubble:active {
@@ -438,7 +438,7 @@
   align-items: center;
   gap: 1rem;
 }
-.lc-badge-img-big { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 3px solid #0096C7; }
+.lc-badge-img-big { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 3px solid #337bff; }
 .lc-badge-trophy { font-size: 2.5rem; }
 .lc-badge-reveal strong { font-family: 'Sora', sans-serif; font-size: .9rem; font-weight: 700; color: #065f46; display: block; }
 .lc-badge-reveal p { font-size: .78rem; color: #059669; margin: .2rem 0; }
@@ -461,7 +461,7 @@
 .lc-avatar-fallback {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #48CAE4, #60a5fa);
+  background: linear-gradient(135deg, #003acc, #60a5fa);
   display: grid;
   place-items: center;
   font-family: 'Sora', sans-serif;
@@ -469,7 +469,7 @@
   font-weight: 800;
   color: #fff;
 }
-.lc-user-name { font-family: 'Sora', sans-serif; font-size: .9rem; font-weight: 700; color: #111; }
+.lc-user-name { font-family: 'Sora', sans-serif; font-size: .9rem; font-weight: 700; color: #0A192F; }
 .lc-user-handle { font-size: .75rem; color: #aaa; }
 
 .lc-stats-grid {
@@ -486,7 +486,7 @@
 .lc-stat-item.streak { background: linear-gradient(135deg, #fff7ed, #fed7aa); }
 .lc-stat-item.challenges { background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
 .lc-stat-item.badges { background: linear-gradient(135deg, #fefce8, #fef9c3); }
-.lc-stat-val { font-family: 'Sora', sans-serif; font-size: 1.25rem; font-weight: 800; color: #111; }
+.lc-stat-val { font-family: 'Sora', sans-serif; font-size: 1.25rem; font-weight: 800; color: #0A192F; }
 .lc-stat-label { font-size: .7rem; color: #888; margin-top: .2rem; font-family: 'Nunito', sans-serif; }
 
 .lc-lab-progress-card {
@@ -496,7 +496,7 @@
   padding: 1.125rem;
 }
 .lc-lp-header { display: flex; justify-content: space-between; margin-bottom: .625rem; font-family: 'Sora', sans-serif; font-size: .8rem; font-weight: 700; color: #555; }
-.lc-lp-pct { color: #48CAE4; }
+.lc-lp-pct { color: #003acc; }
 .lc-lp-bar { height: 8px; background: #f0f0f5; border-radius: 999px; overflow: hidden; margin-bottom: .5rem; }
 .lc-lp-fill { height: 100%; border-radius: 999px; transition: width .6s; }
 .lc-lp-xp { font-size: .72rem; color: #aaa; text-align: right; font-family: 'Nunito', sans-serif; }
@@ -548,10 +548,136 @@
   gap: .5rem;
   width: 100%;
   padding: .875rem;
-  background: linear-gradient(135deg, #0096C7, #7CFF00);
+  background: linear-gradient(135deg, #337bff, #7CFF00);
   border-radius: 12px;
   font-family: 'Sora', sans-serif;
   font-size: .95rem;
   font-weight: 800;
   color: #3a5900;
 }
+
+.lc-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.lc-mod-card {
+  background: #FFF;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 58, 204, 0.05), 0 2px 4px -1px rgba(0, 58, 204, 0.03);
+  border: 1px solid #E2E8F0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.lc-mod-card:hover:not(.locked) {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 58, 204, 0.1), 0 4px 6px -2px rgba(0, 58, 204, 0.05);
+  border-color: var(--primary-color);
+}
+
+.lc-mod-card.locked {
+  background: #f8fafc;
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.lc-mod-card.completed {
+  border-color: #10B981;
+}
+
+.lc-mod-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.lc-mod-num {
+  background: var(--primary-light, #e0ebff);
+  color: var(--primary-color);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: 'Sora', sans-serif;
+}
+
+.lc-mod-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.3;
+}
+
+.lc-mod-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.lc-mod-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--primary-color);
+  background: var(--primary-light, #f0f5ff);
+  padding: 0.5rem;
+  border-radius: 8px;
+}
+
+.lc-mod-pbar {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lc-mod-pfill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.lc-mod-earned-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #FFF;
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #10B981;
+}
+
+.lc-badge-chip-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+

@@ -5,7 +5,7 @@ import { api } from '../admin/curriculum/api';
 import './Workspace.css';
 
 export default function Workspace() {
-  const { moduleId, levelNumber } = useParams();
+  const { slug, moduleId, levelNumber } = useParams();
   const navigate = useNavigate();
   const [challenges, setChallenges] = useState([]);
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
@@ -30,14 +30,14 @@ export default function Workspace() {
         setCode(sorted[idx].starter_code || '# Write your code here');
       } else {
         // invalid level, navigate to dashboard
-        navigate('/dashboard');
+        navigate(`/labs/${slug}/modules/${moduleId}`);
       }
       setLoading(false);
     }).catch(err => {
       console.error(err);
-      navigate('/dashboard');
+      navigate(`/labs/${slug}/modules/${moduleId}`);
     });
-  }, [moduleId, levelNumber, navigate]);
+  }, [slug, moduleId, levelNumber, navigate]);
 
   const handleRun = () => {
      // Mock run
@@ -50,9 +50,9 @@ export default function Workspace() {
      setTimeout(() => {
        const nextLevel = currentLevelIndex + 2; // +1 for 0-index, +1 to advance
        if (nextLevel <= challenges.length) {
-         navigate(`/workspace/module/${moduleId}/level/${nextLevel}`);
+         navigate(`/labs/${slug}/modules/${moduleId}/level/${nextLevel}`);
        } else {
-         navigate('/dashboard'); // Module complete
+         navigate(`/labs/${slug}/modules/${moduleId}`); // Module complete
        }
      }, 1500);
   };
@@ -64,8 +64,8 @@ export default function Workspace() {
       {/* Zone A: Header */}
       <header className="ws-header">
         <div className="ws-header-left">
-          <button className="ws-back-btn" onClick={() => navigate('/dashboard')}>
-            &lt; Back to Dashboard
+          <button className="ws-back-btn" onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>
+            &lt; Back to Module
           </button>
         </div>
         

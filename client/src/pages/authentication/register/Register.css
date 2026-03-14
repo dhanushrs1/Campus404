@@ -55,7 +55,7 @@
 .register-image-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(17, 17, 17, 0.95) 0%, rgba(72, 202, 228, 0.6) 100%);
+  background: linear-gradient(135deg, rgba(17, 17, 17, 0.95) 0%, rgba(0, 58, 204, 0.6) 100%);
   z-index: 1;
 }
 
@@ -150,7 +150,7 @@
 .register-input {
   width: 100%;
   padding: 1.15rem 1.25rem;
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(10, 25, 47, 0.04);
   border-radius: var(--radius-lg);
   font-family: var(--font-body);
   font-size: 1rem;
@@ -159,12 +159,12 @@
   background-color: #ffffff;
   color: var(--c-obsidian);
   box-sizing: border-box;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 6px 16px rgba(10, 25, 47, 0.04);
 }
 
 .register-input:focus {
   border-color: var(--c-cobalt);
-  box-shadow: 0 8px 24px rgba(72, 202, 228, 0.12), 0 0 0 4px rgba(72, 202, 228, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 58, 204, 0.12), 0 0 0 4px rgba(0, 58, 204, 0.1);
   background-color: #ffffff;
   transform: translateY(-2px);
 }
@@ -241,7 +241,7 @@
 
 .register-button:hover:not(:disabled) {
   transform: translateY(-3px);
-  box-shadow: 0 16px 32px rgba(72, 202, 228, 0.25);
+  box-shadow: 0 16px 32px rgba(0, 58, 204, 0.25);
   background: var(--c-cobalt-hover);
   color: #ffffff;
   border-color: transparent;
@@ -249,7 +249,7 @@
 
 .register-button:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 0 4px 12px rgba(72, 202, 228, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 58, 204, 0.15);
 }
 
 .register-button:disabled {

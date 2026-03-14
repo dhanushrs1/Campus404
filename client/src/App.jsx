@@ -19,6 +19,7 @@ import ChallengeForm  from './pages/admin/curriculum/ChallengeForm';
 import AuthGuard from './components/AuthGuard';
 import Workspace      from './pages/workspace/Workspace';
 import LabCurriculum  from './pages/workspace/LabCurriculum';
+import ModuleCurriculum from './pages/workspace/ModuleCurriculum';
 
 function App() {
   return (
@@ -30,16 +31,23 @@ function App() {
       } />
 
       {/* Workspace route */}
-      <Route path="/workspace/module/:moduleId/level/:levelNumber" element={
+      <Route path="/labs/:slug/modules/:moduleId/level/:levelNumber" element={
         <AuthGuard requireAuth={true}>
           <Workspace />
         </AuthGuard>
       } />
 
-      {/* Slug route that opens the beautiful curriculum accordion layout */}
+      {/* Slug route that opens the beautiful curriculum layout */}
       <Route path="/labs/:slug" element={
         <AuthGuard requireAuth={true}>
           <LabCurriculum />
+        </AuthGuard>
+      } />
+
+      {/* Dynamic route that opens the specific gamified module path */}
+      <Route path="/labs/:slug/modules/:moduleId" element={
+        <AuthGuard requireAuth={true}>
+          <ModuleCurriculum />
         </AuthGuard>
       } />
 

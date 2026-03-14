@@ -14,7 +14,7 @@
   display: flex;
   justify-content: center;
   gap: 0;
-  background: linear-gradient(90deg, #48CAE4, #003acc, #48CAE4);
+  background: linear-gradient(90deg, #003acc, #003acc, #003acc);
   background-size: 200% auto;
   animation: gradientShift 5s linear infinite;
 }
@@ -38,7 +38,7 @@
   font-family: 'Sora', sans-serif;
   font-size: 1.75rem;
   font-weight: 800;
-  color: #0096C7;
+  color: #337bff;
   line-height: 1;
 }
 
@@ -81,7 +81,7 @@
 .footer-logo-mark {
   width: 42px;
   height: 42px;
-  background: linear-gradient(135deg, #48CAE4, #003acc);
+  background: linear-gradient(135deg, #003acc, #003acc);
   border-radius: 12px;
   display: grid;
   place-items: center;
@@ -89,7 +89,7 @@
   font-family: 'Sora', sans-serif;
   font-weight: 800;
   font-size: 1.2rem;
-  box-shadow: 0 8px 24px rgba(72, 202, 228, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 58, 204, 0.35);
 }
 
 .footer-logo-text {
@@ -99,7 +99,7 @@
   color: #fff;
 }
 
-.footer-logo-404 { color: #0096C7; }
+.footer-logo-404 { color: #337bff; }
 
 .footer-tagline {
   font-family: 'Nunito', sans-serif;
@@ -129,11 +129,11 @@
 }
 
 .social-btn:hover {
-  background: #48CAE4;
-  border-color: #48CAE4;
+  background: #003acc;
+  border-color: #003acc;
   color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(72, 202, 228, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 58, 204, 0.4);
 }
 
 /* ── Link Columns ── */
@@ -179,7 +179,7 @@
   content: '';
   width: 0;
   height: 1px;
-  background: #48CAE4;
+  background: #003acc;
   transition: width 0.2s ease;
   display: inline-block;
 }
