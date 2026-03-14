@@ -13,12 +13,14 @@ if _repo_root not in sys.path:
 
 from database import Base, engine
 import models                              # User model
-import curriculum.models                   # Lab, Module, Challenge — imported for Base.metadata
+import curriculum.models                   # Lab, Module, Challenge, Badge, UserBadge, ChallengeCompletion
 from authentications.router import router as auth_router
 from admin.users    import router as admin_users_router
 from admin.stats    import router as admin_stats_router
 from admin.uploads  import router as upload_router
+from admin.badges   import router as badges_router
 from curriculum.router import router as curriculum_router
+from progress.router import router as progress_router
 
 # Ensure uploads directory exists at startup
 UPLOADS_DIR = Path("/app/uploads")
@@ -58,9 +60,11 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 app.include_router(auth_router,        prefix="/api/auth",         tags=["Authentication"])
 app.include_router(admin_users_router, prefix="/api/admin/users",  tags=["Admin – Users"])
 app.include_router(admin_stats_router, prefix="/api/admin/stats",  tags=["Admin – Stats"])
-app.include_router(upload_router,      prefix="/api/admin",        tags=["Admin – Media"])   # /api/admin/upload
-app.include_router(upload_router,      prefix="/api",              tags=["Media – Public"])  # /api/upload alias for RTE
-app.include_router(curriculum_router,  prefix="/api",              tags=["Curriculum"])       # /api/labs, /api/modules, /api/challenges
+app.include_router(upload_router,      prefix="/api/admin",        tags=["Admin – Media"])
+app.include_router(upload_router,      prefix="/api",              tags=["Media – Public"])
+app.include_router(badges_router,      prefix="/api/admin",        tags=["Admin – Badges"])
+app.include_router(curriculum_router,  prefix="/api",              tags=["Curriculum"])
+app.include_router(progress_router,    prefix="/api",              tags=["Progress"])
 if _sandbox_available:
     app.include_router(judge_api.router, prefix="/api/judge", tags=["Sandbox"])
 

@@ -98,7 +98,24 @@ export default function ModuleForm() {
       </div>
 
       <div className="mf-header">
-        <h2 className="mf-title">{isEdit ? 'Edit Module' : 'Add Module'}</h2>
+        <h2 className="mf-title">
+          {isEdit ? 'Edit Module' : 'Add Module'}
+          {isEdit && (
+            <span style={{ fontSize: '0.6em', marginLeft: '12px', fontWeight: 'normal', color: '#666' }}>
+              ID: {moduleId} 
+              <button 
+                type="button" 
+                onClick={() => {
+                  navigator.clipboard.writeText(moduleId);
+                  showToast('Module ID copied!');
+                }}
+                style={{ marginLeft: '8px', padding: '2px 8px', fontSize: '12px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: '4px', background: '#f5f5f5' }}
+              >
+                Copy
+              </button>
+            </span>
+          )}
+        </h2>
         {lab && <p className="mf-subtitle">Lab: <strong>{lab.title}</strong></p>}
       </div>
 
@@ -131,16 +148,6 @@ export default function ModuleForm() {
             </div>
             <textarea rows={3} value={form.description} onChange={e => handleDesc(e.target.value)}
               placeholder="Optional: What will students learn in this module?" maxLength={DESC_MAX} />
-          </div>
-
-          <div className="mf-field mf-field-sm">
-            <label>Display Order</label>
-            <div className="mf-order-row">
-              <input type="number" min="0" value={form.order_index} onChange={e => set('order_index', e.target.value)} />
-              {!isEdit && modules.length > 0 && (
-                <span className="mf-order-hint">{modules.length} module{modules.length > 1 ? 's' : ''} already in this lab</span>
-              )}
-            </div>
           </div>
 
           {errors.lab_id && <div className="mf-err-banner">{errors.lab_id}</div>}

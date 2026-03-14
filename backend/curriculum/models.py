@@ -1,22 +1,21 @@
 """
 curriculum/models.py — Campus404
-SQLAlchemy ORM models for Labs, Modules, Challenges, and ChallengeFiles.
-
-Architecture decisions:
-- `banner_image_path` stores only the relative path — full URL built at API layer.
-- `total_xp` on Lab is a dynamic @property backed by a DB query.
-- Cascade deletes: Lab → Modules → Challenges → ChallengeFiles.
-- `difficulty` removed — labs are categorised by language instead.
-- Language (Judge0 ID) lives on Lab, not on individual Challenges.
-- Multi-file code support via ChallengeFile: up to 5 files per challenge.
+SQLAlchemy ORM models for Labs, Modules, Challenges, ChallengeFiles, Badges, and UserProgress.
 """
 from datetime import datetime, timezone
+import random, string
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
-    Integer, String, Text, func
+    Integer, String, Text, func, UniqueConstraint
 )
 from sqlalchemy.orm import relationship, Session
 from database import Base
+
+
+def _gen_uid(length=4):
+    """Generate a short alphanumeric unique ID (e.g. 'a3k9')."""
+    chars = string.ascii_lowercase + string.digits
+    return ''.join(random.choices(chars, k=length))
 
 
 class Lab(Base):
@@ -25,9 +24,10 @@ class Lab(Base):
     id                = Column(Integer, primary_key=True, index=True)
     title             = Column(String(255), nullable=False)
     slug              = Column(String(255), unique=True, nullable=False, index=True)
-    description       = Column(String(160), nullable=True)   # hard max 160 chars
-    banner_image_path = Column(String(512), nullable=True)   # relative path ONLY
-    language_id       = Column(Integer, default=71, nullable=False)  # Judge0 lang id (Python 3 default)
+    description       = Column(String(160), nullable=True)
+    banner_image_path = Column(String(512), nullable=True)
+    hero_image_url    = Column(String(512), nullable=True)  # external hero/cover image URL
+    language_id       = Column(Integer, default=71, nullable=False)
     is_published      = Column(Boolean, default=False, nullable=False)
     created_at        = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at        = Column(DateTime, default=lambda: datetime.now(timezone.utc),
@@ -45,9 +45,11 @@ class Module(Base):
     __tablename__ = "modules"
 
     id          = Column(Integer, primary_key=True, index=True)
+    unique_id   = Column(String(8), unique=True, nullable=False, index=True)  # short uid e.g. 'a3k9'
     lab_id      = Column(Integer, ForeignKey("labs.id", ondelete="CASCADE"), nullable=False, index=True)
     title       = Column(String(255), nullable=False)
-    description = Column(String(160), nullable=True)   # hard max 160 chars
+    slug        = Column(String(300), unique=True, nullable=False, index=True)  # e.g. "intro-to-python-a3k9"
+    description = Column(String(160), nullable=True)
     order_index = Column(Integer, default=0, nullable=False)
     created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
@@ -58,6 +60,7 @@ class Module(Base):
         cascade="all, delete-orphan",
         order_by="Challenge.level_number",
     )
+    badge = relationship("Badge", back_populates="module", uselist=False)
 
 
 class Challenge(Base):
@@ -65,10 +68,10 @@ class Challenge(Base):
 
     id           = Column(Integer, primary_key=True, index=True)
     module_id    = Column(Integer, ForeignKey("modules.id", ondelete="CASCADE"), nullable=False, index=True)
-    level_number = Column(Integer, nullable=False)          # auto-calculated by service
-    custom_title = Column(String(255), nullable=True)       # null → frontend shows "Level N"
+    level_number = Column(Integer, nullable=False)
+    custom_title = Column(String(255), nullable=True)
     xp_reward    = Column(Integer, default=50, nullable=False)
-    content_html = Column(Text, nullable=False)             # rich text problem statement
+    content_html = Column(Text, nullable=False)
     is_published = Column(Boolean, default=False, nullable=False)
     created_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc),
@@ -81,31 +84,87 @@ class Challenge(Base):
         cascade="all, delete-orphan",
         order_by="ChallengeFile.order_index",
     )
+    completions = relationship("ChallengeCompletion", back_populates="challenge", cascade="all, delete-orphan")
 
 
 class ChallengeFile(Base):
-    """
-    Multi-file code support per Challenge.
-    Up to 5 files per challenge (enforced at the service layer).
-    One file must be marked is_main=True — the primary entry point shown in the editor.
-    """
     __tablename__ = "challenge_files"
 
     id           = Column(Integer, primary_key=True, index=True)
     challenge_id = Column(Integer, ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True)
-    filename     = Column(String(100), nullable=False)   # e.g. "solution.py", "index.html"
+    filename     = Column(String(100), nullable=False)
     content      = Column(Text, default="", nullable=False)
-    is_main      = Column(Boolean, default=False, nullable=False)   # primary file
+    is_main      = Column(Boolean, default=False, nullable=False)
     order_index  = Column(Integer, default=0, nullable=False)
 
     challenge = relationship("Challenge", back_populates="files")
 
 
+# ── Badges ─────────────────────────────────────────────────────────────────────
+class Badge(Base):
+    """
+    Each Badge is optionally linked to a Module.
+    Earning the badge requires completing ALL published challenges in that module.
+    Badges can also be standalone (module_id = null) for platform-level achievements.
+    """
+    __tablename__ = "badges"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    name          = Column(String(255), nullable=False)
+    description   = Column(String(255), nullable=True)
+    image_path    = Column(String(512), nullable=True)   # relative path, served from /uploads
+    image_url     = Column(String(512), nullable=True)   # OR external URL override
+    module_id     = Column(Integer, ForeignKey("modules.id", ondelete="SET NULL"), nullable=True, unique=True, index=True)
+    created_at    = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    module        = relationship("Module", back_populates="badge")
+    earned_by     = relationship("UserBadge", back_populates="badge", cascade="all, delete-orphan")
+
+
+class UserBadge(Base):
+    """Tracks which users have earned which badges."""
+    __tablename__ = "user_badges"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    badge_id   = Column(Integer, ForeignKey("badges.id", ondelete="CASCADE"), nullable=False, index=True)
+    earned_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    badge = relationship("Badge", back_populates="earned_by")
+
+    __table_args__ = (UniqueConstraint("user_id", "badge_id", name="uq_user_badge"),)
+
+
+class ChallengeCompletion(Base):
+    """Tracks which challenges a user has completed."""
+    __tablename__ = "challenge_completions"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    user_id       = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    challenge_id  = Column(Integer, ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True)
+    xp_awarded    = Column(Integer, nullable=False)
+    completed_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    challenge = relationship("Challenge", back_populates="completions")
+
+    __table_args__ = (UniqueConstraint("user_id", "challenge_id", name="uq_user_challenge"),)
+
+
+# ── Helpers ─────────────────────────────────────────────────────────────────────
 def compute_lab_total_xp(db: Session, lab_id: int) -> int:
     result = (
         db.query(func.coalesce(func.sum(Challenge.xp_reward), 0))
         .join(Module, Challenge.module_id == Module.id)
         .filter(Module.lab_id == lab_id)
+        .scalar()
+    )
+    return int(result or 0)
+
+
+def compute_module_total_xp(db: Session, module_id: int) -> int:
+    result = (
+        db.query(func.coalesce(func.sum(Challenge.xp_reward), 0))
+        .filter(Challenge.module_id == module_id)
         .scalar()
     )
     return int(result or 0)

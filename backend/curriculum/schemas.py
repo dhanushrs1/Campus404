@@ -38,6 +38,7 @@ class LabUpdate(BaseModel):
     slug:              Optional[str]  = Field(None, pattern=r'^[a-z0-9-]+$')
     description:       Optional[str]  = Field(None, max_length=160)
     banner_image_path: Optional[str]  = None
+    hero_image_url:    Optional[str]  = None
     language_id:       Optional[int]  = Field(None, ge=1)
     is_published:      Optional[bool] = None
 
@@ -51,9 +52,10 @@ class LabResponse(BaseModel):
     id:                int
     title:             str
     slug:              str
-    description:       Optional[str]
-    banner_image_path: Optional[str]
-    banner_url:        Optional[str]   # full URL constructed at API layer — never stored
+    description:       Optional[str] = None
+    banner_image_path: Optional[str] = None
+    banner_url:        Optional[str] = None
+    hero_image_url:    Optional[str] = None
     language_id:       int
     is_published:      bool
     total_xp:          int
@@ -79,6 +81,8 @@ class ModuleUpdate(BaseModel):
 
 class ModuleResponse(BaseModel):
     id:              int
+    unique_id:       str
+    slug:            str
     lab_id:          int
     title:           str
     description:     Optional[str]

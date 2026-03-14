@@ -10,12 +10,15 @@ import AdminDash      from './pages/admin/dashboard/Dashboard';
 import LabsManager    from './pages/admin/labs-manager/LabsManager';
 import UserManager    from './pages/admin/user-manager/UserManager';
 import MediaLibrary   from './pages/admin/media-library/MediaLibrary';
+import BadgesManager  from './pages/admin/badges/BadgesManager';
 
 import LabForm        from './pages/admin/curriculum/LabForm';
 import ModuleForm     from './pages/admin/curriculum/ModuleForm';
 import ChallengeForm  from './pages/admin/curriculum/ChallengeForm';
 
 import AuthGuard from './components/AuthGuard';
+import Workspace      from './pages/workspace/Workspace';
+import LabCurriculum  from './pages/workspace/LabCurriculum';
 
 function App() {
   return (
@@ -23,6 +26,26 @@ function App() {
       <Route path="/" element={
         <AuthGuard requireAuth={false}>
           <Navigate to="/login" replace />
+        </AuthGuard>
+      } />
+
+      {/* Workspace route */}
+      <Route path="/workspace/module/:moduleId/level/:levelNumber" element={
+        <AuthGuard requireAuth={true}>
+          <Workspace />
+        </AuthGuard>
+      } />
+
+      {/* Slug route that opens the beautiful curriculum accordion layout */}
+      <Route path="/labs/:slug" element={
+        <AuthGuard requireAuth={true}>
+          <LabCurriculum />
+        </AuthGuard>
+      } />
+
+      <Route path="/labs" element={
+        <AuthGuard requireAuth={true}>
+          <Navigate to="/dashboard" replace />
         </AuthGuard>
       } />
 
@@ -66,6 +89,7 @@ function App() {
         <Route path="challenges/:challengeId/edit"  element={<ChallengeForm />} />
         <Route path="users" element={<UserManager />} />
         <Route path="media" element={<MediaLibrary />} />
+        <Route path="badges" element={<BadgesManager />} />
       </Route>
     </Routes>
   );

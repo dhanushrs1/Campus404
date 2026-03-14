@@ -48,6 +48,7 @@ def _lab_to_response(db: Session, request: Request, lab: models.Lab) -> schemas.
         slug=lab.slug,
         description=lab.description,
         banner_image_path=lab.banner_image_path,
+        hero_image_url=lab.hero_image_url,
         banner_url=build_image_url(request, lab.banner_image_path),
         language_id=lab.language_id,
         is_published=lab.is_published,
@@ -60,6 +61,8 @@ def _lab_to_response(db: Session, request: Request, lab: models.Lab) -> schemas.
 def _module_to_response(db: Session, module: models.Module) -> schemas.ModuleResponse:
     return schemas.ModuleResponse(
         id=module.id,
+        unique_id=module.unique_id,
+        slug=module.slug,
         lab_id=module.lab_id,
         title=module.title,
         description=module.description,
@@ -155,7 +158,20 @@ def delete_lab(db, lab_id):
 def create_module(db, data):
     if not db.query(models.Lab).filter(models.Lab.id == data.lab_id).first():
         raise HTTPException(status_code=404, detail=f"Lab {data.lab_id} not found.")
-    module = models.Module(**data.model_dump())
+
+    # Generate a unique 4-char ID; retry up to 10 times on collision
+    for _ in range(10):
+        uid = models._gen_uid(4)
+        if not db.query(models.Module).filter(models.Module.unique_id == uid).first():
+            break
+
+    # Build slug: "module-title-uid"
+    from re import sub
+    base_slug = sub(r'[^a-z0-9-]+', '-', data.title.lower()).strip('-')
+    slug = f"{base_slug}-{uid}"
+
+    module_data = data.model_dump()
+    module = models.Module(**module_data, unique_id=uid, slug=slug)
     db.add(module)
     db.commit()
     db.refresh(module)
