@@ -20,7 +20,7 @@
 .site-header.scrolled {
   height: 60px;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 4px 32px rgba(0, 71, 255, 0.07);
+  box-shadow: 0 4px 32px rgba(72, 202, 228, 0.07);
 }
 
 .header-inner {
@@ -45,7 +45,7 @@
 .logo-mark {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #0047FF, #003acc);
+  background: linear-gradient(135deg, #48CAE4, #003acc);
   border-radius: 10px;
   display: grid;
   place-items: center;
@@ -53,7 +53,7 @@
   font-family: 'Sora', sans-serif;
   font-weight: 800;
   font-size: 1.1rem;
-  box-shadow: 0 4px 12px rgba(0, 71, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(72, 202, 228, 0.3);
 }
 
 .logo-text {
@@ -64,7 +64,7 @@
 }
 
 .logo-404 {
-  color: #0047FF;
+  color: #48CAE4;
 }
 
 /* ────────────── Nav ────────────── */
@@ -96,8 +96,8 @@
 }
 
 .nav-trigger:hover {
-  background: rgba(0, 71, 255, 0.06);
-  color: #0047FF;
+  background: rgba(72, 202, 228, 0.06);
+  color: #48CAE4;
 }
 
 .nav-chevron {
@@ -145,7 +145,7 @@
 }
 
 .mega-item:hover {
-  background: rgba(0, 71, 255, 0.05);
+  background: rgba(72, 202, 228, 0.05);
 }
 
 .mega-icon {
@@ -198,8 +198,8 @@
 }
 
 .icon-btn:hover {
-  background: rgba(0, 71, 255, 0.08);
-  color: #0047FF;
+  background: rgba(72, 202, 228, 0.08);
+  color: #48CAE4;
 }
 
 /* ── Notifications ── */
@@ -213,7 +213,7 @@
   right: 6px;
   width: 16px;
   height: 16px;
-  background: #0047FF;
+  background: #48CAE4;
   color: #fff;
   font-size: 0.6rem;
   font-weight: 800;
@@ -259,7 +259,7 @@
   font-family: 'Nunito', sans-serif;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #0047FF;
+  color: #48CAE4;
   cursor: pointer;
 }
 
@@ -281,7 +281,7 @@
 }
 
 .notif-item:hover { background: #f7f7ff; }
-.notif-item.unread { background: rgba(0, 71, 255, 0.04); }
+.notif-item.unread { background: rgba(72, 202, 228, 0.04); }
 
 .notif-icon {
   font-size: 1.25rem;
@@ -321,7 +321,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #0047FF;
+  background: #48CAE4;
   flex-shrink: 0;
   margin-top: 4px;
 }
@@ -333,7 +333,7 @@
   gap: 0.4rem;
   padding: 0.45rem 0.875rem;
   background: linear-gradient(135deg, #111, #222);
-  color: #D4FF00;
+  color: #0096C7;
   font-family: 'Sora', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
@@ -351,7 +351,7 @@
 /* ── Header Buttons ── */
 .btn-header-primary {
   padding: 0.5rem 1.1rem;
-  background: #0047FF;
+  background: #48CAE4;
   color: #fff;
   font-family: 'Sora', sans-serif;
   font-size: 0.85rem;
@@ -365,7 +365,7 @@
 .btn-header-primary:hover {
   background: #003acc;
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 71, 255, 0.35);
+  box-shadow: 0 4px 16px rgba(72, 202, 228, 0.35);
 }
 
 .btn-header-ghost {
@@ -383,8 +383,8 @@
 }
 
 .btn-header-ghost:hover {
-  border-color: #0047FF;
-  color: #0047FF;
+  border-color: #48CAE4;
+  color: #48CAE4;
 }
 
 /* ── Avatar ── */
@@ -403,12 +403,12 @@
   height: 38px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2.5px solid rgba(0, 71, 255, 0.3);
+  border: 2.5px solid rgba(72, 202, 228, 0.3);
   transition: border-color 0.2s ease;
 }
 
 .avatar-btn:hover .avatar-img {
-  border-color: #0047FF;
+  border-color: #48CAE4;
 }
 
 .avatar-status {
@@ -450,7 +450,7 @@
   height: 44px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2.5px solid rgba(0, 71, 255, 0.25);
+  border: 2.5px solid rgba(72, 202, 228, 0.25);
 }
 
 .ud-name {
@@ -464,7 +464,7 @@
 .ud-role {
   font-family: 'Nunito', sans-serif;
   font-size: 0.75rem;
-  color: #0047FF;
+  color: #48CAE4;
   font-weight: 600;
   margin: 0;
 }
@@ -494,7 +494,7 @@
   transition: background 0.2s ease;
 }
 
-.ud-item:hover { background: #f4f4ff; color: #0047FF; }
+.ud-item:hover { background: #f4f4ff; color: #48CAE4; }
 
 .ud-divider {
   height: 1px;
@@ -576,7 +576,7 @@
   transition: all 0.15s ease;
 }
 
-.mobile-link:hover { background: #f4f4ff; color: #0047FF; }
+.mobile-link:hover { background: #f4f4ff; color: #48CAE4; }
 
 .mobile-auth { display: flex; gap: 0.75rem; margin-top: 0.5rem; }
 

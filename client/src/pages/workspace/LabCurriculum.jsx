@@ -192,42 +192,106 @@ export default function LabCurriculum() {
                     </div>
                   </button>
 
-                  {/* Challenge list — accordion body */}
+                  {/* Gamified Challenge list — accordion body */}
                   {isOpen && !mod.is_locked && (
-                    <div className="lc-challenges">
-                      {mod.challenges.map((ch, ci) => {
-                        const uniqueUrl = `/workspace/module/${mod.module_id}/level/${ch.level_number}`;
+                    <div className="lc-gamified-path">
+                      {(() => {
+                        const NODE_HEIGHT = 130;
+                        const CYCLE = [60, -60]; // Zigzag alternates right and left
+                        const points = mod.challenges.map((c, i) => ({
+                          x: CYCLE[i % CYCLE.length],
+                          y: i * NODE_HEIGHT + (NODE_HEIGHT / 2)
+                        }));
+                        
+                        let pathD = '';
+                        if (points.length > 0) {
+                          pathD = `M ${points[0].x} ${points[0].y}`;
+                          for (let i = 1; i < points.length; i++) {
+                            // Using L for straight Zigzag line segments
+                            pathD += ` L ${points[i].x} ${points[i].y}`;
+                          }
+                        }
+
+                        let lastActiveIdx = mod.challenges.findIndex(c => !c.is_completed && !c.is_locked);
+                        if (lastActiveIdx === -1) lastActiveIdx = mod.challenges.length - 1;
+
+                        const activePoints = points.slice(0, lastActiveIdx + 1);
+                        let pathD_active = '';
+                        if (activePoints.length > 0) {
+                          pathD_active = `M ${activePoints[0].x} ${activePoints[0].y}`;
+                          for (let i = 1; i < activePoints.length; i++) {
+                            pathD_active += ` L ${activePoints[i].x} ${activePoints[i].y}`;
+                          }
+                        }
+
                         return (
-                          <div key={ch.challenge_id}
-                            className={`lc-ch ${ch.is_completed ? 'done' : ''} ${ch.is_locked ? 'locked' : ''}`}
-                          >
-                            {/* State icon */}
-                            <div className="lc-ch-icon">
-                              {ch.is_locked ? (
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                              ) : ch.is_completed ? (
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                              ) : (
-                                <span className="lc-ch-num">{ci + 1}</span>
-                              )}
-                            </div>
+                          <div className="lc-game-board" style={{ height: mod.challenges.length * NODE_HEIGHT }}>
+                            {/* Path background */}
+                            <svg className="lc-game-svg" viewBox={`-200 0 400 ${mod.challenges.length * NODE_HEIGHT}`}>
+                              <path d={pathD} stroke="#e5e5e5" strokeWidth="20" fill="none" strokeDasharray="0 24" strokeLinecap="round" strokeLinejoin="round" />
+                              <path d={pathD_active} stroke="#0047FF" strokeWidth="20" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
 
-                            <div className="lc-ch-body">
-                              <span className="lc-ch-title">{ch.display_title}</span>
-                              <span className="lc-ch-xp">+{ch.xp_reward} XP</span>
-                            </div>
+                            {/* Nodes */}
+                            <div className="lc-game-nodes">
+                              {mod.challenges.map((ch, ci) => {
+                                const uniqueUrl = `/workspace/module/${mod.module_id}/level/${ch.level_number}`;
+                                const p = points[ci];
+                                const isCurrent = ci === lastActiveIdx;
+                                const isLast = ci === mod.challenges.length - 1;
 
-                            {!ch.is_locked && (
-                              <button
-                                className={`lc-ch-btn ${ch.is_completed ? 'review' : 'start'}`}
-                                onClick={() => navigate(uniqueUrl)}
-                              >
-                                {ch.is_completed ? 'Review' : 'Start →'}
-                              </button>
-                            )}
+                                return (
+                                  <div 
+                                    key={ch.challenge_id} 
+                                    className={`lc-game-node-wrap ${ch.is_completed ? 'completed' : ''} ${ch.is_locked ? 'locked' : ''} ${isCurrent ? 'current' : ''} ${p.x < 0 ? 'pos-left' : 'pos-right'}`}
+                                    style={{ top: p.y, left: `calc(50% + ${p.x}px)` }}
+                                  >
+                                    <button 
+                                      className={`lc-game-node-btn ${isLast ? 'final-node' : ''}`} 
+                                      onClick={() => !ch.is_locked && navigate(uniqueUrl)}
+                                      disabled={ch.is_locked}
+                                    >
+                                      {ch.is_completed ? (
+                                        isLast ? (
+                                          <span style={{ fontSize: '1.8rem' }}>👑</span>
+                                        ) : (
+                                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        )
+                                      ) : (
+                                        isLast ? (
+                                          <span style={{ fontSize: '1.8rem', opacity: ch.is_locked ? 0.3 : 1, filter: ch.is_locked ? 'grayscale(100%)' : 'none' }}>👑</span>
+                                        ) : (
+                                          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                        )
+                                      )}
+
+                                      {/* External Locked Badge */}
+                                      {ch.is_locked && (
+                                        <div className="lc-gn-ext-lock">
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-7 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/><path d="M7 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h-2V7c0-1.66-1.34-3-3-3S7 5.34 7 7v4H7z"/></svg>
+                                        </div>
+                                      )}
+                                    </button>
+                                    
+                                    {/* Action Tooltip / Label */}
+                                    <div className="lc-game-label">
+                                      <span className="lc-gn-title">{ch.display_title || `Level ${ch.level_number}`}</span>
+                                      <span className="lc-gn-xp">+{ch.xp_reward} XP</span>
+                                    </div>
+                                    
+                                    {/* Bouncy Floating Start Bubble */}
+                                    {isCurrent && (
+                                      <div className="lc-gn-start-bubble" onClick={() => navigate(uniqueUrl)}>
+                                        <span className="lc-gn-bubble-text">START</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         );
-                      })}
+                      })()}
 
                       {/* Module completed state */}
                       {mod.is_completed && mod.badge && (

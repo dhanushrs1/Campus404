@@ -6,7 +6,7 @@
   border-radius:12px; font-family:'Nunito',sans-serif; font-weight:700; font-size:.875rem;
   animation:toastIn .25s ease; box-shadow:0 8px 24px rgba(0,0,0,.15);
 }
-.lf-toast.success { background:#111; color:#D4FF00; }
+.lf-toast.success { background:#111; color:#0096C7; }
 .lf-toast.error   { background:#ef4444; color:#fff; }
 @keyframes toastIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
 
@@ -16,7 +16,7 @@
   color:#888; font-family:'Nunito',sans-serif; font-size:.82rem; font-weight:700;
   cursor:pointer; padding:0; margin-bottom:.75rem; transition:color .15s;
 }
-.lf-back:hover { color:#0047FF; }
+.lf-back:hover { color:#48CAE4; }
 .lf-title { font-family:'Sora',sans-serif; font-size:1.35rem; font-weight:800; color:#111; margin:0; }
 
 .lf-grid { display:grid; grid-template-columns:1fr 220px; gap:1.5rem; align-items:start; }
@@ -34,7 +34,7 @@
   font-family:'Nunito',sans-serif; font-size:.875rem; color:#111; outline:none;
   transition:border-color .2s; resize:vertical;
 }
-.lf-field input:focus, .lf-field textarea:focus { border-color:#0047FF; }
+.lf-field input:focus, .lf-field textarea:focus { border-color:#48CAE4; }
 .lf-field input.error, .lf-field textarea.error { border-color:#ef4444; }
 .lf-err { font-size:.75rem; color:#ef4444;}
 .lf-label-row { display:flex; align-items:baseline; justify-content:space-between; }
@@ -43,7 +43,7 @@
 
 /* Slug */
 .lf-slug-input { display:flex; align-items:center; border:1.5px solid #e5e5e5; border-radius:10px; overflow:hidden; }
-.lf-slug-input:focus-within { border-color:#0047FF; }
+.lf-slug-input:focus-within { border-color:#48CAE4; }
 .lf-slug-prefix { padding:.625rem .75rem; background:#f7f8fc; color:#aaa; font-size:.82rem; border-right:1.5px solid #e5e5e5; white-space:nowrap; }
 .lf-slug-input input { border:none !important; border-radius:0 !important; flex:1; }
 .lf-slug-input input:focus { border:none; outline:none; }
@@ -56,7 +56,7 @@
   color:#aaa; font-family:'Nunito',sans-serif; font-size:.85rem;
   transition:all .2s; padding:1.5rem;
 }
-.lf-banner-placeholder-btn:hover { border-color:#0047FF; background:#f0f4ff; color:#0047FF; }
+.lf-banner-placeholder-btn:hover { border-color:#48CAE4; background:#f0f4ff; color:#48CAE4; }
 .lf-banner-placeholder-btn small { font-size:.72rem; }
 
 .lf-banner-set { border:1.5px solid #ebebf0; border-radius:12px; overflow:hidden; }
@@ -67,12 +67,12 @@
   border:1.5px solid #e5e5e5; border-radius:7px; background:#fff;
   font-family:'Nunito',sans-serif; font-size:.75rem; font-weight:700; color:#555; cursor:pointer; transition:all .15s;
 }
-.lf-banner-change:hover { border-color:#0047FF; color:#0047FF; }
+.lf-banner-change:hover { border-color:#48CAE4; color:#48CAE4; }
 .lf-banner-remove {
   padding:.35rem .625rem; border:none; background:none;
   font-family:'Nunito',sans-serif; font-size:.75rem; font-weight:700; color:#ef4444; cursor:pointer;
 }
-.lf-spinner { width:24px; height:24px; border:3px solid #e5e5e5; border-top-color:#0047FF; border-radius:50%; animation:spin .7s linear infinite; }
+.lf-spinner { width:24px; height:24px; border:3px solid #e5e5e5; border-top-color:#48CAE4; border-radius:50%; animation:spin .7s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg) } }
 
 /* Sidebar */
@@ -80,7 +80,7 @@
 .lf-card { background:#fff; border:1.5px solid #ebebf0; border-radius:14px; padding:1rem; }
 .lf-card-title { font-family:'Sora',sans-serif; font-size:.75rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.06em; margin:0 0 .75rem; }
 .lf-select { width:100%; padding:.5rem .75rem; border:1.5px solid #e5e5e5; border-radius:8px; font-family:'Nunito',sans-serif; font-size:.82rem; color:#111; outline:none; cursor:pointer; transition:border-color .2s; }
-.lf-select:focus { border-color:#0047FF; }
+.lf-select:focus { border-color:#48CAE4; }
 .lf-hint { font-size:.7rem; color:#aaa; margin-top:.375rem; display:block; line-height:1.4; }
 
 /* Toggle */
@@ -93,7 +93,7 @@
   content:''; position:absolute; top:3px; left:3px; width:16px; height:16px;
   background:#fff; border-radius:50%; transition:transform .2s; box-shadow:0 1px 4px rgba(0,0,0,.2);
 }
-.lf-toggle input:checked ~ .lf-toggle-track { background:#0047FF; }
+.lf-toggle input:checked ~ .lf-toggle-track { background:#48CAE4; }
 .lf-toggle input:checked ~ .lf-toggle-track::after { transform:translateX(18px); }
 .lf-toggle-label { font-family:'Nunito',sans-serif; font-size:.85rem; font-weight:700; color:#333; }
 
@@ -101,7 +101,7 @@
 .lf-actions-card { display:flex; flex-direction:column; gap:.5rem; }
 .lf-btn-save {
   display:flex; align-items:center; justify-content:center; gap:.5rem;
-  padding:.625rem 1rem; background:#0047FF; color:#fff; border:none; border-radius:10px;
+  padding:.625rem 1rem; background:#48CAE4; color:#fff; border:none; border-radius:10px;
   font-family:'Nunito',sans-serif; font-size:.875rem; font-weight:700; cursor:pointer; transition:background .15s;
 }
 .lf-btn-save:hover:not(:disabled) { background:#003acc; }
@@ -112,3 +112,94 @@
 }
 .lf-btn-cancel:hover { border-color:#aaa; color:#333; }
 .lf-btn-spinner { width:14px; height:14px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+
+/* Modules Section */
+.lf-modules-section {
+  margin-top: 2rem;
+  background: #fff;
+  border: 1.5px solid #ebebf0;
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+.lf-modules-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.lf-modules-header h3 {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.1rem;
+  margin: 0;
+  color: #111;
+}
+.lf-btn-add-mod {
+  background: #f0f4ff;
+  color: #48CAE4;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.lf-btn-add-mod:hover {
+  background: #e0ebff;
+}
+.lf-no-mods {
+  color: #888;
+  font-style: italic;
+  margin: 0;
+}
+.lf-modules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.lf-module-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #fafafa;
+  border-radius: 10px;
+  border: 1px solid #eee;
+}
+.lf-module-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.lf-mod-num {
+  width: 24px;
+  height: 24px;
+  background: #48CAE4;
+  color: #fff;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.lf-mod-name {
+  font-weight: 700;
+  color: #111;
+}
+.lf-mod-stats {
+  font-size: 0.75rem;
+  color: #aaa;
+}
+.lf-module-actions button {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #444;
+  transition: all 0.15s;
+}
+.lf-module-actions button:hover {
+  border-color: #48CAE4;
+  color: #48CAE4;
+}

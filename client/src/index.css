@@ -1,6 +1,6 @@
 /* ================================================================
    Campus404 — Frontend Design System
-   Obsidian & Cyber Orange Theme
+   Clean & Professional Blue Theme
    ================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -13,13 +13,13 @@
   --bg-hover:      #161f2e;
   --bg-active:     #1a2744;
 
-  --brand:         #6366f1;
-  --brand-light:   #818cf8;
-  --brand-dark:    #4f46e5;
-  --brand-glow:    rgba(99,102,241,0.15);
-  --brand-border:  rgba(99,102,241,0.3);
+  --brand:         #48CAE4;
+  --brand-light:   #90E0EF;
+  --brand-dark:    #0096C7;
+  --brand-glow:    rgba(72, 202, 228, 0.15);
+  --brand-border:  rgba(72, 202, 228, 0.3);
 
-  --accent:        #a78bfa;
+  --accent:        #00B4D8;
   --success:       #10b981;
   --warning:       #f59e0b;
   --danger:        #ef4444;
@@ -29,7 +29,7 @@
   --warning-soft:  rgba(245,158,11,0.12);
   --danger-soft:   rgba(239,68,68,0.12);
   --info-soft:     rgba(59,130,246,0.12);
-  --brand-soft:    rgba(99,102,241,0.12);
+  --brand-soft:    rgba(72, 202, 228, 0.12);
 
   --text-1:        #f0f2f5;
   --text-2:        #8d97a8;
@@ -41,7 +41,7 @@
   --shadow-sm:     0 1px 4px rgba(0,0,0,0.35);
   --shadow-md:     0 4px 20px rgba(0,0,0,0.45);
   --shadow-lg:     0 8px 40px rgba(0,0,0,0.55);
-  --shadow-brand:  0 4px 20px rgba(99,102,241,0.3);
+  --shadow-brand:  0 4px 20px rgba(72, 202, 228, 0.4);
 
   --radius-sm:  6px;
   --radius-md:  10px;
@@ -118,11 +118,11 @@ a { color: inherit; text-decoration: none; }
   padding: 7px 16px; border-radius: var(--radius-md);
   font-size: 0.82rem; font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  background: var(--brand);
   box-shadow: 0 2px 10px var(--brand-glow);
   transition: all var(--t);
 }
-.btn-orange-sm:hover { box-shadow: 0 4px 18px rgba(99,102,241,0.45); transform: translateY(-1px); }
+.btn-orange-sm:hover { background: var(--brand-dark); box-shadow: 0 4px 18px rgba(72, 202, 228, 0.45); transform: translateY(-1px); }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    FOOTER
@@ -189,7 +189,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .hero-highlight {
-  background: linear-gradient(135deg, var(--brand), #ff9d70);
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -204,11 +204,11 @@ a { color: inherit; text-decoration: none; }
 .btn-primary-lg {
   padding: 13px 30px; border-radius: var(--radius-md);
   font-size: 0.95rem; font-weight: 700; color: #fff;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  background: var(--brand);
   box-shadow: 0 4px 20px var(--brand-glow);
   transition: all var(--t);
 }
-.btn-primary-lg:hover { box-shadow: 0 6px 28px rgba(99,102,241,0.5); transform: translateY(-2px); }
+.btn-primary-lg:hover { background: var(--brand-dark); box-shadow: 0 6px 28px rgba(72, 202, 228, 0.5); transform: translateY(-2px); }
 
 .btn-ghost-lg {
   padding: 13px 24px; border-radius: var(--radius-md);
@@ -231,11 +231,11 @@ a { color: inherit; text-decoration: none; }
   margin-left: auto; flex-shrink: 0;
   padding: 11px 24px; border-radius: var(--radius-md);
   font-size: 0.86rem; font-weight: 700; color: #fff;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  background: var(--brand);
   box-shadow: 0 2px 12px var(--brand-glow); transition: all var(--t);
   white-space: nowrap;
 }
-.btn-orange-lg:hover { box-shadow: 0 4px 20px rgba(99,102,241,0.5); transform: translateY(-1px); }
+.btn-orange-lg:hover { background: var(--brand-dark); box-shadow: 0 4px 20px rgba(72, 202, 228, 0.5); transform: translateY(-1px); }
 
 /* Feature Grid */
 .features-grid {
@@ -245,9 +245,13 @@ a { color: inherit; text-decoration: none; }
 .feature-card {
   background: var(--bg-card); border: 1px solid var(--border);
   border-radius: var(--radius-lg); padding: 24px;
-  transition: border-color var(--t);
+  transition: all var(--t);
 }
-.feature-card:hover { border-color: var(--brand-border); }
+.feature-card:hover { 
+  border-color: var(--brand-border); 
+  box-shadow: 0 4px 24px rgba(72, 202, 228, 0.2); 
+  transform: translateY(-2px);
+}
 .feature-icon  { font-size: 1.8rem; margin-bottom: 12px; }
 .feature-title { font-size: 0.95rem; font-weight: 700; color: var(--text-1); margin-bottom: 6px; }
 .feature-desc  { font-size: 0.82rem; color: var(--text-2); line-height: 1.65; }
@@ -293,12 +297,15 @@ a { color: inherit; text-decoration: none; }
 .auth-submit {
   margin-top: 4px;
   width: 100%; padding: 12px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  background: var(--brand);
   color: #fff; font-family: var(--font); font-size: 0.9rem; font-weight: 700;
   border: none; border-radius: var(--radius-md); cursor: pointer;
   box-shadow: 0 3px 14px var(--brand-glow); transition: all var(--t);
 }
-.auth-submit:hover { box-shadow: 0 5px 20px rgba(99,102,241,0.5); transform: translateY(-1px); }
+.auth-submit:hover {
+  background: var(--brand-dark);
+}
+.auth-submit:hover { box-shadow: 0 5px 20px rgba(72,202,228,0.5); transform: translateY(-1px); }
 
 .auth-switch { font-size: 0.82rem; color: var(--text-2); text-align: center; }
 .auth-switch a { color: var(--brand-light); font-weight: 600; }
@@ -346,7 +353,7 @@ a { color: inherit; text-decoration: none; }
 .map-placeholder-inner p  { font-size: 0.84rem; color: var(--text-3); line-height: 1.65; max-width: 380px; }
 .map-placeholder-badge {
   padding: 4px 14px; border-radius: 999px;
-  background: rgba(99,102,241,0.1); border: 1px solid var(--brand-border);
+  background: rgba(72,202,228,0.1); border: 1px solid var(--brand-border);
   font-size: 0.72rem; font-weight: 700; color: var(--brand-light);
   letter-spacing: 0.06em; text-transform: uppercase;
 }
@@ -439,7 +446,7 @@ a { color: inherit; text-decoration: none; }
   transition: all var(--t);
 }
 .level-repo-link svg { width: 14px; height: 14px; flex-shrink: 0; }
-.level-repo-link:hover { background: rgba(99,102,241,0.25); color: #fff; }
+.level-repo-link:hover { background: rgba(72,202,228,0.25); color: #fff; }
 
 .level-repo-locked {
   display: inline-flex; align-items: center; gap: 6px;
@@ -530,13 +537,13 @@ a { color: inherit; text-decoration: none; }
   position: relative; z-index: 1;
   width: 100%; max-width: 440px;
   background: rgba(16,16,26,0.92);
-  border: 1px solid rgba(99,102,241,0.25);
+  border: 1px solid rgba(72,202,228,0.25);
   border-radius: 22px;
   padding: 36px 36px 28px;
   box-shadow:
-    0 0 0 1px rgba(99,102,241,0.1),
+    0 0 0 1px rgba(72,202,228,0.1),
     0 24px 80px rgba(0,0,0,0.8),
-    0 0 60px rgba(99,102,241,0.08) inset;
+    0 0 60px rgba(72,202,228,0.08) inset;
   animation: am-slide-up 0.28s var(--ease);
   display: flex; flex-direction: column; gap: 18px;
   max-height: 92vh; overflow-y: auto;
@@ -549,7 +556,7 @@ a { color: inherit; text-decoration: none; }
 
 /* Scrollbar inside modal */
 .am-card::-webkit-scrollbar { width: 4px; }
-.am-card::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 4px; }
+.am-card::-webkit-scrollbar-thumb { background: rgba(72,202,228,0.3); border-radius: 4px; }
 
 /* Close button */
 .am-close {
@@ -566,11 +573,11 @@ a { color: inherit; text-decoration: none; }
 .am-brand { display: flex; align-items: center; gap: 12px; }
 .am-brand-icon {
   width: 44px; height: 44px; border-radius: 12px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.05));
+  background: linear-gradient(135deg, rgba(72,202,228,0.2), rgba(72,202,228,0.05));
   border: 1px solid var(--brand-border);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 0 20px rgba(99,102,241,0.15);
+  box-shadow: 0 0 20px rgba(72,202,228,0.15);
 }
 .am-brand-icon svg { width: 22px; height: 22px; color: var(--brand-light); }
 
@@ -599,7 +606,7 @@ a { color: inherit; text-decoration: none; }
 .am-tab-slider {
   position: absolute; top: 4px; left: 4px;
   width: calc(50% - 4px); height: calc(100% - 8px);
-  background: rgba(99,102,241,0.12);
+  background: rgba(72,202,228,0.12);
   border: 1px solid var(--brand-border);
   border-radius: 7px;
   transition: transform 0.25s var(--ease);
@@ -623,7 +630,7 @@ a { color: inherit; text-decoration: none; }
 .am-github svg { width: 18px; height: 18px; flex-shrink: 0; }
 .am-github-badge {
   margin-left: auto; padding: 2px 8px; border-radius: 999px;
-  background: rgba(99,102,241,0.15); border: 1px solid var(--brand-border);
+  background: rgba(72,202,228,0.15); border: 1px solid var(--brand-border);
   font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--brand-light);
 }
@@ -662,8 +669,8 @@ a { color: inherit; text-decoration: none; }
 }
 .am-input-wrap input:focus {
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.15), 0 0 12px rgba(99,102,241,0.08);
-  background: rgba(99,102,241,0.03);
+  box-shadow: 0 0 0 3px rgba(72,202,228,0.15), 0 0 12px rgba(72,202,228,0.08);
+  background: rgba(72,202,228,0.03);
 }
 .am-input-wrap input::placeholder { color: var(--text-3); }
 
@@ -683,7 +690,7 @@ a { color: inherit; text-decoration: none; }
   background: linear-gradient(135deg, var(--brand) 0%, #ff4500 100%);
   color: #fff; font-family: var(--font); font-size: 0.92rem; font-weight: 700;
   border: none; border-radius: 10px; cursor: pointer;
-  box-shadow: 0 4px 20px rgba(99,102,241,0.45);
+  box-shadow: 0 4px 20px rgba(72,202,228,0.45);
   transition: all var(--t); position: relative; overflow: hidden;
 }
 .am-submit::after {
@@ -693,7 +700,7 @@ a { color: inherit; text-decoration: none; }
   pointer-events: none;
 }
 .am-submit:hover {
-  box-shadow: 0 6px 28px rgba(99,102,241,0.65);
+  box-shadow: 0 6px 28px rgba(72,202,228,0.65);
   transform: translateY(-1px);
 }
 .am-submit:active { transform: translateY(0); }

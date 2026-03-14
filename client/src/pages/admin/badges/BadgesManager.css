@@ -1,17 +1,17 @@
 /* BadgesManager */
 .bm-wrap { max-width:1100px;position:relative; }
 .bm-toast { position:fixed;top:1.5rem;right:1.75rem;z-index:9999;padding:.75rem 1.25rem;border-radius:12px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.875rem;animation:toastIn .25s ease;box-shadow:0 8px 24px rgba(0,0,0,.15); }
-.bm-toast.success{background:#111;color:#D4FF00;} .bm-toast.error{background:#ef4444;color:#fff;}
+.bm-toast.success{background:#111;color:#0096C7;} .bm-toast.error{background:#ef4444;color:#fff;}
 @keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
 
 .bm-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;}
 .bm-title{font-family:'Sora',sans-serif;font-size:1.35rem;font-weight:800;color:#111;margin:0 0 4px;}
 .bm-subtitle{font-size:.83rem;color:#888;margin:0;}
-.bm-btn-primary{display:flex;align-items:center;gap:.375rem;padding:.55rem 1rem;background:#0047FF;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .15s;}
+.bm-btn-primary{display:flex;align-items:center;gap:.375rem;padding:.55rem 1rem;background:#48CAE4;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .15s;}
 .bm-btn-primary:hover{background:#003acc;}
 
 .bm-spinner-wrap{display:grid;place-items:center;padding:4rem;}
-.bm-spinner{width:36px;height:36px;border:3px solid #e5e5e5;border-top-color:#0047FF;border-radius:50%;animation:spin .7s linear infinite;}
+.bm-spinner{width:36px;height:36px;border:3px solid #e5e5e5;border-top-color:#48CAE4;border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 .bm-empty{padding:3rem;text-align:center;color:#aaa;font-family:'Nunito',sans-serif;}
@@ -19,19 +19,19 @@
 .bm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;}
 
 .bm-card{background:#fff;border:1.5px solid #ebebf0;border-radius:16px;padding:1.125rem;display:flex;align-items:flex-start;gap:1rem;transition:all .2s;}
-.bm-card:hover{box-shadow:0 6px 24px rgba(0,0,0,.07);transform:translateY(-2px);}
+.bm-card:hover{box-shadow: 0 8px 32px rgba(72, 202, 228, 0.2);transform:translateY(-2px);}
 .bm-card-icon{width:52px;height:52px;border-radius:14px;background:#f8f9fc;display:flex;align-items:center;justify-content:center;font-size:1.75rem;flex-shrink:0;overflow:hidden;border:1.5px solid #ebebf0;}
 .bm-card-icon img{width:100%;height:100%;object-fit:cover;}
 .bm-card-body{flex:1;min-width:0;}
 .bm-card-name{font-family:'Sora',sans-serif;font-size:.9rem;font-weight:700;color:#111;margin:0 0 .25rem;}
 .bm-card-desc{font-size:.75rem;color:#888;margin:0 0 .5rem;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 .bm-card-meta{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;}
-.bm-module-tag{font-size:.68rem;font-weight:700;background:#eff3ff;color:#0047FF;padding:.15rem .5rem;border-radius:6px;}
+.bm-module-tag{font-size:.68rem;font-weight:700;background:#eff3ff;color:#48CAE4;padding:.15rem .5rem;border-radius:6px;}
 .bm-unlinked-tag{font-size:.68rem;font-weight:700;background:#fff7ed;color:#c2410c;padding:.15rem .5rem;border-radius:6px;}
 .bm-earned{font-size:.68rem;color:#aaa;font-family:'Nunito',sans-serif;}
 .bm-card-actions{display:flex;gap:.375rem;flex-direction:column;}
 .bm-action-btn{padding:.35rem .7rem;border:1.5px solid #e5e5e5;border-radius:8px;background:#fff;font-family:'Nunito',sans-serif;font-size:.75rem;font-weight:700;color:#555;cursor:pointer;transition:all .15s;white-space:nowrap;}
-.bm-action-btn:hover{border-color:#0047FF;color:#0047FF;}
+.bm-action-btn:hover{border-color:#48CAE4;color:#48CAE4;}
 .bm-action-btn.danger{color:#ef4444;border-color:#fca5a5;} .bm-action-btn.danger:hover{background:#fff5f5;}
 
 /* Modal */
@@ -47,19 +47,19 @@
 .bm-preview-img{width:64px;height:64px;border-radius:12px;object-fit:cover;border:2px solid #e5e5e5;}
 .bm-preview-fallback{font-size:2.5rem;width:64px;display:flex;align-items:center;justify-content:center;}
 .bm-preview-actions{flex:1;display:flex;flex-direction:column;gap:.5rem;}
-.bm-img-btn{padding:.4rem .75rem;background:#0047FF;color:#fff;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;width:fit-content;}
+.bm-img-btn{padding:.4rem .75rem;background:#48CAE4;color:#fff;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-size:.78rem;font-weight:700;cursor:pointer;width:fit-content;}
 .bm-or{font-size:.72rem;color:#aaa;font-family:'Nunito',sans-serif;}
 
 .bm-field{display:flex;flex-direction:column;gap:.375rem;}
 .bm-label{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em;}
 .bm-input{padding:.55rem .75rem;border:1.5px solid #e5e5e5;border-radius:8px;font-family:'Nunito',sans-serif;font-size:.83rem;color:#111;outline:none;transition:border-color .2s;width:100%;box-sizing:border-box;}
-.bm-input:focus{border-color:#0047FF;}
+.bm-input:focus{border-color:#48CAE4;}
 .bm-select{padding:.55rem .75rem;border:1.5px solid #e5e5e5;border-radius:8px;font-family:'Nunito',sans-serif;font-size:.83rem;color:#111;outline:none;cursor:pointer;width:100%;background:#fff;}
-.bm-select:focus{border-color:#0047FF;}
+.bm-select:focus{border-color:#48CAE4;}
 .bm-hint{font-size:.7rem;color:#aaa;line-height:1.4;}
 
 .bm-form-actions{display:flex;gap:.625rem;padding-top:.5rem;}
-.bm-btn-save{flex:1;padding:.65rem;background:#0047FF;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .15s;}
+.bm-btn-save{flex:1;padding:.65rem;background:#48CAE4;color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .15s;}
 .bm-btn-save:hover{background:#003acc;}
 .bm-btn-cancel{padding:.65rem 1rem;background:#fff;color:#888;border:1.5px solid #e5e5e5;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.875rem;font-weight:700;cursor:pointer;}
 .bm-btn-cancel:hover{border-color:#aaa;color:#333;}

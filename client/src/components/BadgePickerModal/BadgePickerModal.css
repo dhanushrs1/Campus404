@@ -1,0 +1,203 @@
+/* BadgePickerModal */
+.bpm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.bpm-modal {
+  background: #ffffff;
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: bpm-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes bpm-slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.bpm-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #ebebf0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fdfdfd;
+}
+
+.bpm-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #111;
+  margin: 0;
+}
+
+.bpm-close {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.bpm-close:hover {
+  background: #f0f0f5;
+  color: #111;
+}
+
+.bpm-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  background: #fafafa;
+}
+
+.bpm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 1rem;
+}
+
+.bpm-item {
+  background: #fff;
+  border: 2px solid #ebebf0;
+  border-radius: 12px;
+  padding: 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.bpm-item:hover:not(.locked) {
+  border-color: #abbdfa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(72, 202, 228, 0.08);
+}
+
+.bpm-item.selected {
+  border-color: #48CAE4;
+  background: #f0f4ff;
+  box-shadow: 0 0 0 1px #48CAE4;
+}
+
+.bpm-item.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(100%);
+}
+
+.bpm-card-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f6;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  overflow: hidden;
+}
+
+.bpm-card-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bpm-card-name {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #222;
+  text-align: center;
+  word-break: break-word;
+}
+
+.bpm-none {
+  background: #fff0f0;
+  color: #ff3b3b;
+}
+
+.bpm-locked-tag {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #444;
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
+.bpm-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 2rem;
+}
+
+.bpm-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #ebebf0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background: #fdfdfd;
+}
+
+.bpm-btn-cancel {
+  padding: 0.625rem 1.25rem;
+  background: none;
+  border: 1.5px solid #e5e5e5;
+  border-radius: 10px;
+  color: #888;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.bpm-btn-cancel:hover {
+  border-color: #aaa;
+  color: #333;
+}
+
+.bpm-btn-insert {
+  padding: 0.625rem 1.5rem;
+  background: #48CAE4;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bpm-btn-insert:hover {
+  background: #003acc;
+}

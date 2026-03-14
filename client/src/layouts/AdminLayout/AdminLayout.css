@@ -50,7 +50,7 @@
 .sidebar-logo-mark {
   width: 34px;
   height: 34px;
-  background: linear-gradient(135deg, #0047FF, #003acc);
+  background: linear-gradient(135deg, #48CAE4, #003acc);
   border-radius: 9px;
   display: grid;
   place-items: center;
@@ -59,7 +59,7 @@
   font-weight: 800;
   font-size: 1rem;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 71, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(72, 202, 228, 0.35);
 }
 
 .sidebar-logo-text {
@@ -76,7 +76,7 @@
   white-space: nowrap;
 }
 
-.logo-404 { color: #D4FF00; }
+.logo-404 { color: #0096C7; }
 
 .logo-badge {
   font-size: 0.65rem;
@@ -152,12 +152,12 @@
 }
 
 .sidebar-nav-item.active {
-  background: rgba(0, 71, 255, 0.2);
+  background: rgba(72, 202, 228, 0.2);
   color: #fff;
 }
 
 .sidebar-nav-item.active .nav-icon {
-  color: #D4FF00;
+  color: #0096C7;
 }
 
 .sidebar-nav-item.disabled {
@@ -309,7 +309,7 @@
   transition: all 0.2s ease;
 }
 
-.topbar-view-site:hover { border-color: #0047FF; color: #0047FF; }
+.topbar-view-site:hover { border-color: #48CAE4; color: #48CAE4; }
 
 .topbar-profile {
   display: flex;
@@ -322,7 +322,7 @@
   height: 36px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(0, 71, 255, 0.2);
+  border: 2px solid rgba(72, 202, 228, 0.2);
 }
 
 .topbar-profile-info {
@@ -339,7 +339,7 @@
 
 .topbar-role {
   font-size: 0.7rem;
-  color: #0047FF;
+  color: #48CAE4;
   font-weight: 600;
 }
 

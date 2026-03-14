@@ -24,13 +24,14 @@ export default function LabForm() {
   const [showPicker, setShowPicker] = useState(false);
   const [languages,  setLanguages]  = useState([]);
 
+  const [modules,    setModules]    = useState([]);
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   };
 
   useEffect(() => {
-    // Load languages for selector
     fetch('/api/languages').then(r => r.json()).then(setLanguages).catch(() => {});
   }, []);
 
@@ -48,6 +49,8 @@ export default function LabForm() {
       setBannerUrl(lab.banner_url);
       setSlugManual(true);
     }).catch(e => showToast(e.message, 'error'));
+
+    api.getModules(labId).then(setModules).catch(() => {});
   }, [labId, isEdit]);
 
   const set = (key, val) => {
@@ -220,6 +223,35 @@ export default function LabForm() {
           </div>
         </div>
       </form>
+
+      {isEdit && (
+        <div className="lf-modules-section">
+          <div className="lf-modules-header">
+            <h3>Modules in this Lab</h3>
+            <button className="lf-btn-add-mod" onClick={() => navigate(`/admin/modules/create?lab_id=${labId}`)}>
+              + Add Module
+            </button>
+          </div>
+          {modules.length === 0 ? (
+            <p className="lf-no-mods">No modules yet. Add one to get started.</p>
+          ) : (
+            <div className="lf-modules-list">
+              {modules.map((m, i) => (
+                <div key={m.id} className="lf-module-item">
+                  <div className="lf-module-info">
+                    <span className="lf-mod-num">{i + 1}</span>
+                    <span className="lf-mod-name">{m.title}</span>
+                    <span className="lf-mod-stats">{m.challenge_count} challenges · {m.total_xp} XP</span>
+                  </div>
+                  <div className="lf-module-actions">
+                    <button onClick={() => navigate(`/admin/modules/${m.id}/edit`)}>Edit</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
