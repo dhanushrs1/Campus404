@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './SystemLogs.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -40,7 +40,7 @@ const SystemLogs = () => {
     }
   };
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -62,7 +62,7 @@ const SystemLogs = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedContainer, lines]);
 
   useEffect(() => {
     fetchContainers();
@@ -79,7 +79,7 @@ const SystemLogs = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [selectedContainer, lines, autoRefresh]);
+  }, [fetchLogs, autoRefresh]);
 
   useEffect(() => {
     if (autoScroll && logsEndRef.current) {

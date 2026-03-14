@@ -64,7 +64,43 @@
   color: #10B981;
 }
 
-.recent-activity-section h2 {
+.text-danger {
+  color: #ef4444;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  background-color: #f8f9fc;
+  border: 1px solid #ebebf0;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0A192F;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ef4444;
+}
+
+.status-indicator.online {
+  background-color: #10B981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.health-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: auto;
+}
+
+/* Recent Activity Section adjustments */
   font-family: var(--font-heading);
   font-size: 1.25rem;
   font-weight: 700;
