@@ -11,6 +11,9 @@ import LabsManager    from './pages/admin/labs-manager/LabsManager';
 import UserManager    from './pages/admin/user-manager/UserManager';
 import MediaLibrary   from './pages/admin/media-library/MediaLibrary';
 import BadgesManager  from './pages/admin/badges/BadgesManager';
+import SystemLogs     from './pages/admin/system-logs/SystemLogs';
+import Analytics      from './pages/admin/analytics/Analytics';
+import Settings       from './pages/admin/settings/Settings';
 
 import LabForm        from './pages/admin/curriculum/LabForm';
 import ModuleForm     from './pages/admin/curriculum/ModuleForm';
@@ -98,6 +101,9 @@ function App() {
         <Route path="users" element={<UserManager />} />
         <Route path="media" element={<MediaLibrary />} />
         <Route path="badges" element={<BadgesManager />} />
+        <Route path="system-logs" element={<SystemLogs />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );
