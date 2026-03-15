@@ -4,9 +4,11 @@
  * All calls attach the auth token. Throws a readable Error on failure.
  */
 
+import { API_URL } from '../../../config';
+
 const token = () => localStorage.getItem('token');
 const auth  = () => ({ Authorization: `Bearer ${token()}` });
-const BASE   = '/api';
+const BASE   = API_URL;
 
 async function req(method, url, body) {
   const isFormData = body instanceof FormData;

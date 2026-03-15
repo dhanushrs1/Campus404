@@ -15,8 +15,8 @@ def _get_current_user_from_request(request: Request, db: Session) -> user_models
     try:
         payload = jwt.decode(auth[7:], SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("id")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token.")
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token. Error: {str(e)} | Token: {auth}")
     
     user = db.query(user_models.User).filter(user_models.User.id == user_id).first()
     if not user:

@@ -51,8 +51,7 @@ class BadgeOut(BaseModel):
 
 
 def _build_badge_out(badge: cm.Badge, request: Request) -> BadgeOut:
-    base = str(request.base_url).rstrip("/")
-    img = badge.image_url or (f"{base}/uploads/{badge.image_path}" if badge.image_path else None)
+    img = badge.image_url or (f"/uploads/{badge.image_path}" if badge.image_path else None)
     earned = len(badge.earned_by)
     mod_title = badge.module.title if badge.module else None
     return BadgeOut(

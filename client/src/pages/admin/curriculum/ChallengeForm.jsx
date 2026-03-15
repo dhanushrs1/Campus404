@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import CodeMirror from '@uiw/react-codemirror';
 import { oneDark } from '@codemirror/theme-one-dark';
@@ -63,7 +63,7 @@ const RTE_COMMANDS = [
   { cmd: 'removeFormat',                label: '✕ fmt', title: 'Clear formatting', section: 'util' },
 ];
 
-function RichTextEditor({ value, onChange, onImageInsert, onLinkInsert }) {
+function RichTextEditor({ value, onChange, onImageInsert }) {
   const editorRef  = useRef(null);
   const initialized = useRef(false);
 
@@ -201,8 +201,17 @@ export default function ChallengeForm() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  const getExtFromLangId = (id) => {
+    const map = { 71:'py', 63:'js', 62:'java', 54:'cpp', 50:'c', 60:'go', 72:'rb', 73:'rs', 78:'kt', 74:'ts', 82:'sql', 79:'sh', 0:'html' };
+    return map[id] || 'txt';
+  };
+
   useEffect(() => {
     const moduleId = Number(params.get('module_id'));
+
+    const setBestExt = (l) => {
+      if (l?.language_id) setLangExt(getExtFromLangId(l.language_id));
+    };
 
     if (isEdit) {
       api.getChallenge(challengeId).then(ch => {
@@ -229,15 +238,6 @@ export default function ChallengeForm() {
       }).catch(e => showToast(e.message, 'error'));
     }
   }, [challengeId, isEdit, params]);
-
-  const getExtFromLangId = (id) => {
-    const map = { 71:'py', 63:'js', 62:'java', 54:'cpp', 50:'c', 60:'go', 72:'rb', 73:'rs', 78:'kt', 74:'ts', 82:'sql', 79:'sh', 0:'html' };
-    return map[id] || 'txt';
-  };
-
-  const setBestExt = (l) => {
-    if (l?.language_id) setLangExt(getExtFromLangId(l.language_id));
-  };
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -510,7 +510,7 @@ export default function ChallengeForm() {
           {activeTab === 'code' && files.length > 0 && (
             <div className="cf-card">
               <h4 className="cf-card-title">Files ({files.length}/{MAX_FILES})</h4>
-              {files.map((f, i) => (
+              {files.map((f) => (
                 <div key={f.id} className="cf-file-summary">
                   {f.is_main && <span title="Main">★</span>}
                   <span className="cf-fs-name">{f.filename}</span>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
+import { API_URL } from '../../../config';
 import './LabCurriculum.css'; // Reusing some base styles
 import './ModuleCurriculum.css';
 
@@ -16,7 +17,7 @@ export default function ModuleCurriculum() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(`/api/labs/${slug}/progress`, { headers: authH() })
+    fetch(`${API_URL}/labs/${slug}/progress`, { headers: authH() })
       .then(r => {
         if (!r.ok) throw new Error('Lab not found');
         return r.json();

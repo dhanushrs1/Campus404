@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { API_URL } from '../../../config';
 import './MediaLibrary.css';
 
 const TYPE_TABS = [
@@ -60,7 +61,7 @@ const MediaLibrary = () => {
     try {
       const params = new URLSearchParams({ page: pg, per_page: PER_PAGE });
       if (filter) params.set('type_filter', filter);
-      const res = await fetch(`/api/admin/media?${params}`, {
+      const res = await fetch(`${API_URL}/admin/media?${params}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       const data = await res.json();
@@ -89,7 +90,7 @@ const MediaLibrary = () => {
       fd.append('file', file);
       setUploadProgress(Math.round(((i) / arr.length) * 100));
       try {
-        const res = await fetch('/api/admin/upload', {
+        const res = await fetch(`${API_URL}/admin/upload`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           body: fd,
@@ -121,7 +122,7 @@ const MediaLibrary = () => {
     if (!isAdmin) return;
     if (!confirm(`Delete "${item.filename}"? This cannot be undone.`)) return;
     try {
-      const res = await fetch(`/api/admin/media?path=${encodeURIComponent(item.path)}`, {
+      const res = await fetch(`${API_URL}/admin/media?path=${encodeURIComponent(item.path)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });

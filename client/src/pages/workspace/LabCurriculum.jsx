@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
+import { API_URL } from '../../../config';
 import './LabCurriculum.css';
 
 const token = () => localStorage.getItem('token');
@@ -36,11 +37,11 @@ export default function LabCurriculum() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/labs/${slug}/progress`, { headers: authH() }).then(r => {
+      fetch(`${API_URL}/labs/${slug}/progress`, { headers: authH() }).then(r => {
         if (!r.ok) throw new Error('Lab not found');
         return r.json();
       }),
-      fetch('/api/me/stats', { headers: authH() }).then(r => r.json()).catch(() => null),
+      fetch(`${API_URL}/me/stats`, { headers: authH() }).then(r => r.json()).catch(() => null),
     ]).then(([labData, statsData]) => {
       setLab(labData);
       setStats(statsData);

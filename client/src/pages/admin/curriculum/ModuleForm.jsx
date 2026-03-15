@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { api } from '../curriculum/api';
 import BadgePickerModal from '../../../components/BadgePickerModal/BadgePickerModal';
+import { API_URL } from '../../../config';
 import './ModuleForm.css';
 
 const INITIAL = { lab_id: 0, title: '', description: '', order_index: 0, badge_id: '' };
@@ -34,7 +35,7 @@ export default function ModuleForm() {
 
   useEffect(() => {
     // Fetch all badges to allow assignment
-    fetch('/api/admin/badges', { headers: authH() })
+    fetch(`${API_URL}/admin/badges`, { headers: authH() })
       .then(r => r.json())
       .then(bList => setBadges(bList || []))
       .catch(() => {});
@@ -97,13 +98,13 @@ export default function ModuleForm() {
         // Unlink old badge
         const fd = new FormData();
         fd.append('module_id', '');
-        await fetch(`/api/admin/badges/${origBadge}`, { method: 'PATCH', headers: authH(), body: fd }).catch(() => {});
+        await fetch(`${API_URL}/admin/badges/${origBadge}`, { method: 'PATCH', headers: authH(), body: fd }).catch(() => {});
       }
       if (form.badge_id) {
         // Link new badge
         const fd = new FormData();
         fd.append('module_id', modId);
-        await fetch(`/api/admin/badges/${form.badge_id}`, { method: 'PATCH', headers: authH(), body: fd }).catch(() => {});
+        await fetch(`${API_URL}/admin/badges/${form.badge_id}`, { method: 'PATCH', headers: authH(), body: fd }).catch(() => {});
       }
     }
   };
@@ -242,7 +243,7 @@ export default function ModuleForm() {
         {isEdit && challenges.length > 0 && (
           <div className="mf-existing" style={{ marginTop: '1.5rem' }}>
             <h4 className="mf-existing-title">Challenges / Levels in this Module</h4>
-            {challenges.sort((a, b) => a.level_number - b.level_number).map((c, i) => (
+            {challenges.sort((a, b) => a.level_number - b.level_number).map((c) => (
               <div key={c.id} className="mf-existing-item" style={{ justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span className="mf-existing-num" style={{ background: '#e0ebff', color: '#0047FF' }}>{c.level_number}</span>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../curriculum/api';
 import MediaPickerModal from '../../../components/MediaPickerModal/MediaPickerModal';
+import { API_URL } from '../../../config';
 import './LabForm.css';
 
 const SLUG_RE   = /^[a-z0-9-]+$/;
@@ -32,7 +33,7 @@ export default function LabForm() {
   };
 
   useEffect(() => {
-    fetch('/api/languages').then(r => r.json()).then(setLanguages).catch(() => {});
+    fetch(`${API_URL}/languages`).then(r => r.json()).then(setLanguages).catch(() => {});
   }, []);
 
   useEffect(() => {

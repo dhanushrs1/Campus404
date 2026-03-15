@@ -10,7 +10,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Secret key for JWTs - in production this must be kept in .env
 SECRET_KEY = "8f4v$8z@!Campus404SuperSecureSecretKey123#$"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verifies a plain password against a securely hashed one."""

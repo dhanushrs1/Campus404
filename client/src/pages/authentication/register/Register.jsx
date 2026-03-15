@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_URL } from '../../../config';
 import './Register.css';
 
 const Register = () => {
@@ -24,10 +25,10 @@ const Register = () => {
     const checkUsername = async () => {
       setUsernameStatus('checking');
       try {
-        const res = await fetch(`/api/auth/check-username/${formData.username}`);
+        const res = await fetch(`${API_URL}/auth/check-username/${formData.username}`);
         const data = await res.json();
         setUsernameStatus(data.available ? 'available' : 'taken');
-      } catch (error) {
+      } catch {
         // If API is unreachable, don't block the form
         setUsernameStatus(null);
       }
@@ -53,7 +54,7 @@ const Register = () => {
     
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/register', {
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

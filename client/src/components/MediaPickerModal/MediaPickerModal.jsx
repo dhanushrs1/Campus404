@@ -9,6 +9,7 @@
  *   title             — modal header text (default "Select Image")
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { API_URL } from '../../config';
 import './MediaPickerModal.css';
 
 const IMAGE_EXTS = new Set(['jpg','jpeg','png','gif','webp','avif','ico','svg']);
@@ -49,7 +50,7 @@ export default function MediaPickerModal({
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/admin/media?page=${pg}&per_page=${PER_PAGE}&type_filter=image`,
+        `${API_URL}/admin/media?page=${pg}&per_page=${PER_PAGE}&type_filter=image`,
         { headers: authH() }
       );
       const data = await res.json();
@@ -70,7 +71,7 @@ export default function MediaPickerModal({
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', headers: authH(), body: fd });
+      const res = await fetch(`${API_URL}/upload`, { method: 'POST', headers: authH(), body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Upload failed');
       // Switch to library tab and select the newly uploaded image

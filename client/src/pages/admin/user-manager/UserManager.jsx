@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { API_URL } from '../../../config';
 import './UserManager.css';
 
 // Decode JWT to get current user's id without a library
@@ -111,7 +112,7 @@ const UserManager = () => {
       const params = new URLSearchParams({ page: pg, per_page: PER_PAGE });
       if (q) params.set('search', q);
       if (role !== 'all') params.set('role', role);
-      const res = await fetch(`/api/admin/users?${params}`, {
+      const res = await fetch(`${API_URL}/admin/users?${params}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       });
       const data = await res.json();
@@ -139,9 +140,9 @@ const UserManager = () => {
     setOpenMenu(null);
     try {
       let url, method = 'PATCH';
-      if (action === 'role') url = `/api/admin/users/${userId}/role?role=${value}`;
-      else if (action === 'ban') url = `/api/admin/users/${userId}/ban?banned=${value}`;
-      else if (action === 'delete') { url = `/api/admin/users/${userId}`; method = 'DELETE'; }
+      if (action === 'role') url = `${API_URL}/admin/users/${userId}/role?role=${value}`;
+      else if (action === 'ban') url = `${API_URL}/admin/users/${userId}/ban?banned=${value}`;
+      else if (action === 'delete') { url = `${API_URL}/admin/users/${userId}`; method = 'DELETE'; }
 
       const res = await fetch(url, {
         method,

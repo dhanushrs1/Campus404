@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { API_URL } from '../../../config';
 import './BadgesManager.css';
 
 const token = () => localStorage.getItem('token');
@@ -24,20 +25,20 @@ export default function BadgesManager() {
   };
 
   const fetchBadges = () => {
-    fetch('/api/admin/badges', { headers: authH() })
-      .then(r => r.json()).then(setBadges).catch(() => {});
+    fetch(`${API_URL}/admin/badges`, { headers: authH() })
+      .then(r => r.json()).then(d => setBadges(Array.isArray(d) ? d : [])).catch(() => {});
   };
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/admin/badges', { headers: authH() }).then(r => r.json()),
-      fetch('/api/labs', { headers: authH() }).then(r => r.json()).then(d => d.items || []).then(async labs => {
+      fetch(`${API_URL}/admin/badges`, { headers: authH() }).then(r => r.json()),
+      fetch(`${API_URL}/labs`, { headers: authH() }).then(r => r.json()).then(d => d.items || []).then(async labs => {
         const all = await Promise.all(labs.map(l =>
-          fetch(`/api/modules?lab_id=${l.id}`, { headers: authH() }).then(r => r.json())
+          fetch(`${API_URL}/modules?lab_id=${l.id}`, { headers: authH() }).then(r => r.json())
         ));
         return all.flat().map(m => ({ ...m, lab_id: m.lab_id }));
       }),
-    ]).then(([b, m]) => { setBadges(b); setModules(m); setLoading(false); })
+    ]).then(([b, m]) => { setBadges(Array.isArray(b) ? b : []); setModules(Array.isArray(m) ? m : []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -55,7 +56,7 @@ export default function BadgesManager() {
     if (form.image_url && !imageFile) fd.append('image_url', form.image_url);
     if (imageFile) fd.append('image', imageFile);
 
-    const url    = editing ? `/api/admin/badges/${editing.id}` : '/api/admin/badges';
+    const url    = editing ? `${API_URL}/admin/badges/${editing.id}` : `${API_URL}/admin/badges`;
     const method = editing ? 'PATCH' : 'POST';
     const res = await fetch(url, { method, headers: authH(), body: fd });
     if (!res.ok) { showToast((await res.json()).detail || 'Error', 'error'); return; }
@@ -67,7 +68,7 @@ export default function BadgesManager() {
 
   const handleDelete = async (badge) => {
     if (!confirm(`Delete badge "${badge.name}"?`)) return;
-    await fetch(`/api/admin/badges/${badge.id}`, { method: 'DELETE', headers: authH() });
+    await fetch(`${API_URL}/admin/badges/${badge.id}`, { method: 'DELETE', headers: authH() });
     showToast('Badge deleted.');
     fetchBadges();
   };
