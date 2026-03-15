@@ -1,0 +1,68 @@
+.user-dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f6fa;
+  font-family: 'Nunito', sans-serif;
+}
+
+.dashboard-main {
+  flex: 1;
+  padding: 40px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard-header {
+  margin-bottom: 32px;
+}
+
+.dashboard-header h1 {
+  font-family: 'Sora', sans-serif;
+  color: #0A192F;
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.dashboard-header h1 span {
+  color: #003acc;
+}
+
+.dashboard-header p {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.floating-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 12px 36px rgba(0, 58, 204, 0.08);
+  border: 1px solid rgba(0, 58, 204, 0.12);
+  padding: 24px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0, 58, 204, 0.12);
+}
+
+.floating-card h3 {
+  font-family: 'Sora', sans-serif;
+  color: #0A192F;
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+}
+
+.floating-card p {
+  color: #666;
+  line-height: 1.6;
+}

@@ -165,7 +165,7 @@ const Footer = () => {
       <div className="footer-bottom">
         <div className="footer-bottom-inner">
           <p className="footer-copy">
-            © {year} Campus404. Made with ❤️ for developers worldwide.
+            © {year} Campus404. Built for developers worldwide.
           </p>
           <div className="footer-bottom-links">
             <Link to="/privacy" className="footer-bottom-link">Privacy</Link>

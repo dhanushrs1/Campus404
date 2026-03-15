@@ -1,42 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import defaultAvatar from '../../assets/images/avatars/default_avatar.jpg';
 import './Header.css';
 
-const MEGA_MENU = [
-  {
-    label: 'Learn',
-    items: [
-      { icon: '🧪', title: 'Labs', desc: 'Hands-on coding challenges', href: '/labs' },
-      { icon: '📚', title: 'Tracks', desc: 'Structured learning paths', href: '/tracks' },
-      { icon: '🗺️', title: 'Roadmaps', desc: 'Tech career maps', href: '/roadmaps' },
-      { icon: '🏆', title: 'Contests', desc: 'Timed coding battles', href: '/contests' },
-    ],
-  },
-  {
-    label: 'Practice',
-    items: [
-      { icon: '⚡', title: 'Challenges', desc: 'Daily coding problems', href: '/challenges' },
-      { icon: '🎯', title: 'Skill Tests', desc: 'Test your knowledge', href: '/skill-tests' },
-      { icon: '🤝', title: 'Peer Review', desc: 'Review others\' code', href: '/peer-review' },
-      { icon: '🔬', title: 'Sandbox', desc: 'Free coding playground', href: '/sandbox' },
-    ],
-  },
-  {
-    label: 'Community',
-    items: [
-      { icon: '💬', title: 'Discussions', desc: 'Ask & share knowledge', href: '/discussions' },
-      { icon: '🏅', title: 'Leaderboard', desc: 'Top campus coders', href: '/leaderboard' },
-      { icon: '👤', title: 'Profile', desc: 'Your coding journey', href: '/profile' },
-      { icon: '🎓', title: 'Mentors', desc: 'Learn from the best', href: '/mentors' },
-    ],
-  },
+// ==========================================
+// Hand-crafted SVG Icons 
+// ==========================================
+const Icons = {
+  Labs: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg>,
+  Tracks: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  Roadmaps: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>,
+  Sandbox: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
+  Badge: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>,
+  Message: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  Lightning: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+  Bell: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+  ChevronDown: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+};
+
+const LEARN_MENU = [
+  { icon: 'Labs', title: 'Labs', desc: 'Hands-on coding challenges', href: '/labs' },
+  { icon: 'Tracks', title: 'Tracks', desc: 'Structured learning paths', href: '/tracks' },
+  { icon: 'Roadmaps', title: 'Roadmaps', desc: 'Tech career maps', href: '/roadmaps' },
+  { icon: 'Sandbox', title: 'Sandbox', desc: 'Free coding playground', href: '/sandbox' },
 ];
 
 const DEMO_NOTIFICATIONS = [
-  { id: 1, icon: '🏆', title: 'New badge earned!', body: 'You earned the "First Lab" badge.', time: '2m ago', unread: true },
-  { id: 2, icon: '💬', title: 'Someone replied', body: 'John replied to your discussion.', time: '15m ago', unread: true },
-  { id: 3, icon: '⚡', title: 'Daily challenge ready', body: 'Today\'s challenge is live. Go solve it!', time: '1h ago', unread: false },
+  { id: 1, type: 'badge', title: 'New badge earned!', body: 'You earned the "First Lab" badge.', time: '2m ago', unread: true },
+  { id: 2, type: 'message', title: 'Someone replied', body: 'John replied to your discussion.', time: '15m ago', unread: true },
+  { id: 3, type: 'lightning', title: 'Daily challenge ready', body: 'Today\'s challenge is live. Go solve it!', time: '1h ago', unread: false },
 ];
 
 const Header = () => {
@@ -46,14 +38,11 @@ const Header = () => {
   const role = localStorage.getItem('role');
   const isLoggedIn = !!token;
   const isAdmin = role === 'admin';
-  const isOnDashboard = location.pathname === '/dashboard';
-  const isOnAdmin = location.pathname.startsWith('/admin');
-
-  const [activeMega, setActiveMega] = useState(null);
+  
+  const [activeMenu, setActiveMenu] = useState(null);
   const [showNotifs, setShowNotifs] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const notifRef = useRef(null);
   const userMenuRef = useRef(null);
@@ -66,7 +55,6 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifs(false);
@@ -82,184 +70,128 @@ const Header = () => {
     navigate('/login');
   };
 
+  if (location.pathname.startsWith('/admin')) return null;
+
   return (
     <header className={`site-header ${scrolled ? 'scrolled' : ''}`}>
       <div className="header-inner">
-
-        {/* ── Logo ── */}
+      
+        {/* -- Logo -- */}
         <Link to={isLoggedIn ? '/dashboard' : '/'} className="header-logo">
           <span className="logo-mark">C</span>
           <span className="logo-text">Campus<span className="logo-404">404</span></span>
         </Link>
-
-        {/* ── Desktop Nav ── */}
-        <nav className="header-nav" onMouseLeave={() => setActiveMega(null)}>
-          {MEGA_MENU.map((menu) => (
-            <div
-              key={menu.label}
-              className="nav-item"
-              onMouseEnter={() => setActiveMega(menu.label)}
-            >
-              <button className="nav-trigger">
-                {menu.label}
-                <svg className="nav-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
-
-              {activeMega === menu.label && (
-                <div className="mega-menu">
-                  <div className="mega-grid">
-                    {menu.items.map((item) => (
-                      <Link key={item.title} to={item.href} className="mega-item" onClick={() => setActiveMega(null)}>
-                        <span className="mega-icon">{item.icon}</span>
+        
+        {/* -- Navigation -- */}
+        <nav className="header-nav" onMouseLeave={() => setActiveMenu(null)}>
+          {/* SINGLE Mega Menu Item */}
+          <div className="nav-item">
+            <button className={`nav-trigger ${activeMenu === 'learn' ? 'active' : ''}`} onMouseEnter={() => setActiveMenu('learn')}>
+              Explore <span className="nav-chevron"><Icons.ChevronDown /></span>
+            </button>
+            {activeMenu === 'learn' && (
+              <div className="mega-menu">
+                <div className="mega-grid">
+                  {LEARN_MENU.map((item) => {
+                    const Icon = Icons[item.icon];
+                    return (
+                      <Link to={item.href} key={item.title} className="mega-item">
+                        <div className="mega-icon-clean"><Icon /></div>
                         <div>
                           <span className="mega-title">{item.title}</span>
                           <span className="mega-desc">{item.desc}</span>
                         </div>
                       </Link>
-                    ))}
-                  </div>
+                    )
+                  })}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            )}
+          </div>
+
+          {/* Standard direct links */}
+          <Link to="/challenges" className="nav-link">Challenges</Link>
+          <Link to="/leaderboard" className="nav-link">Leaderboard</Link>
+          <Link to="/workshop" className="nav-link">Workshop</Link>
         </nav>
-
-        {/* ── Right Actions ── */}
+        
+        {/* -- Right Actions -- */}
         <div className="header-actions">
-
-          {/* Notifications */}
-          {isLoggedIn && (
-            <div className="notif-wrap" ref={notifRef}>
-              <button
-                className="icon-btn notif-btn"
-                onClick={() => { setShowNotifs(v => !v); setShowUserMenu(false); }}
-                aria-label="Notifications"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
-              </button>
-
-              {showNotifs && (
-                <div className="notif-dropdown">
-                  <div className="notif-header">
-                    <span>Notifications</span>
-                    <button className="notif-clear">Mark all read</button>
-                  </div>
-                  <ul className="notif-list">
-                    {DEMO_NOTIFICATIONS.map(n => (
-                      <li key={n.id} className={`notif-item ${n.unread ? 'unread' : ''}`}>
-                        <span className="notif-icon">{n.icon}</span>
-                        <div className="notif-body">
-                          <p className="notif-title">{n.title}</p>
-                          <p className="notif-text">{n.body}</p>
-                          <span className="notif-time">{n.time}</span>
-                        </div>
-                        {n.unread && <span className="notif-dot" />}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Admin pill — only for admins */}
-          {isLoggedIn && isAdmin && !isOnAdmin && (
-            <Link to="/admin" className="admin-pill">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-              </svg>
-              Admin Panel
-            </Link>
-          )}
-
-          {/* Dashboard button — only when not on dashboard */}
-          {isLoggedIn && !isOnDashboard && !isOnAdmin && (
-            <Link to="/dashboard" className="btn-header-primary">Dashboard</Link>
-          )}
-
-          {/* Not logged in */}
-          {!isLoggedIn && (
+          {(!isLoggedIn) ? (
             <>
               <Link to="/login" className="btn-header-ghost">Log In</Link>
               <Link to="/register" className="btn-header-primary">Sign Up</Link>
             </>
-          )}
-
-          {/* User Avatar + Menu */}
-          {isLoggedIn && (
-            <div className="user-wrap" ref={userMenuRef}>
-              <button
-                className="avatar-btn"
-                onClick={() => { setShowUserMenu(v => !v); setShowNotifs(false); }}
-                aria-label="User menu"
-              >
-                <img src={defaultAvatar} alt="Avatar" className="avatar-img" />
-                <span className="avatar-status" />
-              </button>
-
-              {showUserMenu && (
-                <div className="user-dropdown">
-                  <div className="user-dropdown-header">
-                    <img src={defaultAvatar} alt="Avatar" className="ud-avatar" />
-                    <div>
-                      <p className="ud-name">My Profile</p>
-                      <p className="ud-role">{isAdmin ? '✦ Administrator' : '⚡ Student'}</p>
+          ) : (
+            <>
+              {isAdmin && (
+                <Link to="/admin" className="admin-pill">Admin Panel</Link>
+              )}
+              
+              {/* Creative Notifications */}
+              <div className="notif-wrap" ref={notifRef}>
+                <button className="icon-btn" onClick={() => setShowNotifs(!showNotifs)}>
+                  <Icons.Bell />
+                  {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+                </button>
+                {showNotifs && (
+                  <div className="notif-dropdown creative-notifs">
+                    <div className="notif-header">
+                      <span>Notifications</span>
+                      <button className="notif-clear" onClick={() => setShowNotifs(false)}>Mark all read</button>
+                    </div>
+                    <div className="notif-list">
+                      {DEMO_NOTIFICATIONS.map(n => {
+                        const IconGroup = {
+                          badge: { Icon: Icons.Badge, cls: 'bg-emerald' },
+                          message: { Icon: Icons.Message, cls: 'bg-blue' },
+                          lightning: { Icon: Icons.Lightning, cls: 'bg-amber' }
+                        };
+                        const setting = IconGroup[n.type];
+                        const IconComp = setting.Icon;
+                        return (
+                          <div key={n.id} className={`notif-item ${n.unread ? 'unread' : ''}`}>
+                            <div className={`notif-art ${setting.cls}`}>
+                              <IconComp />
+                            </div>
+                            <div className="notif-body">
+                              <h4 className="notif-title">{n.title}</h4>
+                              <p className="notif-text">{n.body}</p>
+                              <span className="notif-time">{n.time}</span>
+                            </div>
+                            {n.unread && <div className="notif-dot" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="notif-footer">
+                      <Link to="/notifications" onClick={() => setShowNotifs(false)}>View all alerts</Link>
                     </div>
                   </div>
-                  <ul className="ud-list">
-                    <li><Link to="/profile" className="ud-item">👤 My Profile</Link></li>
-                    <li><Link to="/settings" className="ud-item">⚙️ Settings</Link></li>
-                    {isAdmin && <li><Link to="/admin" className="ud-item">🛡️ Admin Panel</Link></li>}
-                    <li className="ud-divider" />
-                    <li><button onClick={handleLogout} className="ud-item ud-logout">🚪 Log Out</button></li>
-                  </ul>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+              
+              {/* User Dropdown */}
+              <div className="user-wrap" ref={userMenuRef}>
+                <button className="avatar-btn" onClick={() => setShowUserMenu(!showUserMenu)}>
+                  <img src={defaultAvatar} alt="User" className="avatar-img" />
+                  <div className="user-status" />
+                </button>
+                {showUserMenu && (
+                  <div className="user-dropdown">
+                    <ul className="menu-list">
+                      <li><Link to="/profile">My Profile</Link></li>
+                      <li><Link to="/settings">Account Settings</Link></li>
+                      <div className="menu-divider" />
+                      <li><button className="logout-btn" onClick={handleLogout}>Log Out</button></li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </>
           )}
-
-          {/* Mobile Hamburger */}
-          <button
-            className={`hamburger ${mobileOpen ? 'open' : ''}`}
-            onClick={() => setMobileOpen(v => !v)}
-            aria-label="Toggle menu"
-          >
-            <span /><span /><span />
-          </button>
         </div>
       </div>
-
-      {/* ── Mobile Menu ── */}
-      {mobileOpen && (
-        <div className="mobile-menu">
-          {MEGA_MENU.map(menu => (
-            <div key={menu.label} className="mobile-section">
-              <p className="mobile-section-label">{menu.label}</p>
-              {menu.items.map(item => (
-                <Link key={item.title} to={item.href} className="mobile-link" onClick={() => setMobileOpen(false)}>
-                  {item.icon} {item.title}
-                </Link>
-              ))}
-            </div>
-          ))}
-          {!isLoggedIn && (
-            <div className="mobile-auth">
-              <Link to="/login" className="btn-header-ghost" onClick={() => setMobileOpen(false)}>Log In</Link>
-              <Link to="/register" className="btn-header-primary" onClick={() => setMobileOpen(false)}>Sign Up</Link>
-            </div>
-          )}
-          {isLoggedIn && (
-            <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="mobile-logout">Log Out</button>
-          )}
-        </div>
-      )}
     </header>
   );
 };
