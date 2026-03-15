@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
-import { API_URL } from '../../../config';
+import { API_URL } from '../../config';
 import './LabCurriculum.css';
 
 const token = () => localStorage.getItem('token');
