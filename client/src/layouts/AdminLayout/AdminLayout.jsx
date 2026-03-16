@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import defaultAvatar from '../../assets/images/avatars/default_avatar.jpg';
+import { resolveAssetUrl, useSiteSettings } from '../../utils/siteSettings';
 import './AdminLayout.css';
 
 const VERSION = 'v1.0.0-alpha';
@@ -90,10 +91,14 @@ const NAV_ITEMS = [
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const siteSettings = useSiteSettings();
   const [time, setTime] = useState(new Date());
   const [collapsed, setCollapsed] = useState(false);
 
   const username = localStorage.getItem('username') || 'Admin';
+  const siteName = siteSettings.site_name || 'Campus404';
+  const adminLogoSrc = resolveAssetUrl(siteSettings.site_logo_url);
+  const adminIconSrc = resolveAssetUrl(siteSettings.site_icon_url);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -122,22 +127,57 @@ const AdminLayout = () => {
       <aside className="admin-sidebar">
         {/* Brand */}
         <div className="sidebar-brand">
-          <Link to="/admin" className="sidebar-logo">
-            <span className="sidebar-logo-mark">C</span>
-            {!collapsed && (
-              <div className="sidebar-logo-text">
-                <span className="logo-name">Campus<span className="logo-404">404</span></span>
-                <span className="logo-badge">Admin</span>
-              </div>
-            )}
-          </Link>
-          <button className="collapse-btn" onClick={() => setCollapsed(v => !v)} title="Toggle sidebar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              {collapsed
-                ? <path d="M9 18l6-6-6-6"/>
-                : <path d="M15 18l-6-6 6-6"/>}
-            </svg>
-          </button>
+          {collapsed ? (
+            <button
+              type="button"
+              className="sidebar-expand-trigger"
+              onClick={() => setCollapsed(false)}
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+            >
+              <span className="collapsed-brand-glyph">
+                {adminIconSrc ? (
+                  <img src={adminIconSrc} alt={`${siteName} icon`} className="sidebar-icon-image" />
+                ) : (
+                  <span className="sidebar-logo-mark">C</span>
+                )}
+              </span>
+              <span className="collapsed-expand-glyph" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </span>
+            </button>
+          ) : (
+            <>
+              <Link to="/admin" className="sidebar-logo">
+                <div className="sidebar-logo-expanded">
+                  <div className="sidebar-logo-brand-row">
+                    {adminLogoSrc ? (
+                      <img src={adminLogoSrc} alt={`${siteName} logo`} className="sidebar-logo-image" />
+                    ) : (
+                      <>
+                        <span className="sidebar-logo-mark">C</span>
+                        <span className="logo-name">{siteName}</span>
+                      </>
+                    )}
+                  </div>
+                  <span className="logo-badge">Admin</span>
+                </div>
+              </Link>
+              <button
+                type="button"
+                className="collapse-btn"
+                onClick={() => setCollapsed(true)}
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+            </>
+          )}
         </div>
 
         {/* Live clock — removed from sidebar, now in topbar */}

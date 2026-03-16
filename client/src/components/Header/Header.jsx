@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import defaultAvatar from '../../assets/images/avatars/default_avatar.jpg';
+import { resolveAssetUrl, useSiteSettings } from '../../utils/siteSettings';
 import './Header.css';
 
 // ==========================================
@@ -38,6 +39,7 @@ const Header = () => {
   const role = localStorage.getItem('role');
   const isLoggedIn = !!token;
   const isAdmin = role === 'admin';
+  const siteSettings = useSiteSettings();
   
   const [activeMenu, setActiveMenu] = useState(null);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -48,6 +50,10 @@ const Header = () => {
   const userMenuRef = useRef(null);
 
   const unreadCount = DEMO_NOTIFICATIONS.filter(n => n.unread).length;
+  const logoSrc = resolveAssetUrl(siteSettings.site_logo_url);
+  const logoAlt = `${siteSettings.site_name || 'Campus404'} logo`;
+  const logoWidth = Math.max(64, Number(siteSettings.site_logo_width) || 220);
+  const logoHeight = Math.max(24, Number(siteSettings.site_logo_height) || 48);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 12);
@@ -78,8 +84,24 @@ const Header = () => {
       
         {/* -- Logo -- */}
         <Link to={isLoggedIn ? '/dashboard' : '/'} className="header-logo">
-          <span className="logo-mark">C</span>
-          <span className="logo-text">Campus<span className="logo-404">404</span></span>
+          {logoSrc ? (
+            <img
+              src={logoSrc}
+              alt={logoAlt}
+              className="header-logo-image"
+              style={{
+                width: `${logoWidth}px`,
+                height: `${logoHeight}px`,
+                maxWidth: 'min(40vw, 320px)',
+                maxHeight: '54px',
+              }}
+            />
+          ) : (
+            <>
+              <span className="logo-mark">C</span>
+              <span className="logo-text">{siteSettings.site_name || 'Campus404'}</span>
+            </>
+          )}
         </Link>
         
         {/* -- Navigation -- */}

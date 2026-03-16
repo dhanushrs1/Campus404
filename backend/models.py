@@ -41,3 +41,20 @@ class User(Base):
                              onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     last_login_at   = Column(DateTime, nullable=True)          # tracks last successful login
 
+
+class SiteSetting(Base):
+    __tablename__ = "site_settings"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    site_name        = Column(String(120), nullable=False, default="Campus404")
+    meta_description = Column(String(320), nullable=True)
+
+    # Public-facing assets used in navbar and browser tab.
+    site_logo_url    = Column(String(512), nullable=True)
+    site_logo_width  = Column(Integer, nullable=False, default=220)
+    site_logo_height = Column(Integer, nullable=False, default=48)
+    site_icon_url    = Column(String(512), nullable=True)
+
+    updated_at       = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                              onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+

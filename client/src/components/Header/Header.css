@@ -1,5 +1,5 @@
 /* ================================================================
-   Floating Creative Header — Campus404
+   Floating Creative Header ï¿½ Campus404
 ================================================================ */
 
 .site-header {
@@ -42,6 +42,12 @@
   flex-shrink: 0;
 }
 
+.header-logo-image {
+  display: block;
+  object-fit: contain;
+  object-position: left center;
+}
+
 .logo-mark {
   width: 36px;
   height: 36px;
@@ -62,8 +68,6 @@
   font-size: 1.25rem;
   color: var(--c-obsidian, #0A192F);
 }
-
-.logo-404 { color: var(--c-cobalt, #003acc); }
 
 /* -------------- Nav -------------- */
 .header-nav {

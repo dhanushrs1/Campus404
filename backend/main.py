@@ -20,6 +20,8 @@ from admin.stats    import router as admin_stats_router
 from admin.uploads  import router as upload_router
 from admin.badges   import router as badges_router
 from admin.logs     import router as logs_router
+from admin.site_settings import public_router as site_settings_public_router
+from admin.site_settings import admin_router as site_settings_admin_router
 from curriculum.router import router as curriculum_router
 from progress.router import router as progress_router
 
@@ -65,6 +67,8 @@ app.include_router(upload_router,      prefix="/api/admin",        tags=["Admin 
 app.include_router(upload_router,      prefix="/api",              tags=["Media – Public"])
 app.include_router(badges_router,      prefix="/api/admin",        tags=["Admin – Badges"])
 app.include_router(logs_router,        prefix="/api/admin/system-logs", tags=["Admin – Logs"])
+app.include_router(site_settings_public_router, prefix="/api", tags=["Site Settings"])
+app.include_router(site_settings_admin_router,  prefix="/api/admin", tags=["Admin – Site Settings"])
 app.include_router(curriculum_router,  prefix="/api",              tags=["Curriculum"])
 app.include_router(progress_router,    prefix="/api",              tags=["Progress"])
 if _sandbox_available:
