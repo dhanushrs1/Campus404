@@ -69,14 +69,26 @@ class LabResponse(BaseModel):
 class ModuleCreate(BaseModel):
     lab_id:      int            = Field(..., ge=1)
     title:       str            = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=160)
+    description: Optional[str]  = Field(None, max_length=160)
+    banner_image_path: Optional[str] = None
     order_index: int            = Field(0, ge=0)
+
+    @model_validator(mode='after')
+    def check_path(self):
+        self.banner_image_path = _validate_image_path(self.banner_image_path)
+        return self
 
 
 class ModuleUpdate(BaseModel):
-    title:       Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, max_length=160)
-    order_index: Optional[int] = Field(None, ge=0)
+    title:       Optional[str]  = Field(None, min_length=1, max_length=255)
+    description: Optional[str]  = Field(None, max_length=160)
+    banner_image_path: Optional[str] = None
+    order_index: Optional[int]  = Field(None, ge=0)
+
+    @model_validator(mode='after')
+    def check_path(self):
+        self.banner_image_path = _validate_image_path(self.banner_image_path)
+        return self
 
 
 class ModuleResponse(BaseModel):
@@ -86,6 +98,8 @@ class ModuleResponse(BaseModel):
     lab_id:          int
     title:           str
     description:     Optional[str]
+    banner_image_path: Optional[str] = None
+    banner_url:      Optional[str] = None
     order_index:     int
     challenge_count: int
     total_xp:        int

@@ -58,7 +58,7 @@ def _lab_to_response(db: Session, request: Request, lab: models.Lab) -> schemas.
     )
 
 
-def _module_to_response(db: Session, module: models.Module) -> schemas.ModuleResponse:
+def _module_to_response(db: Session, request: Request, module: models.Module) -> schemas.ModuleResponse:
     return schemas.ModuleResponse(
         id=module.id,
         unique_id=module.unique_id,
@@ -66,6 +66,8 @@ def _module_to_response(db: Session, module: models.Module) -> schemas.ModuleRes
         lab_id=module.lab_id,
         title=module.title,
         description=module.description,
+        banner_image_path=module.banner_image_path,
+        banner_url=build_image_url(request, module.banner_image_path),
         order_index=module.order_index,
         challenge_count=len(module.challenges),
         total_xp=sum(c.xp_reward for c in module.challenges),
@@ -155,7 +157,7 @@ def delete_lab(db, lab_id):
 
 
 # ── MODULE ────────────────────────────────────────────────────────────────────
-def create_module(db, data):
+def create_module(db, request, data):
     if not db.query(models.Lab).filter(models.Lab.id == data.lab_id).first():
         raise HTTPException(status_code=404, detail=f"Lab {data.lab_id} not found.")
 
@@ -175,37 +177,41 @@ def create_module(db, data):
     db.add(module)
     db.commit()
     db.refresh(module)
-    return _module_to_response(db, module)
+    return _module_to_response(db, request, module)
 
 
-def get_modules(db, lab_id):
-    return [_module_to_response(db, m) for m in
+def get_modules(db, request, lab_id):
+    return [_module_to_response(db, request, m) for m in
             db.query(models.Module).filter(models.Module.lab_id == lab_id)
             .order_by(models.Module.order_index).all()]
 
 
-def get_module(db, module_id):
+def get_module(db, request, module_id):
     m = db.query(models.Module).filter(models.Module.id == module_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Module not found.")
-    return _module_to_response(db, m)
+    return _module_to_response(db, request, m)
 
 
-def update_module(db, module_id, data):
+def update_module(db, request, module_id, data):
     m = db.query(models.Module).filter(models.Module.id == module_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Module not found.")
-    for field, value in data.model_dump(exclude_unset=True).items():
+    update_data = data.model_dump(exclude_unset=True)
+    if "banner_image_path" in update_data and update_data["banner_image_path"] != m.banner_image_path:
+        _safe_delete_image(m.banner_image_path)
+    for field, value in update_data.items():
         setattr(m, field, value)
     db.commit()
     db.refresh(m)
-    return _module_to_response(db, m)
+    return _module_to_response(db, request, m)
 
 
 def delete_module(db, module_id):
     m = db.query(models.Module).filter(models.Module.id == module_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Module not found.")
+    _safe_delete_image(m.banner_image_path)
     db.delete(m)
     db.commit()
     return {"message": f"Module '{m.title}' deleted.", "id": module_id}

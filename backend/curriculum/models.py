@@ -50,6 +50,7 @@ class Module(Base):
     title       = Column(String(255), nullable=False)
     slug        = Column(String(300), unique=True, nullable=False, index=True)  # e.g. "intro-to-python-a3k9"
     description = Column(String(160), nullable=True)
+    banner_image_path = Column(String(512), nullable=True)
     order_index = Column(Integer, default=0, nullable=False)
     created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 

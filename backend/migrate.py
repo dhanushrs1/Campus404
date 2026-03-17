@@ -35,6 +35,12 @@ with engine.connect() as conn:
     else:
         print('[SKIP] slug already exists in modules')
 
+    if 'banner_image_path' not in mod_cols:
+        conn.execute(text('ALTER TABLE modules ADD COLUMN banner_image_path VARCHAR(512) NULL'))
+        print('[OK] Added banner_image_path to modules')
+    else:
+        print('[SKIP] banner_image_path already exists in modules')
+
     conn.commit()
     print('\nMigration complete.')
 

@@ -60,6 +60,8 @@ class ModuleProgressOut(BaseModel):
     slug: str
     title: str
     description: Optional[str]
+    banner_image_path: Optional[str]
+    banner_url: Optional[str]
     order_index: int
     total_xp: int
     earned_xp: int
@@ -170,6 +172,7 @@ def get_lab_progress(slug: str, request: Request, db: Session = Depends(get_db))
     modules_out = []
     for module in lab.modules:
         challenges = [c for c in module.challenges if c.is_published]
+        module_banner_url = f"{base_url}/uploads/{module.banner_image_path}" if module.banner_image_path else None
         module_challenge_ids = {c.id for c in challenges}
         module_completed_ids = module_challenge_ids & completed_ids
         module_complete = len(challenges) > 0 and module_completed_ids == module_challenge_ids
@@ -218,6 +221,8 @@ def get_lab_progress(slug: str, request: Request, db: Session = Depends(get_db))
             slug=module.slug,
             title=module.title,
             description=module.description,
+            banner_image_path=module.banner_image_path,
+            banner_url=module_banner_url,
             order_index=module.order_index,
             total_xp=module_xp,
             earned_xp=module_earned,

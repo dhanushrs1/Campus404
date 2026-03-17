@@ -78,31 +78,46 @@
 }
 .lc-hero-meta strong { color: #fff; }
 .lc-dot { color: rgba(255,255,255,.3); }
-.lc-hero-progress {
+
+/* Circular Progress overrides */
+.lc-hero-top-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  max-width: 400px;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  width: 100%;
 }
-.lc-hero-pbar {
-  flex: 1;
-  height: 6px;
-  background: rgba(255,255,255,.2);
-  border-radius: 999px;
-  overflow: hidden;
+
+.lc-hero-no-img .lc-hero-overlay {
+  display: none;
 }
-.lc-hero-pfill {
+
+.lc-circular-progress-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 50%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+}
+
+.lc-circular-progress {
+  width: 100%;
   height: 100%;
-  background: #003acc;
-  border-radius: 999px;
-  transition: width .6s ease;
 }
-.lc-hero-ppct {
+
+.lc-circular-text {
+  position: absolute;
   font-family: 'Sora', sans-serif;
-  font-size: .75rem;
-  font-weight: 700;
-  color: rgba(255,255,255,.9);
-  white-space: nowrap;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
 }
 
 /* ── Body Layout ──────────────────────────────────────────── */
@@ -679,5 +694,59 @@
   width: 20px;
   height: 20px;
   object-fit: contain;
+}
+
+/* ── Immersive Hero Refinements ─────────────────────────── */
+.lc-hero {
+  min-height: clamp(430px, 62vh, 640px);
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  overflow: hidden;
+}
+
+.lc-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1200px 420px at 85% 15%, rgba(0, 58, 204, 0.22) 0%, rgba(0, 58, 204, 0) 65%),
+    radial-gradient(700px 300px at 15% 90%, rgba(56, 189, 248, 0.18) 0%, rgba(56, 189, 248, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lc-hero-overlay {
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(6, 17, 42, 0.2) 0%,
+    rgba(6, 17, 42, 0.5) 45%,
+    rgba(6, 17, 42, 0.84) 100%
+  );
+}
+
+.lc-hero-content {
+  z-index: 2;
+  padding: 0 2rem 2.4rem;
+}
+
+.lc-hero-no-img {
+  background: linear-gradient(130deg, #081a3d 0%, #0a224f 48%, #102f6a 100%) !important;
+}
+
+@media (max-width: 900px) {
+  .lc-hero {
+    min-height: 420px;
+  }
+
+  .lc-hero-top-info {
+    gap: 1rem;
+    align-items: flex-end;
+  }
+
+  .lc-hero-content {
+    padding: 0 1rem 1.75rem;
+  }
 }
 

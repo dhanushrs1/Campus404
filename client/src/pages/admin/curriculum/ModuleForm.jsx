@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { api } from '../curriculum/api';
 import BadgePickerModal from '../../../components/BadgePickerModal/BadgePickerModal';
+import MediaPickerModal from '../../../components/MediaPickerModal/MediaPickerModal';
 import { API_URL } from '../../../config';
 import './ModuleForm.css';
 
-const INITIAL = { lab_id: 0, title: '', description: '', order_index: 0, badge_id: '' };
+const INITIAL = { lab_id: 0, title: '', description: '', banner_image_path: '', order_index: 0, badge_id: '' };
 const DESC_MAX = 160;
 
 const token = () => localStorage.getItem('token');
@@ -24,6 +25,8 @@ export default function ModuleForm() {
   const [badges,  setBadges]  = useState([]);      // all available badges
   const [origBadge, setOrigBadge] = useState(null);// originally assigned badge id
   const [showBadgePicker, setShowBadgePicker] = useState(false);
+  const [showBannerPicker, setShowBannerPicker] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState(null);
   const [errors,  setErrors]  = useState({});
   const [saving,  setSaving]  = useState(false);
   const [toast,   setToast]   = useState(null);
@@ -42,7 +45,15 @@ export default function ModuleForm() {
 
     if (isEdit) {
       api.getModule(moduleId).then(m => {
-        setForm(f => ({ ...f, lab_id: m.lab_id, title: m.title, description: m.description || '', order_index: m.order_index }));
+        setForm(f => ({
+          ...f,
+          lab_id: m.lab_id,
+          title: m.title,
+          description: m.description || '',
+          banner_image_path: m.banner_image_path || '',
+          order_index: m.order_index,
+        }));
+        setBannerUrl(m.banner_url || (m.banner_image_path ? `/uploads/${String(m.banner_image_path).replace(/^\/+/, '')}` : null));
         return api.getLab(m.lab_id);
       }).then(setLab).catch(e => showToast(e.message, 'error'));
 
@@ -82,6 +93,13 @@ export default function ModuleForm() {
     if (val.length <= DESC_MAX) set('description', val);
   };
 
+  const handleBannerPick = ({ url, path }) => {
+    if (!path) return;
+    set('banner_image_path', path);
+    setBannerUrl(url || `/uploads/${String(path).replace(/^\/+/, '')}`);
+    setShowBannerPicker(false);
+  };
+
 
   const validate = () => {
     const errs = {};
@@ -115,7 +133,12 @@ export default function ModuleForm() {
     setSaving(true);
     try {
       if (isEdit) {
-        await api.updateModule(moduleId, { title: form.title, description: form.description, order_index: Number(form.order_index) });
+        await api.updateModule(moduleId, {
+          title: form.title,
+          description: form.description,
+          banner_image_path: form.banner_image_path || null,
+          order_index: Number(form.order_index),
+        });
         await handleBadgeAssignment(moduleId);
         showToast('Module updated!');
         setTimeout(() => navigate(`/admin/labs`), 1200);
@@ -124,6 +147,7 @@ export default function ModuleForm() {
           lab_id:      form.lab_id,
           title:       form.title,
           description: form.description,
+          banner_image_path: form.banner_image_path || null,
           order_index: Number(form.order_index),
         });
         await handleBadgeAssignment(mod.id);
@@ -139,6 +163,14 @@ export default function ModuleForm() {
   return (
     <div className="mf-wrap">
       {toast && <div className={`mf-toast ${toast.type}`}>{toast.msg}</div>}
+      {showBannerPicker && (
+        <MediaPickerModal
+          title="Select Module Banner"
+          showAlt={false}
+          onSelect={handleBannerPick}
+          onClose={() => setShowBannerPicker(false)}
+        />
+      )}
 
       {/* Breadcrumb */}
       <div className="mf-breadcrumb">
@@ -199,6 +231,37 @@ export default function ModuleForm() {
             </div>
             <textarea rows={3} value={form.description} onChange={e => handleDesc(e.target.value)}
               placeholder="Optional: What will students learn in this module?" maxLength={DESC_MAX} />
+          </div>
+
+          <div className="mf-field">
+            <label>Module Banner Image</label>
+            {bannerUrl ? (
+              <div className="mf-banner-set">
+                <img src={bannerUrl} alt="Module banner" className="mf-banner-preview" />
+                <div className="mf-banner-set-actions">
+                  <button type="button" className="mf-banner-change" onClick={() => setShowBannerPicker(true)}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Change image
+                  </button>
+                  <button
+                    type="button"
+                    className="mf-banner-remove"
+                    onClick={() => {
+                      set('banner_image_path', '');
+                      setBannerUrl(null);
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="mf-banner-placeholder-btn" onClick={() => setShowBannerPicker(true)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Set module banner image</span>
+                <small>Opens media library</small>
+              </button>
+            )}
           </div>
 
           <div className="mf-field">

@@ -71,23 +71,23 @@ def delete_lab(lab_id: int, db: Session = Depends(get_db)):
 
 # ── MODULE ───────────────────────────────────────────────────────────────────
 @router.post("/modules", response_model=schemas.ModuleResponse, status_code=201)
-def create_module(data: schemas.ModuleCreate, db: Session = Depends(get_db)):
-    return services.create_module(db, data)
+def create_module(data: schemas.ModuleCreate, request: Request, db: Session = Depends(get_db)):
+    return services.create_module(db, request, data)
 
 
 @router.get("/modules", response_model=list[schemas.ModuleResponse])
-def list_modules(lab_id: int = Query(..., ge=1), db: Session = Depends(get_db)):
-    return services.get_modules(db, lab_id)
+def list_modules(request: Request, lab_id: int = Query(..., ge=1), db: Session = Depends(get_db)):
+    return services.get_modules(db, request, lab_id)
 
 
 @router.get("/modules/{module_id}", response_model=schemas.ModuleResponse)
-def get_module(module_id: int, db: Session = Depends(get_db)):
-    return services.get_module(db, module_id)
+def get_module(module_id: int, request: Request, db: Session = Depends(get_db)):
+    return services.get_module(db, request, module_id)
 
 
 @router.patch("/modules/{module_id}", response_model=schemas.ModuleResponse)
-def update_module(module_id: int, data: schemas.ModuleUpdate, db: Session = Depends(get_db)):
-    return services.update_module(db, module_id, data)
+def update_module(module_id: int, data: schemas.ModuleUpdate, request: Request, db: Session = Depends(get_db)):
+    return services.update_module(db, request, module_id, data)
 
 
 @router.delete("/modules/{module_id}")

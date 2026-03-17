@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
 import { API_URL } from '../../config';
+import { resolveAssetUrl } from '../../utils/siteSettings';
 import './LabCurriculum.css';
 
 const token = () => localStorage.getItem('token');
@@ -18,13 +19,51 @@ const LANG_COLORS = {
   60: '#06b6d4', 72: '#e11d48', 74: '#60a5fa', 82: '#059669', 0: '#f97316',
 };
 
-// Heroic cover images (picsum based on seed for determinism)
-const HERO_DEFAULTS = [
-  'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1400&q=80',
-  'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1400&q=80',
-  'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1400&q=80',
-  'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=1400&q=80',
-];
+const resolveLabBannerUrl = (lab) => {
+  if (!lab) return null;
+
+  const candidates = [
+    lab.banner_url,
+    lab.banner_image_url,
+    lab.banner_image_path ? `/uploads/${String(lab.banner_image_path).replace(/^\/+/, '')}` : null,
+    lab.hero_image_url,
+  ].filter(Boolean);
+
+  if (!candidates.length) return null;
+  return resolveAssetUrl(candidates[0]) || candidates[0];
+};
+
+// SVG Circular Progress Component
+const CircularProgress = ({ pct, color }) => {
+  const radius = 16;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (pct / 100) * circumference;
+  
+  return (
+    <div className="lc-circular-progress-wrap">
+      <svg className="lc-circular-progress" width="60" height="60" viewBox="0 0 40 40">
+        <circle
+          cx="20" cy="20" r="16"
+          fill="transparent"
+          stroke="rgba(255,255,255,0.2)"
+          strokeWidth="3.5"
+        />
+        <circle
+          cx="20" cy="20" r="16"
+          fill="transparent"
+          stroke={color || "#ffffff"}
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform="rotate(-90 20 20)"
+          style={{ transition: 'stroke-dashoffset 0.8s ease-in-out' }}
+        />
+      </svg>
+      <div className="lc-circular-text">{pct}%</div>
+    </div>
+  );
+};
 
 export default function LabCurriculum() {
   const { slug }   = useParams();
@@ -74,7 +113,8 @@ export default function LabCurriculum() {
   );
   if (!lab) return null;
 
-  const heroImg = lab.hero_image_url || HERO_DEFAULTS[lab.lab_id % HERO_DEFAULTS.length] || HERO_DEFAULTS[0];
+  const heroImg = resolveLabBannerUrl(lab);
+    
   const langLabel = LANG_LABELS[lab.language_id] || `Lang ${lab.language_id}`;
   const langColor = LANG_COLORS[lab.language_id] || '#888';
   const progressPct = lab.total_xp > 0 ? Math.round((lab.earned_xp / lab.total_xp) * 100) : 0;
@@ -85,30 +125,29 @@ export default function LabCurriculum() {
 
       {/* ── HERO ─────────────────────────────────────────── */}
       <section
-        className="lc-hero"
+        className={`lc-hero ${!heroImg ? 'lc-hero-no-img' : ''}`}
         ref={heroRef}
-        style={{ backgroundImage: `url(${heroImg})` }}
+        style={heroImg ? { backgroundImage: `url(${heroImg})` } : { backgroundColor: '#0A192F' }}
       >
-        <div className="lc-hero-overlay" />
+        {heroImg && <div className="lc-hero-overlay" />}
         <div className="lc-hero-content">
-          <div className="lc-hero-lang" style={{ background: langColor + '22', color: langColor, borderColor: langColor + '55' }}>
-            {langLabel}
-          </div>
-          <h1 className="lc-hero-title">{lab.title}</h1>
-          {lab.description && <p className="lc-hero-desc">{lab.description}</p>}
-          <div className="lc-hero-meta">
-            <span><strong>{lab.modules.length}</strong> modules</span>
-            <span className="lc-dot">·</span>
-            <span><strong>{lab.total_xp}</strong> XP total</span>
-            <span className="lc-dot">·</span>
-            <span><strong>{lab.modules.reduce((s,m) => s + m.challenge_count, 0)}</strong> challenges</span>
-          </div>
-          {/* Progress bar */}
-          <div className="lc-hero-progress">
-            <div className="lc-hero-pbar">
-              <div className="lc-hero-pfill" style={{ width: `${progressPct}%` }} />
+          <div className="lc-hero-top-info">
+            <div>
+              <div className="lc-hero-lang" style={{ background: langColor + '22', color: langColor, borderColor: langColor + '55' }}>
+                {langLabel}
+              </div>
+              <h1 className="lc-hero-title">{lab.title}</h1>
+              {lab.description && <p className="lc-hero-desc">{lab.description}</p>}
+              <div className="lc-hero-meta">
+                <span><strong>{lab.modules.length}</strong> modules</span>
+                <span className="lc-dot">·</span>
+                <span><strong>{lab.total_xp}</strong> XP total</span>
+                <span className="lc-dot">·</span>
+                <span><strong>{lab.modules.reduce((s,m) => s + m.challenge_count, 0)}</strong> challenges</span>
+              </div>
             </div>
-            <span className="lc-hero-ppct">{progressPct}% complete</span>
+            {/* Circular Progress */}
+            <CircularProgress pct={progressPct} color={langColor} />
           </div>
         </div>
       </section>
