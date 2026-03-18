@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, Request
 
 from . import models, schemas
@@ -66,6 +67,9 @@ def _module_to_response(db: Session, request: Request, module: models.Module) ->
         lab_id=module.lab_id,
         title=module.title,
         description=module.description,
+        guide_id=module.guide.id if module.guide else None,
+        guide_title=module.guide.title if module.guide else None,
+        guide_slug=module.guide.slug if module.guide else None,
         banner_image_path=module.banner_image_path,
         banner_url=build_image_url(request, module.banner_image_path),
         order_index=module.order_index,
@@ -87,20 +91,46 @@ def _file_to_response(f: models.ChallengeFile) -> schemas.ChallengeFileResponse:
 
 
 def _challenge_to_response(challenge: models.Challenge) -> schemas.ChallengeResponse:
-    display_title = challenge.custom_title or f"Level {challenge.level_number}"
+    if challenge.challenge_type == models.CHALLENGE_TYPE_EXAM:
+        display_title = challenge.custom_title or "Module Exam"
+    else:
+        display_title = challenge.custom_title or f"Level {challenge.level_number}"
+
     return schemas.ChallengeResponse(
         id=challenge.id,
         module_id=challenge.module_id,
         level_number=challenge.level_number,
+        challenge_type=challenge.challenge_type,
         custom_title=challenge.custom_title,
         display_title=display_title,
         xp_reward=challenge.xp_reward,
+        expected_output=challenge.expected_output,
         content_html=challenge.content_html,
         is_published=challenge.is_published,
         files=[_file_to_response(f) for f in challenge.files],
         created_at=challenge.created_at,
         updated_at=challenge.updated_at,
     )
+
+
+def _validate_guide_link(db: Session, guide_id: Optional[int], current_module_id: Optional[int] = None) -> None:
+    if guide_id is None:
+        return
+
+    # Imported lazily to avoid circular imports at module import-time.
+    from guide.models import GuidePage
+
+    guide = db.query(GuidePage).filter(GuidePage.id == guide_id).first()
+    if not guide:
+        raise HTTPException(status_code=404, detail=f"Guide {guide_id} not found.")
+
+    if guide.module_id is not None and guide.module_id != current_module_id:
+        existing_module = db.query(models.Module).filter(models.Module.id == guide.module_id).first()
+        existing_title = existing_module.title if existing_module else f"#{guide.module_id}"
+        raise HTTPException(
+            status_code=409,
+            detail=f"Guide {guide_id} is already assigned to module '{existing_title}'.",
+        )
 
 
 # ── LAB ───────────────────────────────────────────────────────────────────────
@@ -161,6 +191,8 @@ def create_module(db, request, data):
     if not db.query(models.Lab).filter(models.Lab.id == data.lab_id).first():
         raise HTTPException(status_code=404, detail=f"Lab {data.lab_id} not found.")
 
+    _validate_guide_link(db, data.guide_id)
+
     # Generate a unique 4-char ID; retry up to 10 times on collision
     for _ in range(10):
         uid = models._gen_uid(4)
@@ -172,10 +204,23 @@ def create_module(db, request, data):
     base_slug = sub(r'[^a-z0-9-]+', '-', data.title.lower()).strip('-')
     slug = f"{base_slug}-{uid}"
 
-    module_data = data.model_dump()
+    module_data = data.model_dump(exclude={"guide_id"})
     module = models.Module(**module_data, unique_id=uid, slug=slug)
     db.add(module)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Module title or guide assignment conflicts with an existing record.")
+
+    if data.guide_id is not None:
+        from guide.models import GuidePage
+
+        guide = db.query(GuidePage).filter(GuidePage.id == data.guide_id).first()
+        if guide:
+            guide.module_id = module.id
+            db.commit()
+
     db.refresh(module)
     return _module_to_response(db, request, module)
 
@@ -197,12 +242,39 @@ def update_module(db, request, module_id, data):
     m = db.query(models.Module).filter(models.Module.id == module_id).first()
     if not m:
         raise HTTPException(status_code=404, detail="Module not found.")
+
     update_data = data.model_dump(exclude_unset=True)
+
+    guide_id_provided = "guide_id" in update_data
+    new_guide_id = update_data.pop("guide_id", None)
+
+    if guide_id_provided:
+        _validate_guide_link(db, new_guide_id, current_module_id=module_id)
+
     if "banner_image_path" in update_data and update_data["banner_image_path"] != m.banner_image_path:
         _safe_delete_image(m.banner_image_path)
     for field, value in update_data.items():
         setattr(m, field, value)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Module update conflicts with an existing record.")
+
+    if guide_id_provided:
+        from guide.models import GuidePage
+
+        current = db.query(GuidePage).filter(GuidePage.module_id == module_id).first()
+        if current and (new_guide_id is None or current.id != new_guide_id):
+            current.module_id = None
+
+        if new_guide_id is not None:
+            target = db.query(GuidePage).filter(GuidePage.id == new_guide_id).first()
+            if target:
+                target.module_id = module_id
+
+        db.commit()
+
     db.refresh(m)
     return _module_to_response(db, request, m)
 
@@ -230,6 +302,28 @@ def _next_level_number(db, module_id):
 def create_challenge(db, data: schemas.ChallengeCreate):
     if not db.query(models.Module).filter(models.Module.id == data.module_id).first():
         raise HTTPException(status_code=404, detail=f"Module {data.module_id} not found.")
+
+    challenge_type = data.challenge_type
+
+    if challenge_type == models.CHALLENGE_TYPE_EXAM and data.xp_reward > 100:
+        raise HTTPException(status_code=422, detail="Module exam XP cannot exceed 100.")
+
+    existing_exam = (
+        db.query(models.Challenge)
+        .filter(
+            models.Challenge.module_id == data.module_id,
+            models.Challenge.challenge_type == models.CHALLENGE_TYPE_EXAM,
+        )
+        .first()
+    )
+    if challenge_type == models.CHALLENGE_TYPE_EXAM and existing_exam:
+        raise HTTPException(status_code=409, detail="This module already has a final exam level.")
+
+    if challenge_type == models.CHALLENGE_TYPE_LEVEL and existing_exam:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot add standard levels after a final exam. Remove or convert the exam first.",
+        )
 
     files_data = data.files
     challenge_data = data.model_dump(exclude={"files"})
@@ -285,8 +379,67 @@ def update_challenge(db, challenge_id, data):
     c = db.query(models.Challenge).filter(models.Challenge.id == challenge_id).first()
     if not c:
         raise HTTPException(status_code=404, detail="Challenge not found.")
-    for field, value in data.model_dump(exclude_unset=True).items():
+
+    update_data = data.model_dump(exclude_unset=True)
+    next_type = update_data.get("challenge_type", c.challenge_type)
+    next_xp = update_data.get("xp_reward", c.xp_reward)
+
+    if next_type == models.CHALLENGE_TYPE_EXAM and next_xp > 100:
+        raise HTTPException(status_code=422, detail="Module exam XP cannot exceed 100.")
+
+    if next_type == models.CHALLENGE_TYPE_EXAM:
+        existing_exam = (
+            db.query(models.Challenge)
+            .filter(
+                models.Challenge.module_id == c.module_id,
+                models.Challenge.challenge_type == models.CHALLENGE_TYPE_EXAM,
+                models.Challenge.id != c.id,
+            )
+            .first()
+        )
+        if existing_exam:
+            raise HTTPException(status_code=409, detail="This module already has a final exam level.")
+
+    if next_type == models.CHALLENGE_TYPE_LEVEL:
+        existing_exam = (
+            db.query(models.Challenge)
+            .filter(
+                models.Challenge.module_id == c.module_id,
+                models.Challenge.challenge_type == models.CHALLENGE_TYPE_EXAM,
+                models.Challenge.id != c.id,
+            )
+            .first()
+        )
+        if existing_exam and c.level_number > existing_exam.level_number:
+            raise HTTPException(
+                status_code=409,
+                detail="Standard levels cannot be placed after a final exam.",
+            )
+
+    for field, value in update_data.items():
         setattr(c, field, value)
+
+    # Ensure exam stays the final level in sequence.
+    if c.challenge_type == models.CHALLENGE_TYPE_EXAM:
+        max_level = (
+            db.query(func.max(models.Challenge.level_number))
+            .filter(models.Challenge.module_id == c.module_id)
+            .scalar()
+        )
+        if max_level and c.level_number != max_level:
+            trailing = (
+                db.query(models.Challenge)
+                .filter(
+                    models.Challenge.module_id == c.module_id,
+                    models.Challenge.level_number > c.level_number,
+                )
+                .order_by(models.Challenge.level_number)
+                .all()
+            )
+            for row in trailing:
+                row.level_number -= 1
+            c.level_number = max_level
+
     db.commit()
     db.refresh(c)
     return _challenge_to_response(c)

@@ -7,6 +7,23 @@ const authH = () => ({ Authorization: `Bearer ${token()}` });
 
 const FALLBACK_BADGE = '🏆';
 
+const parseResponse = async (res) => {
+  const raw = await res.text();
+  let data = null;
+
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.detail || data?.message || raw || `Request failed (${res.status})`);
+  }
+
+  return data;
+};
+
 export default function BadgesManager() {
   const [badges,   setBadges]   = useState([]);
   const [modules,  setModules]  = useState([]); // flat list from all labs
@@ -24,22 +41,47 @@ export default function BadgesManager() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const fetchBadges = () => {
-    fetch(`${API_URL}/admin/badges`, { headers: authH() })
-      .then(r => r.json()).then(d => setBadges(Array.isArray(d) ? d : [])).catch(() => {});
+  const fetchBadges = async () => {
+    try {
+      const res = await fetch(`${API_URL}/admin/badges`, { headers: authH() });
+      const data = await parseResponse(res);
+      setBadges(Array.isArray(data) ? data : []);
+    } catch (error) {
+      showToast(error.message || 'Failed to load badges.', 'error');
+      setBadges([]);
+    }
   };
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${API_URL}/admin/badges`, { headers: authH() }).then(r => r.json()),
-      fetch(`${API_URL}/labs`, { headers: authH() }).then(r => r.json()).then(d => d.items || []).then(async labs => {
-        const all = await Promise.all(labs.map(l =>
-          fetch(`${API_URL}/modules?lab_id=${l.id}`, { headers: authH() }).then(r => r.json())
-        ));
-        return all.flat().map(m => ({ ...m, lab_id: m.lab_id }));
-      }),
-    ]).then(([b, m]) => { setBadges(Array.isArray(b) ? b : []); setModules(Array.isArray(m) ? m : []); setLoading(false); })
-      .catch(() => setLoading(false));
+    const load = async () => {
+      try {
+        const badgesRes = await fetch(`${API_URL}/admin/badges`, { headers: authH() });
+        const badgesData = await parseResponse(badgesRes);
+
+        const labsRes = await fetch(`${API_URL}/labs`, { headers: authH() });
+        const labsPayload = await parseResponse(labsRes);
+        const labs = labsPayload?.items || [];
+
+        const moduleLists = await Promise.all(
+          labs.map(async (lab) => {
+            const modRes = await fetch(`${API_URL}/modules?lab_id=${lab.id}`, { headers: authH() });
+            const modPayload = await parseResponse(modRes);
+            return Array.isArray(modPayload) ? modPayload : [];
+          })
+        );
+
+        setBadges(Array.isArray(badgesData) ? badgesData : []);
+        setModules(moduleLists.flat().map((m) => ({ ...m, lab_id: m.lab_id })));
+      } catch (error) {
+        showToast(error.message || 'Failed to load badges data.', 'error');
+        setBadges([]);
+        setModules([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
   }, []);
 
   const openCreate = () => { setEditing(null); setForm({ name: '', description: '', module_id: '', image_url: '' }); setImageFile(null); setShowForm(true); };
@@ -58,19 +100,30 @@ export default function BadgesManager() {
 
     const url    = editing ? `${API_URL}/admin/badges/${editing.id}` : `${API_URL}/admin/badges`;
     const method = editing ? 'PATCH' : 'POST';
-    const res = await fetch(url, { method, headers: authH(), body: fd });
-    if (!res.ok) { showToast((await res.json()).detail || 'Error', 'error'); return; }
+    try {
+      const res = await fetch(url, { method, headers: authH(), body: fd });
+      await parseResponse(res);
+    } catch (error) {
+      showToast(error.message || 'Error saving badge.', 'error');
+      return;
+    }
 
     showToast(editing ? 'Badge updated!' : 'Badge created!');
     setShowForm(false);
-    fetchBadges();
+    await fetchBadges();
   };
 
   const handleDelete = async (badge) => {
     if (!confirm(`Delete badge "${badge.name}"?`)) return;
-    await fetch(`${API_URL}/admin/badges/${badge.id}`, { method: 'DELETE', headers: authH() });
-    showToast('Badge deleted.');
-    fetchBadges();
+
+    try {
+      const res = await fetch(`${API_URL}/admin/badges/${badge.id}`, { method: 'DELETE', headers: authH() });
+      await parseResponse(res);
+      showToast('Badge deleted.');
+      await fetchBadges();
+    } catch (error) {
+      showToast(error.message || 'Failed to delete badge.', 'error');
+    }
   };
 
   const unlinkedModules = modules.filter(m => !badges.some(b => b.module_id === m.id) || (editing && editing.module_id === m.id));

@@ -3,6 +3,23 @@ import './Dashboard.css';
 
 import { API_URL } from '../../../config';
 
+const parseResponse = async (res) => {
+  const raw = await res.text();
+  let data = null;
+
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.detail || data?.message || raw || 'Failed to fetch dashboard stats');
+  }
+
+  return data;
+};
+
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,12 +32,8 @@ const Dashboard = () => {
         const res = await fetch(`${API_URL}/admin/stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
-        if (!res.ok) {
-          throw new Error('Failed to fetch dashboard stats');
-        }
-        
-        const data = await res.json();
+
+        const data = await parseResponse(res);
         setStats(data);
       } catch (err) {
         setError(err.message);

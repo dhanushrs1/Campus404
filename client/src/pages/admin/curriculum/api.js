@@ -17,8 +17,20 @@ async function req(method, url, body) {
     headers: isFormData ? auth() : { ...auth(), 'Content-Type': 'application/json' },
     body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+
+  const raw = await res.text();
+  let data = null;
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!res.ok) {
+    const detail = data?.detail || data?.message || raw || `Request failed (${res.status})`;
+    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+  }
+
   return data;
 }
 
@@ -66,4 +78,11 @@ export const api = {
   updateGuidePage: (id, body) => req('PATCH', `/admin/guide/${id}`, body),
   deleteGuidePage: (id) => req('DELETE', `/admin/guide/${id}`),
   getGuidePageBySlug: (slug) => req('GET', `/guide/${slug}`),
+
+  // Student workspace
+  runWorkspaceLevel: (challengeId, body) => req('POST', `/workspace/levels/${challengeId}/run`, body),
+  submitWorkspaceLevel: (challengeId, body) => req('POST', `/workspace/levels/${challengeId}/submit`, body),
+
+  // Progression gate
+  getModuleGate: (moduleId) => req('GET', `/modules/${moduleId}/gate`),
 };

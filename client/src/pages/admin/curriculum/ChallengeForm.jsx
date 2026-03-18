@@ -170,8 +170,10 @@ function FileTab({ file, isActive, isMain, onClick, onRename, onSetMain, onRemov
 /* ── Main Component ─────────────────────────────────────── */
 const INITIAL = {
   module_id:    0,
+  challenge_type: 'level',
   custom_title: '',
   xp_reward:    50,
+  expected_output: '',
   content_html: '',
   is_published: false,
 };
@@ -215,7 +217,16 @@ export default function ChallengeForm() {
 
     if (isEdit) {
       api.getChallenge(challengeId).then(ch => {
-        setForm({ ...INITIAL, module_id: ch.module_id, custom_title: ch.custom_title || '', xp_reward: ch.xp_reward, content_html: ch.content_html, is_published: ch.is_published });
+        setForm({
+          ...INITIAL,
+          module_id: ch.module_id,
+          challenge_type: ch.challenge_type || 'level',
+          custom_title: ch.custom_title || '',
+          xp_reward: ch.xp_reward,
+          expected_output: ch.expected_output || '',
+          content_html: ch.content_html,
+          is_published: ch.is_published,
+        });
         if (ch.files?.length) setFiles(ch.files.map(f => ({ ...f, id: f.id })));
         return api.getModule(ch.module_id);
       }).then(mod => { setModule(mod); return Promise.all([api.getLab(mod.lab_id)]); })
@@ -240,6 +251,14 @@ export default function ChallengeForm() {
   }, [challengeId, isEdit, params]);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  const setChallengeType = (challengeType) => {
+    setForm((prev) => ({
+      ...prev,
+      challenge_type: challengeType,
+      xp_reward: challengeType === 'exam' ? Math.min(Number(prev.xp_reward || 0), 100) || 100 : prev.xp_reward,
+    }));
+  };
 
   /* ── File operations ─── */
   const addFile = () => {
@@ -283,14 +302,20 @@ export default function ChallengeForm() {
     if (!form.content_html.trim()) { showToast('Problem statement is required.', 'error'); return; }
     if (!form.module_id)           { showToast('No module selected.', 'error'); return; }
     if (!files.some(f => f.is_main)) { showToast('One file must be marked as the main file.', 'error'); return; }
+    if (form.challenge_type === 'exam' && Number(form.xp_reward) > 100) {
+      showToast('Module exam XP cannot exceed 100.', 'error');
+      return;
+    }
 
     setSaving(true);
     try {
       let challenge;
       const payload = {
         module_id:    form.module_id,
+        challenge_type: form.challenge_type,
         custom_title: form.custom_title || null,
         xp_reward:    Number(form.xp_reward),
+        expected_output: form.expected_output?.trim() || null,
         content_html: form.content_html,
         is_published: form.is_published,
         files: files.map((f, i) => ({ filename: f.filename, content: f.content, is_main: f.is_main, order_index: i })),
@@ -298,20 +323,22 @@ export default function ChallengeForm() {
 
       if (isEdit) {
         challenge = await api.updateChallenge(challengeId, {
+          challenge_type: payload.challenge_type,
           custom_title: payload.custom_title,
           xp_reward:    payload.xp_reward,
+          expected_output: payload.expected_output,
           content_html: payload.content_html,
           is_published: payload.is_published,
         });
         // Update files separately
         await api.replaceChallengeFiles(challengeId, payload.files);
-        showToast('Challenge updated!');
+        showToast('Level updated!');
         setTimeout(() => navigate('/admin/labs'), 1200);
       } else {
         challenge = await api.createChallenge(payload);
-        showToast(`Level ${challenge.level_number} created!`);
+        showToast(`${challenge.challenge_type === 'exam' ? 'Module exam' : `Level ${challenge.level_number}`} created!`);
         setTimeout(() => {
-          if (confirm(`Level ${challenge.level_number} saved!\nAdd another level to this module?`)) {
+          if (confirm(`${challenge.challenge_type === 'exam' ? 'Module exam' : `Level ${challenge.level_number}`} saved!\nAdd another level to this module?`)) {
             window.location.reload();
           } else {
             navigate('/admin/labs');
@@ -340,7 +367,7 @@ export default function ChallengeForm() {
         {lab    && <><span>›</span><span>{lab.title}</span></>}
         {module && <><span>›</span><span>{module.title}</span></>}
         <span>›</span>
-        <span>{isEdit ? 'Edit Challenge' : `Level ${nextLevel}`}</span>
+        <span>{isEdit ? 'Edit Level' : `Level ${nextLevel}`}</span>
       </div>
 
       {/* Steps */}
@@ -350,7 +377,7 @@ export default function ChallengeForm() {
           <div className="cf-step-line done" />
           <div className="cf-step done"><span>2</span>Add Module</div>
           <div className="cf-step-line done" />
-          <div className="cf-step current"><span>3</span>Add Challenges</div>
+          <div className="cf-step current"><span>3</span>Add Levels</div>
         </div>
       )}
 
@@ -358,7 +385,7 @@ export default function ChallengeForm() {
         {/* ── LEFT ── */}
         <div className="cf-main">
           <div className="cf-header">
-            <h2 className="cf-title">{isEdit ? 'Edit Challenge' : `Creating Level ${nextLevel}`}</h2>
+            <h2 className="cf-title">{isEdit ? 'Edit Level' : `Creating Level ${nextLevel}`}</h2>
             {module && <p className="cf-subtitle">Module: <strong>{module.title}</strong></p>}
           </div>
 
@@ -480,30 +507,59 @@ export default function ChallengeForm() {
           </div>
 
           <div className="cf-card">
+            <h4 className="cf-card-title">Level Type</h4>
+            <select className="cf-input" value={form.challenge_type} onChange={(e) => setChallengeType(e.target.value)}>
+              <option value="level">Standard Level</option>
+              <option value="exam">Final Module Exam</option>
+            </select>
+            <small className="cf-hint">
+              {form.challenge_type === 'exam'
+                ? 'Exam unlocks after all standard levels are completed and can award up to 100 XP.'
+                : 'Standard levels unlock sequentially within the module.'}
+            </small>
+          </div>
+
+          <div className="cf-card">
             <h4 className="cf-card-title">Custom Title</h4>
             <input
               className="cf-input"
               value={form.custom_title}
               onChange={e => set('custom_title', e.target.value)}
-              placeholder={`Level ${nextLevel} (default)`}
+              placeholder={form.challenge_type === 'exam' ? 'Module Exam (default)' : `Level ${nextLevel} (default)`}
             />
-            <small className="cf-hint">Leave blank to auto-title "Level {nextLevel}"</small>
+            <small className="cf-hint">
+              {form.challenge_type === 'exam'
+                ? 'Leave blank to auto-title "Module Exam"'
+                : `Leave blank to auto-title "Level ${nextLevel}"`}
+            </small>
           </div>
 
           <div className="cf-card">
             <h4 className="cf-card-title">XP Reward</h4>
             <div className="cf-xp-row">
-              <input type="number" min="1" max="10000" className="cf-input cf-xp-num"
+              <input type="number" min="1" max={form.challenge_type === 'exam' ? '100' : '10000'} className="cf-input cf-xp-num"
                 value={form.xp_reward} onChange={e => set('xp_reward', e.target.value)} />
               <span className="cf-xp-unit">XP</span>
             </div>
             <div className="cf-xp-presets">
-              {[25, 50, 100, 200].map(v => (
+              {(form.challenge_type === 'exam' ? [25, 50, 75, 100] : [25, 50, 100, 200]).map(v => (
                 <button key={v} type="button"
                   className={`cf-preset ${form.xp_reward == v ? 'active' : ''}`}
                   onClick={() => set('xp_reward', v)}>{v}</button>
               ))}
             </div>
+          </div>
+
+          <div className="cf-card">
+            <h4 className="cf-card-title">Expected Output (Optional)</h4>
+            <textarea
+              className="cf-input"
+              rows={4}
+              value={form.expected_output}
+              onChange={(e) => set('expected_output', e.target.value)}
+              placeholder="Used by Judge0 validation. Leave empty to treat successful runtime as pass."
+            />
+            <small className="cf-hint">When set, learner output must match exactly for pass.</small>
           </div>
 
           {/* File summary */}

@@ -2,7 +2,7 @@
 curriculum/schemas.py — Campus404
 Pydantic v2 schemas for Labs, Modules, Challenges, and ChallengeFiles.
 """
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 from pydantic import BaseModel, Field, model_validator
 import re
@@ -70,6 +70,7 @@ class ModuleCreate(BaseModel):
     lab_id:      int            = Field(..., ge=1)
     title:       str            = Field(..., min_length=1, max_length=255)
     description: Optional[str]  = Field(None, max_length=160)
+    guide_id:    Optional[int]  = Field(None, ge=1)
     banner_image_path: Optional[str] = None
     order_index: int            = Field(0, ge=0)
 
@@ -82,6 +83,7 @@ class ModuleCreate(BaseModel):
 class ModuleUpdate(BaseModel):
     title:       Optional[str]  = Field(None, min_length=1, max_length=255)
     description: Optional[str]  = Field(None, max_length=160)
+    guide_id:    Optional[int]  = Field(None, ge=1)
     banner_image_path: Optional[str] = None
     order_index: Optional[int]  = Field(None, ge=0)
 
@@ -98,6 +100,9 @@ class ModuleResponse(BaseModel):
     lab_id:          int
     title:           str
     description:     Optional[str]
+    guide_id:        Optional[int] = None
+    guide_title:     Optional[str] = None
+    guide_slug:      Optional[str] = None
     banner_image_path: Optional[str] = None
     banner_url:      Optional[str] = None
     order_index:     int
@@ -135,19 +140,32 @@ class ChallengeFileResponse(BaseModel):
 
 
 # ── CHALLENGE ─────────────────────────────────────────────────────────────────
+ChallengeType = Literal["level", "exam"]
+
+
 class ChallengeCreate(BaseModel):
     module_id:    int            = Field(..., ge=1)
+    challenge_type: ChallengeType = "level"
     custom_title: Optional[str] = Field(None, max_length=255)
     xp_reward:    int            = Field(50, ge=1, le=10000)
+    expected_output: Optional[str] = Field(None, max_length=10000)
     content_html: str            = Field(..., min_length=1)
     is_published: bool           = False
     files:        List[ChallengeFileCreate] = []
     # level_number intentionally NOT accepted — auto-calculated
 
+    @model_validator(mode='after')
+    def check_exam_xp_cap(self):
+        if self.challenge_type == "exam" and self.xp_reward > 100:
+            raise ValueError("Exam levels cannot exceed 100 XP.")
+        return self
+
 
 class ChallengeUpdate(BaseModel):
+    challenge_type: Optional[ChallengeType] = None
     custom_title: Optional[str]  = Field(None, max_length=255)
     xp_reward:    Optional[int]  = Field(None, ge=1, le=10000)
+    expected_output: Optional[str] = Field(None, max_length=10000)
     content_html: Optional[str]  = Field(None, min_length=1)
     is_published: Optional[bool] = None
 
@@ -156,9 +174,11 @@ class ChallengeResponse(BaseModel):
     id:            int
     module_id:     int
     level_number:  int
+    challenge_type: ChallengeType
     custom_title:  Optional[str]
     display_title: str
     xp_reward:     int
+    expected_output: Optional[str] = None
     content_html:  str
     is_published:  bool
     files:         List[ChallengeFileResponse] = []

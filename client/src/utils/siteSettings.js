@@ -175,15 +175,17 @@ export const applyDocumentSiteSettings = (rawSettings) => {
 };
 
 const parseResponse = async (response) => {
+  const raw = await response.text();
   let body = null;
+
   try {
-    body = await response.json();
+    body = raw ? JSON.parse(raw) : null;
   } catch {
     body = null;
   }
 
   if (!response.ok) {
-    throw new Error(body?.detail || `Request failed (${response.status})`);
+    throw new Error(body?.detail || body?.message || raw || `Request failed (${response.status})`);
   }
 
   return body;

@@ -143,7 +143,7 @@ export default function LabCurriculum() {
                 <span className="lc-dot">·</span>
                 <span><strong>{lab.total_xp}</strong> XP total</span>
                 <span className="lc-dot">·</span>
-                <span><strong>{lab.modules.reduce((s,m) => s + m.challenge_count, 0)}</strong> challenges</span>
+                <span><strong>{lab.modules.reduce((s,m) => s + m.challenge_count, 0)}</strong> levels</span>
               </div>
             </div>
             {/* Circular Progress */}
@@ -181,7 +181,7 @@ export default function LabCurriculum() {
                   {mod.description && <p className="lc-mod-desc">{mod.description}</p>}
                   
                   <div className="lc-mod-meta">
-                    <div className="lc-mod-stat">{mod.challenge_count} Challenges</div>
+                    <div className="lc-mod-stat">{mod.challenge_count} Levels</div>
                     <div className="lc-mod-stat">{mod.total_xp} XP</div>
                   </div>
 

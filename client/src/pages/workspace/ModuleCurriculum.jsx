@@ -139,7 +139,7 @@ export default function ModuleCurriculum() {
               <div className="lc-hero-meta">
                 <span><strong>{mod.total_xp}</strong> XP total</span>
                 <span className="lc-dot">·</span>
-                <span><strong>{mod.challenge_count}</strong> challenges</span>
+                <span><strong>{mod.challenge_count}</strong> levels</span>
               </div>
             </div>
             {/* Circular Progress */}
@@ -180,11 +180,11 @@ export default function ModuleCurriculum() {
                   
                   <div className="mc-node-card" onClick={() => !ch.is_locked && navigate(uniqueUrl)}>
                     <div className="mc-node-card-header">
-                      <h3>{ch.display_title || `Challenge ${ch.level_number}`}</h3>
+                      <h3>{ch.display_title || `Level ${ch.level_number}`}</h3>
                       <span className="mc-node-xp">+{ch.xp_reward} XP</span>
                     </div>
                     {isCurrent && (
-                      <button className="mc-node-start-btn">Start Challenge</button>
+                      <button className="mc-node-start-btn">Start Level</button>
                     )}
                   </div>
                 </div>

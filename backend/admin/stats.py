@@ -4,6 +4,7 @@ Admin dashboard statistics endpoint.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from database import get_db
 import models
 import curriculum.models as cm
@@ -16,17 +17,17 @@ router = APIRouter()
 @router.get("")
 async def get_stats(db: Session = Depends(get_db)):
     # User Stats
-    total_users = db.query(models.User).count()
-    admins  = db.query(models.User).filter(models.User.is_admin == True).count()
-    editors = db.query(models.User).filter(models.User.is_editor == True, models.User.is_admin == False).count()
-    banned  = db.query(models.User).filter(models.User.is_banned == True).count()
-    students = total_users - admins - editors
+    total_users = int(db.query(func.count(models.User.id)).scalar() or 0)
+    admins  = int(db.query(func.count(models.User.id)).filter(models.User.is_admin == True).scalar() or 0)
+    editors = int(db.query(func.count(models.User.id)).filter(models.User.is_editor == True, models.User.is_admin == False).scalar() or 0)
+    banned  = int(db.query(func.count(models.User.id)).filter(models.User.is_banned == True).scalar() or 0)
+    students = max(total_users - admins - editors, 0)
 
     # Curriculum Stats
-    total_labs = db.query(cm.Lab).count()
-    total_modules = db.query(cm.Module).count()
-    total_challenges = db.query(cm.Challenge).count()
-    total_submissions = db.query(cm.ChallengeCompletion).count()
+    total_labs = int(db.query(func.count(cm.Lab.id)).scalar() or 0)
+    total_modules = int(db.query(func.count(cm.Module.id)).scalar() or 0)
+    total_challenges = int(db.query(func.count(cm.Challenge.id)).scalar() or 0)
+    total_submissions = int(db.query(func.count(cm.ChallengeCompletion.id)).scalar() or 0)
 
     # System Status (Backend is running if we are here)
     system_status = "online"

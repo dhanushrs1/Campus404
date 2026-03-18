@@ -9,6 +9,7 @@ sys.path.insert(0, '/app')
 from database import Base, engine
 from sqlalchemy import text, inspect
 import guide.models as guide_models
+import curriculum.models as curriculum_models
 
 insp = inspect(engine)
 
@@ -42,6 +43,23 @@ with engine.connect() as conn:
     else:
         print('[SKIP] banner_image_path already exists in modules')
 
+    # ── challenges: add challenge_type + expected_output ─────────────
+    ch_cols = [c['name'] for c in insp.get_columns('challenges')]
+    if 'challenge_type' not in ch_cols:
+        conn.execute(text("ALTER TABLE challenges ADD COLUMN challenge_type VARCHAR(20) NOT NULL DEFAULT 'level'"))
+        print('[OK] Added challenge_type to challenges')
+    else:
+        print('[SKIP] challenge_type already exists in challenges')
+
+    if 'expected_output' not in ch_cols:
+        conn.execute(text('ALTER TABLE challenges ADD COLUMN expected_output TEXT NULL'))
+        print('[OK] Added expected_output to challenges')
+    else:
+        print('[SKIP] expected_output already exists in challenges')
+
+    conn.execute(text("UPDATE challenges SET challenge_type='level' WHERE challenge_type IS NULL OR challenge_type = ''"))
+    print('[OK] Backfilled null challenge_type values to level')
+
     # ── site_settings: add Guide display columns ───────────────────
     table_names = insp.get_table_names()
     if 'site_settings' in table_names:
@@ -73,6 +91,24 @@ with engine.connect() as conn:
     else:
         print('[SKIP] site_settings table does not exist yet; Guide settings columns not applied')
 
+    # ── learn_posts: add one-to-one module_id linkage ────────────────
+    if 'learn_posts' in table_names:
+        post_cols = [c['name'] for c in insp.get_columns('learn_posts')]
+        if 'module_id' not in post_cols:
+            conn.execute(text('ALTER TABLE learn_posts ADD COLUMN module_id INTEGER NULL'))
+            print('[OK] Added module_id to learn_posts')
+        else:
+            print('[SKIP] module_id already exists in learn_posts')
+
+        post_indexes = [i.get('name') for i in insp.get_indexes('learn_posts')]
+        if 'uq_learn_posts_module_id' not in post_indexes:
+            conn.execute(text('CREATE UNIQUE INDEX uq_learn_posts_module_id ON learn_posts (module_id)'))
+            print('[OK] Added unique index uq_learn_posts_module_id on learn_posts.module_id')
+        else:
+            print('[SKIP] uq_learn_posts_module_id already exists')
+    else:
+        print('[SKIP] learn_posts table does not exist yet; module linkage column not applied')
+
     conn.commit()
     print('\nMigration complete.')
 
@@ -94,6 +130,10 @@ with engine.connect() as conn:
 # Ensure Guide page tables exist
 Base.metadata.create_all(
     bind=engine,
-    tables=[guide_models.GuidePage.__table__, guide_models.guide_post_modules],
+    tables=[
+        guide_models.GuidePage.__table__,
+        guide_models.guide_post_modules,
+        curriculum_models.ChallengeAttempt.__table__,
+    ],
 )
-print('[OK] Ensured Guide tables exist (legacy table names: learn_posts, learn_post_modules).')
+print('[OK] Ensured Guide and progression tables exist (learn_posts, learn_post_modules, challenge_attempts).')

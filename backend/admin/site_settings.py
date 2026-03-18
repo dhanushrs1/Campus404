@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from jose import JWTError, jwt
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
+from sqlalchemy import inspect, text
 
 from authentications.security import ALGORITHM, SECRET_KEY
 from database import get_db
@@ -20,6 +21,13 @@ admin_router = APIRouter()
 
 ALLOWED_LOGO_EXTS = {"svg", "png", "jpg", "jpeg", "webp", "avif"}
 ALLOWED_ICON_EXTS = {"svg", "png", "ico", "jpg", "jpeg", "webp"}
+
+REQUIRED_SITE_SETTINGS_COLUMNS = {
+    "guide_default_author": "VARCHAR(120) NOT NULL DEFAULT 'Campus404 Guide Team'",
+    "guide_show_toc": "BOOLEAN NOT NULL DEFAULT 1",
+    "guide_toc_depth": "INTEGER NOT NULL DEFAULT 3",
+    "guide_show_social_share": "BOOLEAN NOT NULL DEFAULT 1",
+}
 
 
 def _normalize_optional(value: Optional[str]) -> Optional[str]:
@@ -84,7 +92,30 @@ def _require_admin(request: Request, db: Session) -> models.User:
     return user
 
 
+def _ensure_site_settings_schema(db: Session) -> None:
+    bind = db.get_bind()
+    insp = inspect(bind)
+
+    if "site_settings" not in insp.get_table_names():
+        return
+
+    existing = {col["name"] for col in insp.get_columns("site_settings")}
+    added_any = False
+
+    for col_name, ddl in REQUIRED_SITE_SETTINGS_COLUMNS.items():
+        if col_name in existing:
+            continue
+
+        db.execute(text(f"ALTER TABLE site_settings ADD COLUMN {col_name} {ddl}"))
+        added_any = True
+
+    if added_any:
+        db.commit()
+
+
 def _get_or_create_settings(db: Session) -> models.SiteSetting:
+    _ensure_site_settings_schema(db)
+
     settings = db.query(models.SiteSetting).order_by(models.SiteSetting.id.asc()).first()
     if settings:
         return settings

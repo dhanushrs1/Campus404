@@ -1,143 +1,416 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Editor from '@monaco-editor/react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import CodeMirror from '@uiw/react-codemirror';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { python } from '@codemirror/lang-python';
+import { javascript } from '@codemirror/lang-javascript';
+import { html } from '@codemirror/lang-html';
+import { css as langCss } from '@codemirror/lang-css';
+import { java } from '@codemirror/lang-java';
+import { cpp } from '@codemirror/lang-cpp';
+import { sql } from '@codemirror/lang-sql';
+import { rust } from '@codemirror/lang-rust';
 import { api } from '../admin/curriculum/api';
+import { API_URL } from '../../config';
 import './Workspace.css';
+
+const token = () => localStorage.getItem('token');
+const authH = () => ({ Authorization: `Bearer ${token()}` });
+
+const getLangExtension = (languageId) => {
+  switch (Number(languageId)) {
+    case 71: return python();
+    case 63: return javascript({ jsx: true });
+    case 74: return javascript({ typescript: true });
+    case 0: return html();
+    case 82: return sql();
+    case 62: return java();
+    case 54:
+    case 50: return cpp();
+    case 73: return rust();
+    default: return langCss();
+  }
+};
+
+const getLangLabel = (languageId) => {
+  const map = {
+    71: 'Python 3',
+    63: 'JavaScript',
+    74: 'TypeScript',
+    62: 'Java',
+    54: 'C++',
+    50: 'C',
+    60: 'Go',
+    72: 'Ruby',
+    73: 'Rust',
+    82: 'SQL',
+    0: 'HTML/CSS/JS',
+  };
+  return map[Number(languageId)] || `Language ${languageId}`;
+};
+
+const decodeBase64 = (value) => Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+
+async function decryptEnvelope(envelope, jwtToken) {
+  if (!envelope || !jwtToken) {
+    throw new Error('Missing encrypted payload context.');
+  }
+
+  if (!window.crypto?.subtle) {
+    throw new Error('Web Crypto API is not available in this browser.');
+  }
+
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const digest = await window.crypto.subtle.digest('SHA-256', encoder.encode(jwtToken));
+  const key = await window.crypto.subtle.importKey('raw', digest, { name: 'AES-GCM' }, false, ['decrypt']);
+
+  const plaintextBuffer = await window.crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: decodeBase64(envelope.iv) },
+    key,
+    decodeBase64(envelope.ciphertext),
+  );
+
+  return JSON.parse(decoder.decode(plaintextBuffer));
+}
+
+const formatExecutionText = (executionPayload) => {
+  const lines = [];
+
+  lines.push(`Status: ${executionPayload.status?.description || 'Unknown'} (${executionPayload.status?.id ?? '-'})`);
+  lines.push(`Time: ${executionPayload.time || '-'}s | Memory: ${executionPayload.memory ?? '-'} KB`);
+
+  if (executionPayload.stdout) {
+    lines.push('\n[stdout]');
+    lines.push(executionPayload.stdout);
+  }
+
+  if (executionPayload.stderr) {
+    lines.push('\n[stderr]');
+    lines.push(executionPayload.stderr);
+  }
+
+  if (executionPayload.compile_output) {
+    lines.push('\n[compile_output]');
+    lines.push(executionPayload.compile_output);
+  }
+
+  if (!executionPayload.stdout && !executionPayload.stderr && !executionPayload.compile_output) {
+    lines.push('\n(no output)');
+  }
+
+  return lines.join('\n');
+};
 
 export default function Workspace() {
   const { slug, moduleId, levelNumber } = useParams();
   const navigate = useNavigate();
-  const [challenges, setChallenges] = useState([]);
-  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
-  const [currentChallenge, setCurrentChallenge] = useState(null);
-  const [code, setCode] = useState('');
-  const [output, setOutput] = useState('');
-  const [loading, setLoading] = useState(true);
 
-  // Default avatars and xp for UI demo
-  const userXp = 540;
-  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const [labProgress, setLabProgress] = useState(null);
+  const [moduleProgress, setModuleProgress] = useState(null);
+  const [currentLevel, setCurrentLevel] = useState(null);
+  const [challenge, setChallenge] = useState(null);
+
+  const [files, setFiles] = useState([]);
+  const [activeFileIndex, setActiveFileIndex] = useState(0);
+
+  const [terminalText, setTerminalText] = useState('> Ready. Run your code to see output.');
+  const [running, setRunning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
-    // Fetch challenges for this module
-    api.getChallenges(moduleId).then(data => {
-      // sort by order_index
-      const sorted = [...data].sort((a, b) => a.order_index - b.order_index);
-      setChallenges(sorted);
-      const idx = parseInt(levelNumber) - 1;
-      if (idx >= 0 && idx < sorted.length) {
-        setCurrentLevelIndex(idx);
-        setCurrentChallenge(sorted[idx]);
-        setCode(sorted[idx].starter_code || '# Write your code here');
-      } else {
-        // invalid level, navigate to dashboard
-        navigate(`/labs/${slug}/modules/${moduleId}`);
+    let cancelled = false;
+
+    const loadWorkspace = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const progressRes = await fetch(`${API_URL}/labs/${slug}/progress`, { headers: authH() });
+        if (!progressRes.ok) throw new Error('Unable to load lab progress.');
+
+        const progressData = await progressRes.json();
+        if (cancelled) return;
+
+        const targetModule = (progressData.modules || []).find(
+          (mod) => Number(mod.module_id) === Number(moduleId),
+        );
+        if (!targetModule) {
+          navigate(`/labs/${slug}`);
+          return;
+        }
+
+        const targetLevel = (targetModule.challenges || []).find(
+          (lvl) => Number(lvl.level_number) === Number(levelNumber),
+        );
+        if (!targetLevel || targetLevel.is_locked) {
+          navigate(`/labs/${slug}/modules/${moduleId}`);
+          return;
+        }
+
+        const levelDetail = await api.getChallenge(targetLevel.challenge_id);
+        if (cancelled) return;
+
+        const normalizedFiles = (levelDetail.files || []).length
+          ? levelDetail.files.map((file) => ({
+              ...file,
+              id: file.id,
+              filename: file.filename || 'solution.txt',
+              content: file.content || '',
+              is_main: Boolean(file.is_main),
+            }))
+          : [{ id: 'main', filename: 'solution.txt', content: '', is_main: true }];
+
+        const mainIdx = Math.max(0, normalizedFiles.findIndex((file) => file.is_main));
+
+        setLabProgress(progressData);
+        setModuleProgress(targetModule);
+        setCurrentLevel(targetLevel);
+        setChallenge(levelDetail);
+        setFiles(normalizedFiles);
+        setActiveFileIndex(mainIdx);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Unable to load workspace.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    }).catch(err => {
-      console.error(err);
-      navigate(`/labs/${slug}/modules/${moduleId}`);
-    });
+    };
+
+    loadWorkspace();
+
+    return () => {
+      cancelled = true;
+    };
   }, [slug, moduleId, levelNumber, navigate]);
 
-  const handleRun = () => {
-     // Mock run
-     setOutput('Running code...\nOutputs: Hello World!');
+  const activeFile = files[activeFileIndex] || files[0] || null;
+  const languageId = Number(labProgress?.language_id || 71);
+  const levelPathBase = `/labs/${slug}/modules/${moduleId}/level`;
+
+  const mainFileIndex = useMemo(() => {
+    const idx = files.findIndex((file) => file.is_main);
+    return idx >= 0 ? idx : 0;
+  }, [files]);
+
+  const writeToTerminal = (text, replace = false) => {
+    setTerminalText((prev) => (replace ? text : `${prev}\n\n${text}`));
   };
 
-  const handleSubmit = () => {
-     // Mock submit
-     setOutput('Running tests...\nAll tests passed! +50 XP.\nRouting to next level...');
-     setTimeout(() => {
-       const nextLevel = currentLevelIndex + 2; // +1 for 0-index, +1 to advance
-       if (nextLevel <= challenges.length) {
-         navigate(`/labs/${slug}/modules/${moduleId}/level/${nextLevel}`);
-       } else {
-         navigate(`/labs/${slug}/modules/${moduleId}`); // Module complete
-       }
-     }, 1500);
+  const updateActiveFileContent = (nextContent) => {
+    setFiles((prev) => prev.map((file, idx) => (
+      idx === activeFileIndex ? { ...file, content: nextContent } : file
+    )));
   };
 
-  if (loading) return <div className="ws-loading">Loading Workspace...</div>;
+  const runLevel = async () => {
+    if (!challenge || running || submitting) return;
+
+    const sourceCode = files[mainFileIndex]?.content || '';
+    if (!sourceCode.trim()) {
+      writeToTerminal('[Run blocked] Main file is empty.');
+      return;
+    }
+
+    setRunning(true);
+    writeToTerminal('> Running code...');
+
+    try {
+      const response = await api.runWorkspaceLevel(challenge.id, {
+        source_code: sourceCode,
+        language_id: languageId,
+      });
+
+      const decrypted = await decryptEnvelope(response.envelope, token());
+      writeToTerminal(formatExecutionText(decrypted), true);
+    } catch (err) {
+      writeToTerminal(`[Run failed] ${err.message || 'Unknown execution error.'}`);
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const submitLevel = async () => {
+    if (!challenge || submitting || running) return;
+
+    const sourceCode = files[mainFileIndex]?.content || '';
+    if (!sourceCode.trim()) {
+      writeToTerminal('[Submit blocked] Main file is empty.');
+      return;
+    }
+
+    setSubmitting(true);
+    writeToTerminal('> Submitting level for XP...');
+
+    const nonEmptyLines = sourceCode.split('\n').filter((line) => line.trim().length > 0).length;
+    const optimizationScore = Math.max(0, Math.min(1, 1 - Math.max(nonEmptyLines - 50, 0) / 120));
+
+    try {
+      const response = await api.submitWorkspaceLevel(challenge.id, {
+        source_code: sourceCode,
+        language_id: languageId,
+        exam_metrics: challenge.challenge_type === 'exam'
+          ? {
+              correct_answers: 1,
+              total_questions: 1,
+              optimization_score: optimizationScore,
+            }
+          : undefined,
+      });
+
+      const decrypted = await decryptEnvelope(response.envelope, token());
+      const executionText = formatExecutionText(decrypted);
+
+      const gate = response.module_gate;
+      const gateText = `Progress Gate: ${gate.progress_percent}% / ${gate.unlock_threshold_percent}% (${gate.unlock_eligible ? 'UNLOCKED' : 'LOCKED'})`;
+      const xpText = `XP Awarded: +${response.xp_gained} | Total XP: ${response.total_xp}`;
+
+      writeToTerminal(`${executionText}\n\n${xpText}\n${gateText}`, true);
+
+      if (response.passed) {
+        const nextLevel = (moduleProgress?.challenges || []).find(
+          (lvl) => Number(lvl.level_number) === Number(levelNumber) + 1,
+        );
+
+        if (nextLevel) {
+          setTimeout(() => navigate(`${levelPathBase}/${nextLevel.level_number}`), 900);
+        } else {
+          setTimeout(() => navigate(`/labs/${slug}/modules/${moduleId}`), 900);
+        }
+      }
+    } catch (err) {
+      writeToTerminal(`[Submit failed] ${err.message || 'Unknown submission error.'}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="ws-loading">Loading workspace...</div>;
+  }
+
+  if (error || !moduleProgress || !currentLevel || !challenge) {
+    return (
+      <div className="ws-error">
+        <h2>{error || 'Workspace unavailable.'}</h2>
+        <button type="button" onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>
+          Back to Module
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="workspace-container">
-      {/* Zone A: Header */}
+    <div className="ws-shell">
       <header className="ws-header">
-        <div className="ws-header-left">
-          <button className="ws-back-btn" onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>
-            &lt; Back to Module
-          </button>
-        </div>
-        
-        <div className="ws-header-center">
-          {challenges.map((c, i) => {
-            let dotClass = 'ws-dot-future';
-            if (i < currentLevelIndex) dotClass = 'ws-dot-completed';
-            else if (i === currentLevelIndex) dotClass = 'ws-dot-current';
-            return <div key={c.id || i} className={`ws-dot ${dotClass}`} />;
+        <button type="button" className="ws-back-btn" onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>
+          Back to Module
+        </button>
+
+        <div className="ws-level-track">
+          {(moduleProgress.challenges || []).map((lvl) => {
+            let stateClass = 'future';
+            if (lvl.is_completed) stateClass = 'done';
+            if (Number(lvl.level_number) === Number(levelNumber)) stateClass = 'current';
+            return <span key={lvl.challenge_id} className={`ws-level-dot ${stateClass}`} title={lvl.display_title} />;
           })}
         </div>
 
-        <div className="ws-header-right">
-          <span className="ws-xp">{userXp} XP</span>
-          <div className="ws-avatar">🐶</div>
+        <div className="ws-header-meta">
+          <span>{moduleProgress.title}</span>
+          <strong>{labProgress?.earned_xp || 0} XP</strong>
         </div>
       </header>
 
-      {/* Split pane for B and C */}
-      <div className="ws-split">
-        
-        {/* Zone B: Left Panel */}
-        <div className="ws-panel-left">
-          <div className="ws-content-header">
-            <h2>{currentChallenge?.title || `Level ${parseInt(levelNumber)}: Challenge`}</h2>
-            <span className="ws-reward">+{currentChallenge?.xp_reward || 10} XP</span>
+      <div className="ws-grid">
+        <section className="ws-pane ws-left-pane">
+          <div className="ws-left-head">
+            <h2>{currentLevel.display_title || `Level ${currentLevel.level_number}`}</h2>
+            <span className="ws-xp-chip">+{challenge.xp_reward} XP</span>
           </div>
-          <div className="ws-content-body">
-            {currentChallenge?.content_html ? (
-               <div dangerouslySetInnerHTML={{ __html: currentChallenge.content_html }} />
-            ) : (
-               <p>{currentChallenge?.description || 'No content provided for this challenge.'}</p>
-            )}
-            
-            <div className="ws-rules">
-              <h3>Rules</h3>
-              <p>Write standard output that exactly matches the hidden test cases.</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Zone C: Right Panel */}
-        <div className="ws-panel-right">
-          <div className="ws-split-vertical">
-            
-            <div className="ws-editor-container">
-              <div className="ws-editor-header">
-                <span className="ws-lang-badge">Python 3</span>
+          <div className="ws-level-meta">
+            <span className={`ws-type-chip ${challenge.challenge_type}`}>{challenge.challenge_type === 'exam' ? 'Module Exam' : 'Standard Level'}</span>
+            <span>Language: {getLangLabel(languageId)}</span>
+          </div>
+
+          <div className="ws-level-content" dangerouslySetInnerHTML={{ __html: challenge.content_html || '' }} />
+        </section>
+
+        <section className="ws-pane ws-right-pane">
+          <div className="ws-editor-pane">
+            <div className="ws-editor-toolbar">
+              <div className="ws-file-tabs" role="tablist" aria-label="Level files">
+                {files.map((file, idx) => (
+                  <button
+                    key={file.id || `${file.filename}-${idx}`}
+                    type="button"
+                    className={`ws-file-tab ${idx === activeFileIndex ? 'active' : ''}`}
+                    onClick={() => setActiveFileIndex(idx)}
+                  >
+                    {file.is_main ? '★ ' : ''}{file.filename}
+                  </button>
+                ))}
               </div>
-              <Editor
+              <span className="ws-lang-chip">{getLangLabel(languageId)}</span>
+            </div>
+
+            <div className="ws-codemirror-wrap">
+              <CodeMirror
+                value={activeFile?.content || ''}
+                theme={oneDark}
                 height="100%"
-                theme="vs-dark"
-                defaultLanguage="python"
-                value={code}
-                onChange={(val) => setCode(val)}
-                options={{ minimap: { enabled: false }, fontSize: 14 }}
+                extensions={[getLangExtension(languageId)]}
+                onChange={updateActiveFileContent}
+                basicSetup={{
+                  lineNumbers: true,
+                  foldGutter: true,
+                  highlightActiveLineGutter: true,
+                  highlightSpecialChars: true,
+                  history: true,
+                  drawSelection: true,
+                  dropCursor: true,
+                  allowMultipleSelections: true,
+                  indentOnInput: true,
+                  bracketMatching: true,
+                  closeBrackets: true,
+                  autocompletion: true,
+                  rectangularSelection: true,
+                  highlightActiveLine: true,
+                  highlightSelectionMatches: true,
+                  closeBracketsKeymap: true,
+                  defaultKeymap: true,
+                  searchKeymap: true,
+                  historyKeymap: true,
+                  foldKeymap: true,
+                  completionKeymap: true,
+                  tabSize: 2,
+                }}
               />
             </div>
-
-            <div className="ws-terminal-container">
-               <div className="ws-terminal-actions">
-                  <button className="ws-btn-run" onClick={handleRun}>Run Code</button>
-                  <button className="ws-btn-submit" onClick={handleSubmit}>Submit for XP</button>
-               </div>
-               <div className="ws-terminal-console">
-                 <pre>{output || '> Ready to run'}</pre>
-               </div>
-            </div>
-
           </div>
-        </div>
 
+          <div className="ws-terminal-pane">
+            <div className="ws-terminal-toolbar">
+              <strong>Terminal</strong>
+              <div className="ws-terminal-actions">
+                <button type="button" className="ws-btn-run" onClick={runLevel} disabled={running || submitting}>
+                  {running ? 'Running...' : 'Run'}
+                </button>
+                <button type="button" className="ws-btn-submit" onClick={submitLevel} disabled={submitting || running}>
+                  {submitting ? 'Submitting...' : 'Submit for XP'}
+                </button>
+              </div>
+            </div>
+            <pre className="ws-terminal-output">{terminalText}</pre>
+          </div>
+        </section>
       </div>
     </div>
   );

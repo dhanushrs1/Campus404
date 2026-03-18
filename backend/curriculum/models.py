@@ -6,10 +6,15 @@ from datetime import datetime, timezone
 import random, string
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
-    Integer, String, Text, func, UniqueConstraint
+    Integer, String, Text, func, UniqueConstraint, CheckConstraint
 )
 from sqlalchemy.orm import relationship, Session
 from database import Base
+
+
+CHALLENGE_TYPE_LEVEL = "level"
+CHALLENGE_TYPE_EXAM = "exam"
+VALID_CHALLENGE_TYPES = (CHALLENGE_TYPE_LEVEL, CHALLENGE_TYPE_EXAM)
 
 
 def _gen_uid(length=4):
@@ -62,6 +67,7 @@ class Module(Base):
         order_by="Challenge.level_number",
     )
     badge = relationship("Badge", back_populates="module", uselist=False)
+    guide = relationship("GuidePage", back_populates="module", uselist=False)
 
 
 class Challenge(Base):
@@ -70,8 +76,10 @@ class Challenge(Base):
     id           = Column(Integer, primary_key=True, index=True)
     module_id    = Column(Integer, ForeignKey("modules.id", ondelete="CASCADE"), nullable=False, index=True)
     level_number = Column(Integer, nullable=False)
+    challenge_type = Column(String(20), default=CHALLENGE_TYPE_LEVEL, nullable=False, index=True)
     custom_title = Column(String(255), nullable=True)
     xp_reward    = Column(Integer, default=50, nullable=False)
+    expected_output = Column(Text, nullable=True)
     content_html = Column(Text, nullable=False)
     is_published = Column(Boolean, default=False, nullable=False)
     created_at   = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -86,6 +94,14 @@ class Challenge(Base):
         order_by="ChallengeFile.order_index",
     )
     completions = relationship("ChallengeCompletion", back_populates="challenge", cascade="all, delete-orphan")
+    attempts = relationship("ChallengeAttempt", back_populates="challenge", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        CheckConstraint(
+            "challenge_type IN ('level','exam')",
+            name="ck_challenge_type",
+        ),
+    )
 
 
 class ChallengeFile(Base):
@@ -151,6 +167,25 @@ class ChallengeCompletion(Base):
     __table_args__ = (UniqueConstraint("user_id", "challenge_id", name="uq_user_challenge"),)
 
 
+class ChallengeAttempt(Base):
+    """Immutable execution attempts used for scoring and progression analytics."""
+    __tablename__ = "challenge_attempts"
+
+    id                 = Column(Integer, primary_key=True, index=True)
+    user_id            = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    challenge_id       = Column(Integer, ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False, index=True)
+    attempt_number     = Column(Integer, nullable=False, default=1)
+    status_id          = Column(Integer, nullable=False, default=0)
+    is_passed          = Column(Boolean, nullable=False, default=False)
+    xp_awarded         = Column(Integer, nullable=False, default=0)
+    correct_answers    = Column(Integer, nullable=True)
+    total_questions    = Column(Integer, nullable=True)
+    optimization_score = Column(Integer, nullable=True)  # Stored as 0-100
+    created_at         = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    challenge = relationship("Challenge", back_populates="attempts")
+
+
 # ── Helpers ─────────────────────────────────────────────────────────────────────
 def compute_lab_total_xp(db: Session, lab_id: int) -> int:
     result = (
@@ -169,3 +204,24 @@ def compute_module_total_xp(db: Session, module_id: int) -> int:
         .scalar()
     )
     return int(result or 0)
+
+
+def compute_user_module_earned_xp(db: Session, user_id: int, module_id: int) -> int:
+    result = (
+        db.query(func.coalesce(func.sum(ChallengeCompletion.xp_awarded), 0))
+        .join(Challenge, ChallengeCompletion.challenge_id == Challenge.id)
+        .filter(
+            Challenge.module_id == module_id,
+            ChallengeCompletion.user_id == user_id,
+        )
+        .scalar()
+    )
+    return int(result or 0)
+
+
+def compute_user_module_progress_pct(db: Session, user_id: int, module_id: int) -> float:
+    total = compute_module_total_xp(db, module_id)
+    if total <= 0:
+        return 0.0
+    earned = compute_user_module_earned_xp(db, user_id, module_id)
+    return round((earned / total) * 100.0, 2)

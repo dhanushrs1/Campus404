@@ -141,7 +141,6 @@ export default function GuideEditor() {
       content_html: form.content_html,
       featured_image_path: form.featured_image_path || null,
       is_published: form.is_published,
-      module_ids: [],
     };
 
     setSaving(true);

@@ -194,3 +194,95 @@
   border-color: #0A192F;
   color: #0A192F;
 }
+
+.mf-btn-assign-guide {
+  background: #0f6f61;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.mf-btn-assign-guide:hover {
+  background: #0d6255;
+}
+
+.mf-guide-summary {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #f7faf9;
+  border: 1px solid #d5ece7;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: #12403a;
+}
+
+.mf-guide-pill {
+  background: #dbf5ef;
+  color: #0f6f61;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mf-guide-summary small {
+  color: #49736c;
+}
+
+.mf-guide-empty {
+  color: #5f7a75;
+  font-style: italic;
+}
+
+.mf-guide-picker {
+  margin-top: 0.75rem;
+  border: 1px solid #d5ece7;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mf-guide-picker label {
+  font-size: 0.76rem;
+  color: #0f6f61;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.mf-guide-picker-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.mf-guide-picker-done,
+.mf-guide-picker-clear {
+  border: none;
+  border-radius: 7px;
+  padding: 0.36rem 0.62rem;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.mf-guide-picker-done {
+  background: #0f6f61;
+  color: #fff;
+}
+
+.mf-guide-picker-clear {
+  background: #f2f2f2;
+  color: #555;
+}
