@@ -8,6 +8,7 @@ sys.path.insert(0, '/app')
 
 from database import Base, engine
 from sqlalchemy import text, inspect
+import models as core_models
 import guide.models as guide_models
 import curriculum.models as curriculum_models
 
@@ -131,9 +132,10 @@ with engine.connect() as conn:
 Base.metadata.create_all(
     bind=engine,
     tables=[
+        core_models.AdminAuditLog.__table__,
         guide_models.GuidePage.__table__,
         guide_models.guide_post_modules,
         curriculum_models.ChallengeAttempt.__table__,
     ],
 )
-print('[OK] Ensured Guide and progression tables exist (learn_posts, learn_post_modules, challenge_attempts).')
+print('[OK] Ensured audit, guide, and progression tables exist (admin_audit_logs, learn_posts, learn_post_modules, challenge_attempts).')
