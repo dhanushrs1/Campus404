@@ -101,6 +101,7 @@
 }
 
 /* Recent Activity Section adjustments */
+.recent-activity-section h2 {
   font-family: var(--font-heading);
   font-size: 1.25rem;
   font-weight: 700;

@@ -55,6 +55,12 @@ class SiteSetting(Base):
     site_logo_height = Column(Integer, nullable=False, default=48)
     site_icon_url    = Column(String(512), nullable=True)
 
+    # Guide display defaults
+    guide_default_author     = Column(String(120), nullable=False, default="Campus404 Guide Team")
+    guide_show_toc           = Column(Boolean, nullable=False, default=True)
+    guide_toc_depth          = Column(Integer, nullable=False, default=3)
+    guide_show_social_share  = Column(Boolean, nullable=False, default=True)
+
     updated_at       = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                               onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 

@@ -11,6 +11,10 @@ export const DEFAULT_SITE_SETTINGS = Object.freeze({
   site_logo_width: 220,
   site_logo_height: 48,
   site_icon_url: null,
+  guide_default_author: 'Campus404 Guide Team',
+  guide_show_toc: true,
+  guide_toc_depth: 3,
+  guide_show_social_share: true,
   logo_is_svg: false,
   icon_is_svg: false,
   updated_at: null,
@@ -39,6 +43,7 @@ export const normalizeSiteSettings = (value = {}) => {
 
   const width = Number(merged.site_logo_width);
   const height = Number(merged.site_logo_height);
+  const tocDepth = Number(merged.guide_toc_depth);
 
   return {
     ...merged,
@@ -48,6 +53,10 @@ export const normalizeSiteSettings = (value = {}) => {
     site_logo_width: Number.isFinite(width) ? Math.min(600, Math.max(64, width)) : DEFAULT_SITE_SETTINGS.site_logo_width,
     site_logo_height: Number.isFinite(height) ? Math.min(240, Math.max(24, height)) : DEFAULT_SITE_SETTINGS.site_logo_height,
     site_icon_url: safeTrim(merged.site_icon_url),
+    guide_default_author: safeTrim(merged.guide_default_author) || DEFAULT_SITE_SETTINGS.guide_default_author,
+    guide_show_toc: Boolean(merged.guide_show_toc),
+    guide_toc_depth: Number.isFinite(tocDepth) ? Math.min(4, Math.max(2, Math.round(tocDepth))) : DEFAULT_SITE_SETTINGS.guide_toc_depth,
+    guide_show_social_share: Boolean(merged.guide_show_social_share),
     logo_is_svg: Boolean(merged.logo_is_svg),
     icon_is_svg: Boolean(merged.icon_is_svg),
     updated_at: safeTrim(merged.updated_at),

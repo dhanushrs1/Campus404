@@ -6,8 +6,9 @@ import sys
 import os
 sys.path.insert(0, '/app')
 
-from database import engine
+from database import Base, engine
 from sqlalchemy import text, inspect
+import guide.models as guide_models
 
 insp = inspect(engine)
 
@@ -41,6 +42,37 @@ with engine.connect() as conn:
     else:
         print('[SKIP] banner_image_path already exists in modules')
 
+    # ── site_settings: add Guide display columns ───────────────────
+    table_names = insp.get_table_names()
+    if 'site_settings' in table_names:
+        setting_cols = [c['name'] for c in insp.get_columns('site_settings')]
+
+        if 'guide_default_author' not in setting_cols:
+            conn.execute(text("ALTER TABLE site_settings ADD COLUMN guide_default_author VARCHAR(120) NOT NULL DEFAULT 'Campus404 Guide Team'"))
+            print('[OK] Added guide_default_author to site_settings')
+        else:
+            print('[SKIP] guide_default_author already exists in site_settings')
+
+        if 'guide_show_toc' not in setting_cols:
+            conn.execute(text('ALTER TABLE site_settings ADD COLUMN guide_show_toc BOOLEAN NOT NULL DEFAULT 1'))
+            print('[OK] Added guide_show_toc to site_settings')
+        else:
+            print('[SKIP] guide_show_toc already exists in site_settings')
+
+        if 'guide_toc_depth' not in setting_cols:
+            conn.execute(text('ALTER TABLE site_settings ADD COLUMN guide_toc_depth INTEGER NOT NULL DEFAULT 3'))
+            print('[OK] Added guide_toc_depth to site_settings')
+        else:
+            print('[SKIP] guide_toc_depth already exists in site_settings')
+
+        if 'guide_show_social_share' not in setting_cols:
+            conn.execute(text('ALTER TABLE site_settings ADD COLUMN guide_show_social_share BOOLEAN NOT NULL DEFAULT 1'))
+            print('[OK] Added guide_show_social_share to site_settings')
+        else:
+            print('[SKIP] guide_show_social_share already exists in site_settings')
+    else:
+        print('[SKIP] site_settings table does not exist yet; Guide settings columns not applied')
+
     conn.commit()
     print('\nMigration complete.')
 
@@ -58,3 +90,10 @@ with engine.connect() as conn:
         print(f'[OK] Backfilled module id={mid}: uid={uid}, slug={slug}')
     conn.commit()
     print(f'Backfilled {len(rows)} modules.')
+
+# Ensure Guide page tables exist
+Base.metadata.create_all(
+    bind=engine,
+    tables=[guide_models.GuidePage.__table__, guide_models.guide_post_modules],
+)
+print('[OK] Ensured Guide tables exist (legacy table names: learn_posts, learn_post_modules).')

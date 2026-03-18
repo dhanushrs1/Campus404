@@ -94,6 +94,10 @@ def _get_or_create_settings(db: Session) -> models.SiteSetting:
         meta_description="Campus404 hands-on coding labs and guided learning tracks.",
         site_logo_width=220,
         site_logo_height=48,
+        guide_default_author="Campus404 Guide Team",
+        guide_show_toc=True,
+        guide_toc_depth=3,
+        guide_show_social_share=True,
     )
     db.add(settings)
     db.commit()
@@ -112,6 +116,10 @@ def _to_response(settings: models.SiteSetting) -> dict:
         "site_logo_width": settings.site_logo_width,
         "site_logo_height": settings.site_logo_height,
         "site_icon_url": settings.site_icon_url,
+        "guide_default_author": settings.guide_default_author,
+        "guide_show_toc": bool(settings.guide_show_toc),
+        "guide_toc_depth": int(settings.guide_toc_depth or 3),
+        "guide_show_social_share": bool(settings.guide_show_social_share),
         "logo_is_svg": logo_ext == "svg",
         "icon_is_svg": icon_ext == "svg",
         "updated_at": _iso_utc(settings.updated_at),
@@ -125,6 +133,10 @@ class SiteSettingsIn(BaseModel):
     site_logo_width: int = Field(default=220, ge=64, le=600)
     site_logo_height: int = Field(default=48, ge=24, le=240)
     site_icon_url: Optional[str] = Field(default=None, max_length=512)
+    guide_default_author: Optional[str] = Field(default="Campus404 Guide Team", max_length=120)
+    guide_show_toc: bool = Field(default=True)
+    guide_toc_depth: int = Field(default=3, ge=2, le=4)
+    guide_show_social_share: bool = Field(default=True)
 
     @field_validator("site_name")
     @classmethod
@@ -134,7 +146,7 @@ class SiteSettingsIn(BaseModel):
             raise ValueError("site_name must have at least 2 characters")
         return clean
 
-    @field_validator("meta_description", "site_logo_url", "site_icon_url")
+    @field_validator("meta_description", "site_logo_url", "site_icon_url", "guide_default_author")
     @classmethod
     def normalize_optional_fields(cls, value: Optional[str]) -> Optional[str]:
         return _normalize_optional(value)
@@ -168,6 +180,10 @@ def update_site_settings(
     settings.site_logo_width = payload.site_logo_width
     settings.site_logo_height = payload.site_logo_height
     settings.site_icon_url = _validate_asset_url(payload.site_icon_url, ALLOWED_ICON_EXTS, "site_icon_url")
+    settings.guide_default_author = payload.guide_default_author or "Campus404 Guide Team"
+    settings.guide_show_toc = payload.guide_show_toc
+    settings.guide_toc_depth = payload.guide_toc_depth
+    settings.guide_show_social_share = payload.guide_show_social_share
     settings.updated_at = datetime.now(timezone.utc)
 
     db.commit()

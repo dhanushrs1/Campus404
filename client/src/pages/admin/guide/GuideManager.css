@@ -1,0 +1,343 @@
+.guide-manager-wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--c-obsidian);
+}
+
+.guide-manager-toast {
+  position: fixed;
+  top: 1.35rem;
+  right: 1.75rem;
+  z-index: 9999;
+  border-radius: var(--radius-md);
+  padding: 0.72rem 1.15rem;
+  font-family: var(--font-body);
+  font-size: 0.83rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-float);
+  border: 1px solid transparent;
+}
+
+.guide-manager-toast.success {
+  background: #0f1d37;
+  color: #c7deff;
+  border-color: rgba(0, 58, 204, 0.24);
+}
+
+.guide-manager-toast.error {
+  background: #ef4444;
+  color: #fff;
+  border-color: rgba(191, 25, 55, 0.55);
+}
+
+.guide-manager-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.guide-manager-header h2 {
+  margin: 0 0 0.24rem;
+  font-family: var(--font-heading);
+  color: var(--c-obsidian);
+  font-size: clamp(1.25rem, 1.45vw, 1.55rem);
+  letter-spacing: -0.02em;
+}
+
+.guide-manager-header p {
+  margin: 0;
+  color: #66748d;
+  font-size: 0.88rem;
+}
+
+.guide-primary-btn {
+  border: 1px solid var(--c-cobalt);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--c-cobalt) 0%, var(--c-cobalt-hover) 100%);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+  box-shadow: 0 10px 20px rgba(0, 58, 204, 0.2);
+}
+
+.guide-primary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(0, 58, 204, 0.25);
+}
+
+.guide-primary-btn:active {
+  transform: translateY(0);
+}
+
+.guide-manager-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 0.8rem;
+  margin: 0.12rem 0 0.95rem;
+}
+
+.guide-manager-stats div {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #dfe7fa;
+  border-radius: 12px;
+  padding: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.34rem;
+  box-shadow: 0 8px 20px rgba(10, 25, 47, 0.04);
+}
+
+.guide-manager-stats span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #76839c;
+  font-weight: 800;
+}
+
+.guide-manager-stats strong {
+  color: #10203f;
+  font-size: 1.28rem;
+  line-height: 1;
+  font-family: var(--font-heading);
+}
+
+.guide-manager-controls {
+  display: flex;
+  gap: 0.65rem;
+  margin-bottom: 0.95rem;
+  flex-wrap: wrap;
+}
+
+.guide-manager-controls input {
+  flex: 1;
+  min-width: 240px;
+  border: 1.5px solid #d6e0f7;
+  border-radius: 10px;
+  padding: 0.58rem 0.78rem;
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  color: #122647;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.guide-manager-controls input::placeholder {
+  color: #8a98af;
+}
+
+.guide-manager-controls input:focus {
+  border-color: var(--c-cobalt);
+  box-shadow: 0 0 0 3px rgba(0, 58, 204, 0.12);
+}
+
+.guide-filter-tabs {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.guide-filter-tabs button {
+  border: 1px solid #d3def8;
+  border-radius: 999px;
+  background: #fff;
+  color: #45526c;
+  font-family: var(--font-body);
+  font-size: 0.77rem;
+  font-weight: 800;
+  padding: 0.35rem 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.guide-filter-tabs button:hover {
+  border-color: #b9cdf7;
+  color: #20345d;
+}
+
+.guide-filter-tabs button.active {
+  border-color: var(--c-cobalt);
+  background: var(--c-cobalt);
+  color: #fff;
+}
+
+.guide-manager-loading,
+.guide-manager-empty {
+  background: #fff;
+  border: 1px solid #e1e9fa;
+  border-radius: 14px;
+  padding: 2.1rem;
+  text-align: center;
+  color: #66758f;
+}
+
+.guide-manager-empty h3 {
+  margin: 0 0 0.42rem;
+  font-family: var(--font-heading);
+  color: var(--c-obsidian);
+  font-size: 1.06rem;
+}
+
+.guide-manager-empty p {
+  margin: 0 0 0.95rem;
+  font-size: 0.86rem;
+}
+
+.guide-manager-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.95rem;
+}
+
+.guide-card {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+  border: 1px solid #e3eaf9;
+  border-radius: 14px;
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.64rem;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.guide-card:hover {
+  transform: translateY(-2px);
+  border-color: #c5d7fb;
+  box-shadow: 0 16px 30px rgba(10, 25, 47, 0.08);
+}
+
+.guide-card-head {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.guide-status {
+  border-radius: 999px;
+  padding: 0.2rem 0.58rem;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.guide-status.published {
+  background: #e9f9f0;
+  color: #047857;
+  border: 1px solid rgba(4, 120, 87, 0.2);
+}
+
+.guide-status.draft {
+  background: #f1f5fa;
+  color: #637289;
+  border: 1px solid #dde5f5;
+}
+
+.guide-card-image {
+  width: 100%;
+  height: 154px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e3eaf9;
+}
+
+.guide-card h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  color: #10203f;
+  font-size: 0.99rem;
+  line-height: 1.35;
+}
+
+.guide-card-slug {
+  margin: 0;
+  color: #6b7893;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.guide-card-excerpt {
+  margin: 0;
+  color: #5e6f8c;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.guide-card-meta {
+  color: #8090ab;
+  font-size: 0.74rem;
+}
+
+.guide-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.guide-card-actions button {
+  border: 1px solid #d5e0f7;
+  border-radius: 9px;
+  background: #fff;
+  color: #324365;
+  padding: 0.37rem 0.65rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.guide-card-actions button:hover {
+  border-color: var(--c-cobalt);
+  color: var(--c-cobalt);
+}
+
+.guide-card-actions button.danger {
+  border-color: #f8ced8;
+  color: #e11d48;
+}
+
+.guide-card-actions button.danger:hover {
+  background: #fff1f2;
+  border-color: #f5b4c3;
+}
+
+@media (max-width: 860px) {
+  .guide-manager-stats {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .guide-manager-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-manager-controls {
+    flex-direction: column;
+  }
+
+  .guide-filter-tabs {
+    width: 100%;
+  }
+
+  .guide-filter-tabs button {
+    flex: 1;
+  }
+}

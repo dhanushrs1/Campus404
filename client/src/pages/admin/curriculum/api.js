@@ -54,4 +54,16 @@ export const api = {
     fd.append('file', file);
     return req('POST', '/upload', fd);
   },
+
+  // Guide (custom page type)
+  getGuidePages: (params = {}) => {
+    const query = new URLSearchParams(params);
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return req('GET', `/admin/guide${suffix}`);
+  },
+  getGuidePage: (id) => req('GET', `/admin/guide/${id}`),
+  createGuidePage: (body) => req('POST', '/admin/guide', body),
+  updateGuidePage: (id, body) => req('PATCH', `/admin/guide/${id}`, body),
+  deleteGuidePage: (id) => req('DELETE', `/admin/guide/${id}`),
+  getGuidePageBySlug: (slug) => req('GET', `/guide/${slug}`),
 };

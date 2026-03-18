@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import defaultAvatar from '../../assets/images/avatars/default_avatar.jpg';
 import { resolveAssetUrl, useSiteSettings } from '../../utils/siteSettings';
@@ -19,7 +19,7 @@ const Icons = {
   ChevronDown: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
 };
 
-const LEARN_MENU = [
+const GUIDE_MENU = [
   { icon: 'Labs', title: 'Labs', desc: 'Hands-on coding challenges', href: '/labs' },
   { icon: 'Tracks', title: 'Tracks', desc: 'Structured learning paths', href: '/tracks' },
   { icon: 'Roadmaps', title: 'Roadmaps', desc: 'Tech career maps', href: '/roadmaps' },
@@ -108,13 +108,13 @@ const Header = () => {
         <nav className="header-nav" onMouseLeave={() => setActiveMenu(null)}>
           {/* SINGLE Mega Menu Item */}
           <div className="nav-item">
-            <button className={`nav-trigger ${activeMenu === 'learn' ? 'active' : ''}`} onMouseEnter={() => setActiveMenu('learn')}>
+            <button className={`nav-trigger ${activeMenu === 'guide' ? 'active' : ''}`} onMouseEnter={() => setActiveMenu('guide')}>
               Explore <span className="nav-chevron"><Icons.ChevronDown /></span>
             </button>
-            {activeMenu === 'learn' && (
+            {activeMenu === 'guide' && (
               <div className="mega-menu">
                 <div className="mega-grid">
-                  {LEARN_MENU.map((item) => {
+                  {GUIDE_MENU.map((item) => {
                     const Icon = Icons[item.icon];
                     return (
                       <Link to={item.href} key={item.title} className="mega-item">

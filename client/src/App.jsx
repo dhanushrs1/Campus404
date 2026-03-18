@@ -14,6 +14,8 @@ import BadgesManager  from './pages/admin/badges/BadgesManager';
 import SystemLogs     from './pages/admin/system-logs/SystemLogs';
 import Analytics      from './pages/admin/analytics/Analytics';
 import Settings       from './pages/admin/settings/Settings';
+import GuideManager   from './pages/admin/guide/GuideManager';
+import GuideEditor    from './pages/admin/guide/GuideEditor';
 
 import LabForm        from './pages/admin/curriculum/LabForm';
 import ModuleForm     from './pages/admin/curriculum/ModuleForm';
@@ -23,6 +25,7 @@ import AuthGuard from './components/AuthGuard';
 import Workspace      from './pages/workspace/Workspace';
 import LabCurriculum  from './pages/workspace/LabCurriculum';
 import ModuleCurriculum from './pages/workspace/ModuleCurriculum';
+import GuidePage from './pages/guide/GuidePage';
 
 function App() {
   return (
@@ -57,6 +60,12 @@ function App() {
       <Route path="/labs" element={
         <AuthGuard requireAuth={true}>
           <Navigate to="/dashboard" replace />
+        </AuthGuard>
+      } />
+
+      <Route path="/guide/:slug" element={
+        <AuthGuard requireAuth={true}>
+          <GuidePage />
         </AuthGuard>
       } />
 
@@ -104,6 +113,9 @@ function App() {
         <Route path="system-logs" element={<SystemLogs />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="guide" element={<GuideManager />} />
+        <Route path="guide/create" element={<GuideEditor />} />
+        <Route path="guide/:postId/edit" element={<GuideEditor />} />
       </Route>
     </Routes>
   );

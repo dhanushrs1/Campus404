@@ -219,3 +219,110 @@
 .mc-node-start-btn:hover {
   background: #2563eb;
 }
+
+.mc-guide-loading {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.mc-guide-section {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #dce7fb;
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.mc-guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+  gap: 0.8rem;
+}
+
+.mc-guide-head h3 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.mc-guide-head span {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #3b82f6;
+  background: #eff6ff;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+
+.mc-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.7rem;
+}
+
+.mc-guide-card {
+  background: #fff;
+  border: 1px solid #e5ebf8;
+  border-radius: 12px;
+  padding: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mc-guide-card img {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #ecf1fd;
+  max-height: 130px;
+  object-fit: cover;
+}
+
+.mc-guide-card h4 {
+  margin: 0;
+  font-size: 0.93rem;
+  font-family: 'Sora', sans-serif;
+  color: #10203f;
+  line-height: 1.35;
+}
+
+.mc-guide-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #5f6d88;
+}
+
+.mc-guide-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #72809b;
+  font-size: 0.72rem;
+}
+
+.mc-guide-card button {
+  border: 1.5px solid #c7d7fb;
+  border-radius: 9px;
+  background: #eff5ff;
+  color: #204a9c;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.42rem 0.6rem;
+  cursor: pointer;
+}
+
+.mc-guide-card button:hover {
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}

@@ -1,0 +1,318 @@
+.guide-editor-wrap {
+  max-width: 1220px;
+  position: relative;
+  color: var(--c-obsidian);
+}
+
+.guide-editor-toast {
+  position: fixed;
+  top: 1.35rem;
+  right: 1.75rem;
+  z-index: 9999;
+  border-radius: var(--radius-md);
+  padding: 0.72rem 1.2rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-float);
+  border: 1px solid transparent;
+}
+
+.guide-editor-toast.success {
+  background: #0f1d37;
+  color: #c7deff;
+  border-color: rgba(0, 58, 204, 0.24);
+}
+
+.guide-editor-toast.error {
+  background: var(--danger);
+  color: #fff;
+  border-color: rgba(191, 25, 55, 0.55);
+}
+
+.guide-editor-loading {
+  background: #fff;
+  border: 1px solid #e1e9fa;
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  text-align: center;
+  color: #63728c;
+}
+
+.guide-editor-top {
+  margin-bottom: 1rem;
+}
+
+.guide-editor-back {
+  border: 1.5px solid #d6e0f7;
+  border-radius: 999px;
+  background: #fff;
+  color: #2d467f;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0.33rem 0.7rem;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.guide-editor-back:hover {
+  border-color: #b9cdf7;
+  color: var(--c-cobalt);
+  transform: translateY(-1px);
+}
+
+.guide-editor-top h2 {
+  margin: 0.65rem 0 0;
+  font-family: var(--font-heading);
+  color: var(--c-obsidian);
+  font-size: 1.3rem;
+}
+
+.guide-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.guide-editor-main,
+.guide-editor-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.guide-editor-card {
+  background: #fff;
+  border: 1px solid #e3eaf9;
+  border-radius: var(--radius-lg);
+  padding: 0.95rem;
+}
+
+.guide-editor-card label,
+.guide-editor-card h4 {
+  display: flex;
+  margin: 0 0 0.45rem;
+  font-family: var(--font-heading);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #73819d;
+}
+
+.guide-editor-card input,
+.guide-editor-card textarea {
+  width: 100%;
+  border: 1.5px solid #d6e0f7;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: #10203f;
+  padding: 0.55rem 0.72rem;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.guide-editor-card textarea {
+  resize: vertical;
+}
+
+.guide-editor-card input:focus,
+.guide-editor-card textarea:focus {
+  border-color: var(--c-cobalt);
+  box-shadow: 0 0 0 3px rgba(0, 58, 204, 0.12);
+}
+
+.guide-editor-card small {
+  display: block;
+  margin-top: 0.35rem;
+  color: #8d98ad;
+  font-size: 0.72rem;
+}
+
+.guide-editor-slug-row {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #d6e0f7;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.guide-editor-slug-row span {
+  background: #edf3ff;
+  color: #234085;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 0.57rem 0.6rem;
+  border-right: 1px solid #d6e0f7;
+}
+
+.guide-editor-slug-row input {
+  border: none;
+  border-radius: 0;
+}
+
+.guide-editor-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.guide-editor-card-header button {
+  border: 1.5px solid #d6e0f7;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: #2d467f;
+  padding: 0.3rem 0.55rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.guide-editor-card-header button:hover {
+  border-color: #b9cdf7;
+  color: var(--c-cobalt);
+  background: #f7faff;
+}
+
+.guide-featured-block {
+  border: 1px solid #e3eaf9;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.guide-featured-block img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.guide-featured-block div {
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.65rem;
+}
+
+.guide-featured-block button {
+  border: 1.5px solid #d6e0f7;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: #2d467f;
+  padding: 0.28rem 0.55rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.guide-featured-block button:hover {
+  border-color: #b9cdf7;
+  color: var(--c-cobalt);
+  background: #f7faff;
+}
+
+.guide-editor-muted {
+  margin: 0;
+  color: #8f98aa;
+  font-size: 0.8rem;
+}
+
+.guide-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #34425f;
+}
+
+.guide-toggle input {
+  display: none;
+}
+
+.guide-toggle .track {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: #d4dcea;
+  position: relative;
+  transition: background 0.18s ease;
+}
+
+.guide-toggle .track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fff;
+  transition: transform 0.18s ease;
+}
+
+.guide-toggle input:checked + .track {
+  background: var(--c-cobalt);
+}
+
+.guide-toggle input:checked + .track::after {
+  transform: translateX(16px);
+}
+
+.guide-actions-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.guide-actions-card button {
+  border: 1.5px solid #d6e0f7;
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: #2f456f;
+  font-family: var(--font-body);
+  font-size: 0.84rem;
+  font-weight: 800;
+  padding: 0.55rem;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+
+.guide-actions-card button:hover {
+  border-color: #b9cdf7;
+  color: var(--c-cobalt);
+  background: #f7faff;
+}
+
+.guide-actions-card .guide-save-btn {
+  background: linear-gradient(135deg, var(--c-cobalt) 0%, var(--c-cobalt-hover) 100%);
+  border-color: var(--c-cobalt);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(0, 58, 204, 0.18);
+}
+
+.guide-actions-card .guide-save-btn:hover {
+  color: #fff;
+  border-color: var(--c-cobalt-hover);
+  transform: translateY(-1px);
+}
+
+.guide-actions-card .guide-save-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 980px) {
+  .guide-editor-layout {
+    grid-template-columns: 1fr;
+  }
+}

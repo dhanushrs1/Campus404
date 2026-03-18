@@ -3,58 +3,6 @@
    Clean & Professional Blue Theme
    ================================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-/* ── Design Tokens ──────────────────────────────────────────── */
-:root {
-  --bg-base:       #070b11;
-  --bg-surface:    #0d1117;
-  --bg-card:       #111827;
-  --bg-hover:      #161f2e;
-  --bg-active:     #1a2744;
-
-  --brand:         #003acc;
-  --brand-light:   #90E0EF;
-  --brand-dark:    #337bff;
-  --brand-glow:    rgba(0, 58, 204, 0.15);
-  --brand-border:  rgba(0, 58, 204, 0.3);
-
-  --accent:        #00B4D8;
-  --success:       #10b981;
-  --warning:       #f59e0b;
-  --danger:        #ef4444;
-  --info:          #3b82f6;
-
-  --success-soft:  rgba(16,185,129,0.12);
-  --warning-soft:  rgba(245,158,11,0.12);
-  --danger-soft:   rgba(239,68,68,0.12);
-  --info-soft:     rgba(59,130,246,0.12);
-  --brand-soft:    rgba(0, 58, 204, 0.12);
-
-  --text-1:        #f0f2f5;
-  --text-2:        #8d97a8;
-  --text-3:        #4b5563;
-
-  --border:        rgba(255,255,255,0.065);
-  --border-md:     rgba(255,255,255,0.10);
-
-  --shadow-sm:     0 1px 4px rgba(10, 25, 47,0.35);
-  --shadow-md:     0 4px 20px rgba(10, 25, 47,0.45);
-  --shadow-lg:     0 8px 40px rgba(10, 25, 47,0.55);
-  --shadow-brand:  0 4px 20px rgba(0, 58, 204, 0.4);
-
-  --radius-sm:  6px;
-  --radius-md:  10px;
-  --radius-lg:  14px;
-  --radius-xl:  20px;
-
-  --font:       'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
-
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --t:    150ms var(--ease);
-}
-
 /* ── Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }

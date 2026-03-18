@@ -10,6 +10,18 @@
 /* ── Page ─────────────────────────────────────────────────── */
 .lc-page { min-height:100vh;background:#f5f5f8; }
 
+/* Keep floating header visually above hero on curriculum pages */
+.lc-page,
+.mc-page {
+  --lc-floating-header-space: 104px;
+}
+
+.lc-page .site-header + .lc-hero,
+.mc-page .site-header + .lc-hero {
+  margin-top: calc(-1 * var(--lc-floating-header-space));
+  padding-top: var(--lc-floating-header-space);
+}
+
 /* ── Hero ─────────────────────────────────────────────────── */
 .lc-hero {
   position: relative;

@@ -14,6 +14,7 @@ if _repo_root not in sys.path:
 from database import Base, engine
 import models                              # User model
 import curriculum.models                   # Lab, Module, Challenge, Badge, UserBadge, ChallengeCompletion
+import guide.models                        # Guide content type
 from authentications.router import router as auth_router
 from admin.users    import router as admin_users_router
 from admin.stats    import router as admin_stats_router
@@ -24,6 +25,7 @@ from admin.site_settings import public_router as site_settings_public_router
 from admin.site_settings import admin_router as site_settings_admin_router
 from curriculum.router import router as curriculum_router
 from progress.router import router as progress_router
+from guide.router import router as guide_router
 
 # Ensure uploads directory exists at startup
 UPLOADS_DIR = Path("/app/uploads")
@@ -71,6 +73,7 @@ app.include_router(site_settings_public_router, prefix="/api", tags=["Site Setti
 app.include_router(site_settings_admin_router,  prefix="/api/admin", tags=["Admin – Site Settings"])
 app.include_router(curriculum_router,  prefix="/api",              tags=["Curriculum"])
 app.include_router(progress_router,    prefix="/api",              tags=["Progress"])
+app.include_router(guide_router,       prefix="/api",              tags=["Guide"])
 if _sandbox_available:
     app.include_router(judge_api.router, prefix="/api/judge", tags=["Sandbox"])
 
