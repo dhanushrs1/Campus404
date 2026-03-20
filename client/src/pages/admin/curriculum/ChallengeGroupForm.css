@@ -50,10 +50,6 @@
 }
 
 .cgf-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
   margin-bottom: 1rem;
 }
 
@@ -69,28 +65,6 @@
   color: #6b7280;
   font-family: 'Nunito', sans-serif;
   font-size: 0.86rem;
-}
-
-.cgf-icon-danger {
-  width: 32px;
-  height: 32px;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  background: #fff5f5;
-  color: #dc2626;
-  display: inline-grid;
-  place-items: center;
-  cursor: pointer;
-}
-
-.cgf-icon-danger:hover {
-  border-color: #ef4444;
-  color: #ef4444;
-}
-
-.cgf-icon-danger:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .cgf-steps {
@@ -274,6 +248,17 @@
 .cgf-btn.ghost {
   background: #f3f4f6;
   color: #374151;
+}
+
+.cgf-btn.danger {
+  background: #fff5f5;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+}
+
+.cgf-btn.danger:hover {
+  border-color: #ef4444;
+  color: #ef4444;
 }
 
 @media (max-width: 768px) {

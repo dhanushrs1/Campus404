@@ -459,20 +459,7 @@ export default function ChallengeForm() {
         {/* ── LEFT ── */}
         <div className="cf-main">
           <div className="cf-header">
-            <div className="cf-header-row">
-              <h2 className="cf-title">{isEdit ? 'Edit Level' : `Creating Level ${nextLevel}`}</h2>
-              {isEdit && (
-                <button type="button" className="cf-icon-danger" onClick={handleDeleteLevel} title="Delete level" aria-label="Delete level" disabled={saving}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6" />
-                    <path d="M14 11v6" />
-                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                  </svg>
-                </button>
-              )}
-            </div>
+            <h2 className="cf-title">{isEdit ? 'Edit Level' : `Creating Level ${nextLevel}`}</h2>
             {module && <p className="cf-subtitle">Module: <strong>{module.title}</strong></p>}
             {challengeGroup && <p className="cf-subtitle">Challenge: <strong>{challengeGroup.title}</strong></p>}
           </div>
@@ -669,6 +656,9 @@ export default function ChallengeForm() {
               {saving ? <><div className="cf-spinner" /> Saving…</> : isEdit ? '✓ Save Changes' : `Save Level ${nextLevel}`}
             </button>
             <button className="cf-btn-cancel" onClick={() => challengeGroup ? navigate(`/admin/challenges/${challengeGroup.id}/levels`) : navigate('/admin/labs')}>Cancel</button>
+            {isEdit && (
+              <button className="cf-btn-delete" onClick={handleDeleteLevel} disabled={saving}>Delete Level</button>
+            )}
           </div>
         </div>
       </div>
