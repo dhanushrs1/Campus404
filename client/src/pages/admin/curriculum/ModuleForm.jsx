@@ -21,7 +21,7 @@ export default function ModuleForm() {
   const [form,    setForm]    = useState(INITIAL);
   const [lab,     setLab]     = useState(null);   // for context breadcrumb
   const [modules, setModules] = useState([]);      // existing modules for order hint
-  const [challenges, setChallenges] = useState([]); // existing challenges if editing
+  const [challengeGroups, setChallengeGroups] = useState([]); // existing challenge groups if editing
   const [badges,  setBadges]  = useState([]);      // all available badges
   const [guides,  setGuides]  = useState([]);      // all available guides
   const [origBadge, setOrigBadge] = useState(null);// originally assigned badge id
@@ -62,8 +62,8 @@ export default function ModuleForm() {
         return api.getLab(m.lab_id);
       }).then(setLab).catch(e => showToast(e.message, 'error'));
 
-      api.getChallenges(moduleId).then(list => {
-        setChallenges(list || []);
+      api.getChallengeGroups(moduleId).then(list => {
+        setChallengeGroups(list || []);
       }).catch(() => {});
     } else {
       const labId = Number(params.get('lab_id'));
@@ -160,11 +160,26 @@ export default function ModuleForm() {
           order_index: Number(form.order_index),
         });
         await handleBadgeAssignment(mod.id);
-        showToast('Module created! Redirecting to add levels…');
-        setTimeout(() => navigate(`/admin/challenges/create?module_id=${mod.id}`), 1200);
+        showToast('Module created! Redirecting to challenge setup…');
+        setTimeout(() => navigate(`/admin/modules/${mod.id}/challenges`), 1200);
       }
     } catch (e) { showToast(e.message, 'error'); }
     finally { setSaving(false); }
+  };
+
+  const handleDeleteModule = async () => {
+    if (!isEdit) return;
+    if (!confirm(`Delete module "${form.title || moduleId}" and all its challenges/levels?`)) return;
+    setSaving(true);
+    try {
+      await api.deleteModule(moduleId);
+      showToast('Module deleted.');
+      setTimeout(() => navigate('/admin/labs'), 600);
+    } catch (e) {
+      showToast(e.message || 'Delete failed.', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const selectedBadgeObj = badges.find(b => b.id === Number(form.badge_id));
@@ -187,7 +202,7 @@ export default function ModuleForm() {
       {/* Breadcrumb */}
       <div className="mf-breadcrumb">
         <button onClick={() => navigate('/admin/labs')}>Labs</button>
-        {lab && <><span>›</span><span className="mf-bc-lab">{lab.title}</span></>}
+        {lab && <><span>›</span><button onClick={() => navigate(`/admin/labs/${lab.id}/edit`)} className="mf-bc-lab">{lab.title}</button></>}
         <span>›</span>
         <span>{isEdit ? 'Edit Module' : 'New Module'}</span>
       </div>
@@ -212,6 +227,17 @@ export default function ModuleForm() {
           )}
         </h2>
         {lab && <p className="mf-subtitle">Lab: <strong>{lab.title}</strong></p>}
+        {isEdit && (
+          <button type="button" className="mf-icon-danger" title="Delete module" aria-label="Delete module" onClick={handleDeleteModule} disabled={saving}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Progress steps */}
@@ -221,7 +247,9 @@ export default function ModuleForm() {
           <div className="mf-step-line done" />
           <div className="mf-step current"><span>2</span> Add Module</div>
           <div className="mf-step-line" />
-          <div className="mf-step"><span>3</span> Add Levels</div>
+          <div className="mf-step"><span>3</span> Add Challenge</div>
+          <div className="mf-step-line" />
+          <div className="mf-step"><span>4</span> Add Levels</div>
         </div>
       )}
 
@@ -362,37 +390,47 @@ export default function ModuleForm() {
           {errors.lab_id && <div className="mf-err-banner">{errors.lab_id}</div>}
         </div>
 
-        {/* Existing levels list if editing */}
+        {/* Existing challenge groups list if editing */}
         {isEdit && (
           <div className="mf-existing" style={{ marginTop: '1.5rem' }}>
-            <h4 className="mf-existing-title">Levels in this Module</h4>
-            {challenges.length > 0 ? challenges.sort((a, b) => a.level_number - b.level_number).map((c) => (
+            <h4 className="mf-existing-title">Challenges in this Module</h4>
+            {challengeGroups.length > 0 ? challengeGroups.sort((a, b) => a.order_index - b.order_index).map((c, idx) => (
               <div key={c.id} className="mf-existing-item" style={{ justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span className="mf-existing-num" style={{ background: '#e0ebff', color: '#0047FF' }}>{c.level_number}</span>
-                  <span className="mf-existing-name">{c.display_title || c.title || `Level ${c.level_number}`}</span>
-                  <span className="mf-existing-stats" style={{ display: 'inline-block', minWidth: '60px' }}>{c.xp_reward} XP</span>
-                  <span className="mf-existing-stats" style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px' }}>{c.challenge_type}</span>
+                  <span className="mf-existing-num" style={{ background: '#e0ebff', color: '#0047FF' }}>{idx + 1}</span>
+                  <span className="mf-existing-name">{c.title}</span>
+                  <span className="mf-existing-stats" style={{ display: 'inline-block', minWidth: '120px' }}>{c.level_count} levels</span>
+                  <span className="mf-existing-stats" style={{ display: 'inline-block', minWidth: '80px' }}>{c.total_xp} XP</span>
+                  <span className="mf-existing-stats" style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px' }}>{c.is_published ? 'published' : 'draft'}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/admin/challenges/${c.id}/edit`)}
-                  style={{ background: '#fff', border: '1px solid #ccc', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
-                >
-                  Edit Level
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/admin/challenge-groups/${c.id}/edit`)}
+                    style={{ background: '#fff', border: '1px solid #ccc', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Edit Challenge
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/admin/challenges/${c.id}/levels`)}
+                    style={{ background: '#f0f4ff', border: '1px solid #b9c8ff', color: '#003acc', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Manage Levels
+                  </button>
+                </div>
               </div>
             )) : (
               <div className="mf-existing-item">
-                <span className="mf-existing-name">No levels yet. Add the first level to start this module.</span>
+                <span className="mf-existing-name">No challenges yet. Add the first challenge group to start this module.</span>
               </div>
             )}
             <button 
               type="button" 
-              onClick={() => navigate(`/admin/challenges/create?module_id=${moduleId}`)}
+              onClick={() => navigate(`/admin/modules/${moduleId}/challenges`)}
               style={{ marginTop: '1rem', background: '#f0f4ff', color: '#0047FF', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.8rem' }}
             >
-              + Add Level
+              + Manage Challenges
             </button>
           </div>
         )}
@@ -413,7 +451,7 @@ export default function ModuleForm() {
 
         <div className="mf-actions">
           <button type="submit" className="mf-btn-save" disabled={saving}>
-            {saving ? <><div className="mf-spinner" /> Saving…</> : isEdit ? 'Save Changes' : '→ Create & Add Levels'}
+            {saving ? <><div className="mf-spinner" /> Saving…</> : isEdit ? 'Save Changes' : '→ Create & Manage Challenges'}
           </button>
           <button type="button" className="mf-btn-cancel" onClick={() => navigate(-1)}>Cancel</button>
         </div>

@@ -288,12 +288,38 @@ export default function LabCurriculum() {
 
           {/* Continue button */}
           {(() => {
-            const nextCh = lab.modules
-              .flatMap(m => m.challenges.map(c => ({ ...c, moduleId: m.module_id, uniqueId: m.unique_id, modLocked: m.is_locked })))
-              .find(c => !c.is_completed && !c.is_locked && !c.modLocked);
-            return nextCh ? (
+            const nextChallengePath = lab.modules
+              .flatMap((m) => {
+                const groups = m.challenge_groups || [];
+                if (groups.length) {
+                  return groups.flatMap((g) => (g.levels || []).map((lvl, idx) => ({
+                    ...lvl,
+                    moduleId: m.module_id,
+                    challengeId: g.challenge_id,
+                    localLevelNumber: idx + 1,
+                    modLocked: m.is_locked,
+                  })));
+                }
+
+                return (m.challenges || []).map((lvl) => ({
+                  ...lvl,
+                  moduleId: m.module_id,
+                  challengeId: null,
+                  localLevelNumber: lvl.level_number,
+                  modLocked: m.is_locked,
+                }));
+              })
+              .find((lvl) => !lvl.is_completed && !lvl.is_locked && !lvl.modLocked);
+
+            return nextChallengePath ? (
               <button className="lc-continue-btn" style={{ background: langColor }}
-                  onClick={() => navigate(`/labs/${slug}/modules/${nextCh.moduleId}/level/${nextCh.level_number}`)}>
+                  onClick={() => {
+                    if (nextChallengePath.challengeId) {
+                      navigate(`/labs/${slug}/modules/${nextChallengePath.moduleId}/challenges/${nextChallengePath.challengeId}/level/${nextChallengePath.localLevelNumber}`);
+                    } else {
+                      navigate(`/labs/${slug}/modules/${nextChallengePath.moduleId}/level/${nextChallengePath.level_number}`);
+                    }
+                  }}>
                 {lab.earned_xp === 0 ? 'Start Lab →' : 'Continue →'}
               </button>
             ) : lab.earned_xp === lab.total_xp && lab.total_xp > 0 ? (

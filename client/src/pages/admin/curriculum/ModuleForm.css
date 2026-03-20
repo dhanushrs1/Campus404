@@ -6,11 +6,25 @@
 
 .mf-breadcrumb { display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:#aaa;margin-bottom:1rem;flex-wrap:wrap; }
 .mf-breadcrumb button { background:none;border:none;color:#003acc;font-weight:700;cursor:pointer;font-size:.78rem;padding:0; }
-.mf-bc-lab { color:#555;font-weight:600; }
+.mf-bc-lab { color:#003acc;font-weight:700; }
 
 .mf-header { margin-bottom:1.25rem; }
 .mf-title  { font-family:'Sora',sans-serif;font-size:1.35rem;font-weight:800;color:#0A192F;margin:0 0 4px; }
 .mf-subtitle { font-size:.83rem;color:#888;margin:0; }
+.mf-icon-danger {
+  margin-top: .55rem;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #dc2626;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+.mf-icon-danger:hover { border-color:#ef4444; color:#ef4444; }
+.mf-icon-danger:disabled { opacity:.6; cursor:not-allowed; }
 .mf-label-row { display:flex;align-items:baseline;justify-content:space-between; }
 .mf-char-count { font-size:.72rem;color:#aaa;font-family:'Nunito',sans-serif; }
 .mf-char-count.at-limit { color:#ef4444;font-weight:700; }

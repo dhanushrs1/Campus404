@@ -26,8 +26,22 @@
 
 /* Header */
 .cf-header { margin-bottom:1rem; }
+.cf-header-row { display:flex;align-items:center;justify-content:space-between;gap:.75rem; }
 .cf-title  { font-family:'Sora',sans-serif;font-size:1.3rem;font-weight:800;color:#0A192F;margin:0 0 4px; }
 .cf-subtitle { font-size:.83rem;color:#888;margin:0; }
+.cf-icon-danger {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff5f5;
+  color: #dc2626;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+.cf-icon-danger:hover { border-color:#ef4444; color:#ef4444; }
+.cf-icon-danger:disabled { opacity:.6; cursor:not-allowed; }
 
 /* Levels bar */
 .cf-levels-bar { display:flex;gap:.375rem;flex-wrap:wrap;margin-bottom:1rem; }

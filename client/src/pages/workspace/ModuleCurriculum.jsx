@@ -111,6 +111,7 @@ export default function ModuleCurriculum() {
   const heroImg = resolveModuleBannerUrl(mod);
 
   const modPct = mod.challenge_count > 0 ? Math.round((mod.completed_challenges / mod.challenge_count) * 100) : 0;
+  const challengeGroups = mod.challenge_groups || [];
 
   return (
     <div className="mc-page">
@@ -139,7 +140,7 @@ export default function ModuleCurriculum() {
               <div className="lc-hero-meta">
                 <span><strong>{mod.total_xp}</strong> XP total</span>
                 <span className="lc-dot">·</span>
-                <span><strong>{mod.challenge_count}</strong> levels</span>
+                <span><strong>{challengeGroups.length}</strong> challenges</span>
               </div>
             </div>
             {/* Circular Progress */}
@@ -150,24 +151,29 @@ export default function ModuleCurriculum() {
 
       <div className="mc-body">
         <div className="mc-map-container">
-          {/* Vertical modern timeline instead of zigzag */}
+          {/* Vertical challenge timeline */}
           <div className="mc-timeline">
-            {mod.challenges.map((ch, ci) => {
-              const uniqueUrl = `/labs/${slug}/modules/${mod.module_id}/level/${ch.level_number}`;
-              const isCurrent = !ch.is_completed && !ch.is_locked && (
-                ci === 0 || mod.challenges[ci-1]?.is_completed
-              );
-              
+            {challengeGroups.map((group, ci) => {
+              const levels = group.levels || [];
+              const groupCompleted = levels.length > 0 && levels.every((lvl) => lvl.is_completed);
+              const groupLocked = levels.length === 0 ? false : levels.every((lvl) => lvl.is_locked);
+              const groupXp = group.total_xp || levels.reduce((sum, lvl) => sum + Number(lvl.xp_reward || 0), 0);
+              const uniqueUrl = `/labs/${slug}/modules/${mod.module_id}/challenges/${group.challenge_id}`;
+
+              const prev = challengeGroups[ci - 1];
+              const prevCompleted = !prev || ((prev.levels || []).length > 0 && (prev.levels || []).every((lvl) => lvl.is_completed));
+              const isCurrent = !groupCompleted && !groupLocked && prevCompleted;
+
               return (
-                <div key={ch.challenge_id} className={`mc-timeline-node ${ch.is_completed ? 'completed' : ''} ${ch.is_locked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`}>
+                <div key={group.challenge_id || `challenge-${ci}`} className={`mc-timeline-node ${groupCompleted ? 'completed' : ''} ${groupLocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`}>
                   <div className="mc-node-line"></div>
-                  
+
                   <div className="mc-node-status">
-                    {ch.is_completed ? (
+                    {groupCompleted ? (
                       <div className="mc-status-icon success">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       </div>
-                    ) : ch.is_locked ? (
+                    ) : groupLocked ? (
                       <div className="mc-status-icon locked">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-7 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/><path d="M7 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h-2V7c0-1.66-1.34-3-3-3S7 5.34 7 7v4H7z"/></svg>
                       </div>
@@ -177,20 +183,28 @@ export default function ModuleCurriculum() {
                       </div>
                     )}
                   </div>
-                  
-                  <div className="mc-node-card" onClick={() => !ch.is_locked && navigate(uniqueUrl)}>
+
+                  <div className="mc-node-card" onClick={() => !groupLocked && navigate(uniqueUrl)}>
                     <div className="mc-node-card-header">
-                      <h3>{ch.display_title || `Level ${ch.level_number}`}</h3>
-                      <span className="mc-node-xp">+{ch.xp_reward} XP</span>
+                      <h3>{group.title || `Challenge ${ci + 1}`}</h3>
+                      <span className="mc-node-xp">{groupXp} XP</span>
                     </div>
+                    <p className="mc-node-subline">{levels.length} levels</p>
                     {isCurrent && (
-                      <button className="mc-node-start-btn">Start Level</button>
+                      <button className="mc-node-start-btn">Open Challenge</button>
                     )}
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {challengeGroups.length === 0 && (
+            <div className="mc-empty-state">
+              <h3>No challenges published yet</h3>
+              <p>Your instructor has not published challenge groups for this module yet.</p>
+            </div>
+          )}
 
           {/* Module completed state */}
           {mod.is_completed && mod.badge && (

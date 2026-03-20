@@ -1,6 +1,6 @@
 """
 curriculum/models.py — Campus404
-SQLAlchemy ORM models for Labs, Modules, Challenges, ChallengeFiles, Badges, and UserProgress.
+SQLAlchemy ORM models for Labs, Modules, ChallengeGroups, Levels, files, badges, and progress.
 """
 from datetime import datetime, timezone
 import random, string
@@ -60,6 +60,12 @@ class Module(Base):
     created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     lab        = relationship("Lab", back_populates="modules")
+    challenge_groups = relationship(
+        "ChallengeGroup",
+        back_populates="module",
+        cascade="all, delete-orphan",
+        order_by="ChallengeGroup.order_index",
+    )
     challenges = relationship(
         "Challenge",
         back_populates="module",
@@ -75,6 +81,7 @@ class Challenge(Base):
 
     id           = Column(Integer, primary_key=True, index=True)
     module_id    = Column(Integer, ForeignKey("modules.id", ondelete="CASCADE"), nullable=False, index=True)
+    challenge_group_id = Column(Integer, ForeignKey("challenge_groups.id", ondelete="CASCADE"), nullable=True, index=True)
     level_number = Column(Integer, nullable=False)
     challenge_type = Column(String(20), default=CHALLENGE_TYPE_LEVEL, nullable=False, index=True)
     custom_title = Column(String(255), nullable=True)
@@ -87,6 +94,7 @@ class Challenge(Base):
                            onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     module = relationship("Module", back_populates="challenges")
+    challenge_group = relationship("ChallengeGroup", back_populates="levels")
     files  = relationship(
         "ChallengeFile",
         back_populates="challenge",
@@ -101,6 +109,28 @@ class Challenge(Base):
             "challenge_type IN ('level','exam')",
             name="ck_challenge_type",
         ),
+    )
+
+
+class ChallengeGroup(Base):
+    __tablename__ = "challenge_groups"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    module_id   = Column(Integer, ForeignKey("modules.id", ondelete="CASCADE"), nullable=False, index=True)
+    title       = Column(String(255), nullable=False)
+    description = Column(String(255), nullable=True)
+    order_index = Column(Integer, default=0, nullable=False)
+    is_published = Column(Boolean, default=True, nullable=False)
+    created_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at  = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                          onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    module = relationship("Module", back_populates="challenge_groups")
+    levels = relationship(
+        "Challenge",
+        back_populates="challenge_group",
+        cascade="all, delete-orphan",
+        order_by="Challenge.level_number",
     )
 
 

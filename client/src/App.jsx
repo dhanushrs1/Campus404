@@ -20,11 +20,15 @@ import GuideEditor    from './pages/admin/guide/GuideEditor';
 import LabForm        from './pages/admin/curriculum/LabForm';
 import ModuleForm     from './pages/admin/curriculum/ModuleForm';
 import ChallengeForm  from './pages/admin/curriculum/ChallengeForm';
+import ChallengeManager from './pages/admin/curriculum/ChallengeManager';
+import ChallengeGroupForm from './pages/admin/curriculum/ChallengeGroupForm';
+import LevelManager from './pages/admin/curriculum/LevelManager';
 
 import AuthGuard from './components/AuthGuard';
 import Workspace      from './pages/workspace/Workspace';
 import LabCurriculum  from './pages/workspace/LabCurriculum';
 import ModuleCurriculum from './pages/workspace/ModuleCurriculum';
+import ChallengeLevels from './pages/workspace/ChallengeLevels';
 import GuidePage from './pages/guide/GuidePage';
 
 function App() {
@@ -36,7 +40,14 @@ function App() {
         </AuthGuard>
       } />
 
-      {/* Workspace route */}
+      {/* Workspace route with challenge context */}
+      <Route path="/labs/:slug/modules/:moduleId/challenges/:challengeId/level/:levelNumber" element={
+        <AuthGuard requireAuth={true}>
+          <Workspace />
+        </AuthGuard>
+      } />
+
+      {/* Legacy workspace route */}
       <Route path="/labs/:slug/modules/:moduleId/level/:levelNumber" element={
         <AuthGuard requireAuth={true}>
           <Workspace />
@@ -54,6 +65,12 @@ function App() {
       <Route path="/labs/:slug/modules/:moduleId" element={
         <AuthGuard requireAuth={true}>
           <ModuleCurriculum />
+        </AuthGuard>
+      } />
+
+      <Route path="/labs/:slug/modules/:moduleId/challenges/:challengeId" element={
+        <AuthGuard requireAuth={true}>
+          <ChallengeLevels />
         </AuthGuard>
       } />
 
@@ -105,6 +122,12 @@ function App() {
         <Route path="labs/:labId/edit"  element={<LabForm />} />
         <Route path="modules/create"         element={<ModuleForm />} />
         <Route path="modules/:moduleId/edit" element={<ModuleForm />} />
+        <Route path="modules/:moduleId/challenges" element={<ChallengeManager />} />
+        <Route path="challenge-groups/create" element={<ChallengeGroupForm />} />
+        <Route path="challenge-groups/:challengeGroupId/edit" element={<ChallengeGroupForm />} />
+        <Route path="challenges/:challengeId/levels" element={<LevelManager />} />
+        <Route path="levels/create" element={<ChallengeForm />} />
+        <Route path="levels/:levelId/edit" element={<ChallengeForm />} />
         <Route path="challenges/create"             element={<ChallengeForm />} />
         <Route path="challenges/:challengeId/edit"  element={<ChallengeForm />} />
         <Route path="users" element={<UserManager />} />

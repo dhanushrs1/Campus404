@@ -183,11 +183,16 @@ const newFile = (filename, idx) => ({ id: `new_${Date.now()}_${idx}`, filename, 
 export default function ChallengeForm() {
   const navigate        = useNavigate();
   const [params]        = useSearchParams();
-  const { challengeId } = useParams();
-  const isEdit          = Boolean(challengeId);
+  const { challengeId, levelId } = useParams();
+  const editId = levelId || challengeId;
+  const isEdit = Boolean(editId);
+  const queryModuleId = Number(params.get('module_id') || 0) || 0;
+  const queryChallengeGroupId = Number(params.get('challenge_id') || params.get('challenge_group_id') || 0) || null;
+  const useLevelApi = Boolean(levelId) || Boolean(queryChallengeGroupId);
 
   const [form,         setForm]         = useState(INITIAL);
   const [module,       setModule]       = useState(null);
+  const [challengeGroup, setChallengeGroup] = useState(null);
   const [lab,          setLab]          = useState(null);
   const [challenges,   setChallenges]   = useState([]);
   const [langExt,      setLangExt]      = useState('py');
@@ -216,7 +221,8 @@ export default function ChallengeForm() {
     };
 
     if (isEdit) {
-      api.getChallenge(challengeId).then(ch => {
+      const loader = levelId ? api.getLevel(editId) : api.getChallenge(editId);
+      loader.then(ch => {
         setForm({
           ...INITIAL,
           module_id: ch.module_id,
@@ -228,12 +234,41 @@ export default function ChallengeForm() {
           is_published: ch.is_published,
         });
         if (ch.files?.length) setFiles(ch.files.map(f => ({ ...f, id: f.id })));
-        return api.getModule(ch.module_id);
-      }).then(mod => { setModule(mod); return Promise.all([api.getLab(mod.lab_id)]); })
-        .then(([l]) => {
+        return Promise.all([
+          api.getModule(ch.module_id),
+          ch.challenge_group_id ? api.getChallengeGroup(ch.challenge_group_id) : Promise.resolve(null),
+        ]);
+      }).then(([mod, group]) => {
+          setModule(mod);
+          setChallengeGroup(group);
+          return Promise.all([
+            api.getLab(mod.lab_id),
+            group ? api.getLevels(group.id) : api.getChallenges(mod.id),
+          ]);
+        })
+        .then(([l, chs]) => {
           setLab(l);
+          setChallenges(chs || []);
           setBestExt(l);
         }).catch(e => showToast(e.message, 'error'));
+    } else if (queryChallengeGroupId) {
+      api.getChallengeGroup(queryChallengeGroupId).then(group => {
+        setChallengeGroup(group);
+        setForm(f => ({ ...f, module_id: group.module_id }));
+        return Promise.all([
+          api.getModule(group.module_id),
+          api.getLevels(group.id),
+        ]);
+      }).then(([mod, chs]) => {
+        setModule(mod);
+        setChallenges(chs || []);
+        return api.getLab(mod.lab_id);
+      }).then((l) => {
+        setLab(l);
+        setBestExt(l);
+        const ext = getExtFromLangId(l?.language_id || 71);
+        setFiles([newFile(`solution.${ext}`, 0)]);
+      }).catch(e => showToast(e.message, 'error'));
     } else if (moduleId) {
       setForm(f => ({ ...f, module_id: moduleId }));
       api.getModule(moduleId).then(mod => {
@@ -248,7 +283,7 @@ export default function ChallengeForm() {
         setFiles([newFile(`solution.${ext}`, 0)]);
       }).catch(e => showToast(e.message, 'error'));
     }
-  }, [challengeId, isEdit, params]);
+  }, [editId, isEdit, levelId, params, queryChallengeGroupId]);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
@@ -312,6 +347,7 @@ export default function ChallengeForm() {
       let challenge;
       const payload = {
         module_id:    form.module_id,
+        challenge_group_id: queryChallengeGroupId,
         challenge_type: form.challenge_type,
         custom_title: form.custom_title || null,
         xp_reward:    Number(form.xp_reward),
@@ -322,7 +358,9 @@ export default function ChallengeForm() {
       };
 
       if (isEdit) {
-        challenge = await api.updateChallenge(challengeId, {
+        const updateFn = levelId ? api.updateLevel : api.updateChallenge;
+        const replaceFilesFn = levelId ? api.replaceLevelFiles : api.replaceChallengeFiles;
+        challenge = await updateFn(editId, {
           challenge_type: payload.challenge_type,
           custom_title: payload.custom_title,
           xp_reward:    payload.xp_reward,
@@ -331,17 +369,33 @@ export default function ChallengeForm() {
           is_published: payload.is_published,
         });
         // Update files separately
-        await api.replaceChallengeFiles(challengeId, payload.files);
+        await replaceFilesFn(editId, payload.files);
         showToast('Level updated!');
-        setTimeout(() => navigate('/admin/labs'), 1200);
+        setTimeout(() => {
+          if (challengeGroup) navigate(`/admin/challenges/${challengeGroup.id}/levels`);
+          else navigate('/admin/labs');
+        }, 1200);
       } else {
-        challenge = await api.createChallenge(payload);
+        challenge = queryChallengeGroupId
+          ? await api.createLevel({
+              challenge_group_id: queryChallengeGroupId,
+              challenge_type: payload.challenge_type,
+              custom_title: payload.custom_title,
+              xp_reward: payload.xp_reward,
+              expected_output: payload.expected_output,
+              content_html: payload.content_html,
+              is_published: payload.is_published,
+              files: payload.files,
+            })
+          : await api.createChallenge(payload);
         showToast(`${challenge.challenge_type === 'exam' ? 'Module exam' : `Level ${challenge.level_number}`} created!`);
         setTimeout(() => {
-          if (confirm(`${challenge.challenge_type === 'exam' ? 'Module exam' : `Level ${challenge.level_number}`} saved!\nAdd another level to this module?`)) {
-            window.location.reload();
+          if (confirm(`${challenge.challenge_type === 'exam' ? 'Module exam' : `Level ${challenge.level_number}`} saved!\nAdd another level?`)) {
+            if (queryChallengeGroupId) navigate(`/admin/levels/create?challenge_id=${queryChallengeGroupId}`);
+            else window.location.reload();
           } else {
-            navigate('/admin/labs');
+            if (queryChallengeGroupId) navigate(`/admin/challenges/${queryChallengeGroupId}/levels`);
+            else navigate('/admin/labs');
           }
         }, 400);
       }
@@ -350,6 +404,25 @@ export default function ChallengeForm() {
   };
 
   const nextLevel = challenges.length + 1;
+
+  const handleDeleteLevel = async () => {
+    if (!isEdit) return;
+    if (!confirm(`Delete level "${form.custom_title || `Level ${nextLevel}`}"?`)) return;
+    setSaving(true);
+    try {
+      const deleteFn = levelId ? api.deleteLevel : api.deleteChallenge;
+      await deleteFn(editId);
+      showToast('Level deleted.');
+      setTimeout(() => {
+        if (challengeGroup) navigate(`/admin/challenges/${challengeGroup.id}/levels`);
+        else navigate('/admin/labs');
+      }, 600);
+    } catch (e) {
+      showToast(e.message || 'Delete failed.', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
   const currentFile = files[activeFile] || files[0];
   const currentExt  = currentFile ? getExtFromFilename(currentFile.filename) : langExt;
 
@@ -364,8 +437,9 @@ export default function ChallengeForm() {
       {/* Breadcrumb */}
       <div className="cf-breadcrumb">
         <button onClick={() => navigate('/admin/labs')}>Labs</button>
-        {lab    && <><span>›</span><span>{lab.title}</span></>}
-        {module && <><span>›</span><span>{module.title}</span></>}
+        {lab    && <><span>›</span><button onClick={() => navigate(`/admin/labs/${lab.id}/edit`)}>{lab.title}</button></>}
+        {module && <><span>›</span><button onClick={() => navigate(`/admin/modules/${module.id}/edit`)}>{module.title}</button></>}
+        {challengeGroup && <><span>›</span><button onClick={() => navigate(`/admin/modules/${challengeGroup.module_id}/challenges`)}>{challengeGroup.title}</button></>}
         <span>›</span>
         <span>{isEdit ? 'Edit Level' : `Level ${nextLevel}`}</span>
       </div>
@@ -385,8 +459,22 @@ export default function ChallengeForm() {
         {/* ── LEFT ── */}
         <div className="cf-main">
           <div className="cf-header">
-            <h2 className="cf-title">{isEdit ? 'Edit Level' : `Creating Level ${nextLevel}`}</h2>
+            <div className="cf-header-row">
+              <h2 className="cf-title">{isEdit ? 'Edit Level' : `Creating Level ${nextLevel}`}</h2>
+              {isEdit && (
+                <button type="button" className="cf-icon-danger" onClick={handleDeleteLevel} title="Delete level" aria-label="Delete level" disabled={saving}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                  </svg>
+                </button>
+              )}
+            </div>
             {module && <p className="cf-subtitle">Module: <strong>{module.title}</strong></p>}
+            {challengeGroup && <p className="cf-subtitle">Challenge: <strong>{challengeGroup.title}</strong></p>}
           </div>
 
           {!isEdit && challenges.length > 0 && (
@@ -580,7 +668,7 @@ export default function ChallengeForm() {
             <button className="cf-btn-save" onClick={handleSubmit} disabled={saving}>
               {saving ? <><div className="cf-spinner" /> Saving…</> : isEdit ? '✓ Save Changes' : `Save Level ${nextLevel}`}
             </button>
-            <button className="cf-btn-cancel" onClick={() => navigate('/admin/labs')}>Cancel</button>
+            <button className="cf-btn-cancel" onClick={() => challengeGroup ? navigate(`/admin/challenges/${challengeGroup.id}/levels`) : navigate('/admin/labs')}>Cancel</button>
           </div>
         </div>
       </div>

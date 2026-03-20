@@ -4,6 +4,7 @@ Run inside the Docker container: python migrate.py
 """
 import sys
 import os
+from datetime import datetime, timezone
 sys.path.insert(0, '/app')
 
 from database import Base, engine
@@ -11,6 +12,10 @@ from sqlalchemy import text, inspect
 import models as core_models
 import guide.models as guide_models
 import curriculum.models as curriculum_models
+
+# Ensure new hierarchy table exists before data backfills that depend on it.
+Base.metadata.create_all(bind=engine, tables=[curriculum_models.ChallengeGroup.__table__])
+print('[OK] Ensured challenge_groups table exists')
 
 insp = inspect(engine)
 
@@ -58,8 +63,53 @@ with engine.connect() as conn:
     else:
         print('[SKIP] expected_output already exists in challenges')
 
+    if 'challenge_group_id' not in ch_cols:
+        conn.execute(text('ALTER TABLE challenges ADD COLUMN challenge_group_id INTEGER NULL'))
+        print('[OK] Added challenge_group_id to challenges')
+    else:
+        print('[SKIP] challenge_group_id already exists in challenges')
+
     conn.execute(text("UPDATE challenges SET challenge_type='level' WHERE challenge_type IS NULL OR challenge_type = ''"))
     print('[OK] Backfilled null challenge_type values to level')
+
+    # Backfill challenge groups and attach existing levels.
+    module_rows = conn.execute(text('SELECT id, title FROM modules')).fetchall()
+    now = datetime.now(timezone.utc)
+    for module_id, module_title in module_rows:
+        group = conn.execute(
+            text('SELECT id FROM challenge_groups WHERE module_id = :module_id ORDER BY order_index, id LIMIT 1'),
+            {'module_id': module_id},
+        ).fetchone()
+
+        if not group:
+            conn.execute(
+                text(
+                    'INSERT INTO challenge_groups '
+                    '(module_id, title, description, order_index, is_published, created_at, updated_at) '
+                    'VALUES (:module_id, :title, :description, :order_index, :is_published, :created_at, :updated_at)'
+                ),
+                {
+                    'module_id': module_id,
+                    'title': 'General Practice',
+                    'description': f'Auto-created challenge group for module: {module_title}',
+                    'order_index': 0,
+                    'is_published': 1,
+                    'created_at': now,
+                    'updated_at': now,
+                },
+            )
+
+        assigned_group = conn.execute(
+            text('SELECT id FROM challenge_groups WHERE module_id = :module_id ORDER BY order_index, id LIMIT 1'),
+            {'module_id': module_id},
+        ).fetchone()
+
+        if assigned_group:
+            conn.execute(
+                text('UPDATE challenges SET challenge_group_id = :group_id WHERE module_id = :module_id AND challenge_group_id IS NULL'),
+                {'group_id': assigned_group[0], 'module_id': module_id},
+            )
+    print('[OK] Backfilled challenge_group_id for existing levels')
 
     # ── site_settings: add Guide display columns ───────────────────
     table_names = insp.get_table_names()
@@ -136,6 +186,7 @@ Base.metadata.create_all(
         guide_models.GuidePage.__table__,
         guide_models.guide_post_modules,
         curriculum_models.ChallengeAttempt.__table__,
+        curriculum_models.ChallengeGroup.__table__,
     ],
 )
 print('[OK] Ensured audit, guide, and progression tables exist (admin_audit_logs, learn_posts, learn_post_modules, challenge_attempts).')

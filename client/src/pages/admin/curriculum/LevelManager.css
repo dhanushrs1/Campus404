@@ -1,0 +1,239 @@
+.lvm-wrap {
+  max-width: 980px;
+  position: relative;
+}
+
+.lvm-toast {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.75rem;
+  z-index: 9999;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 8px 24px rgba(10, 25, 47, 0.15);
+}
+
+.lvm-toast.success {
+  background: #0A192F;
+  color: #337bff;
+}
+
+.lvm-toast.error {
+  background: #ef4444;
+  color: #fff;
+}
+
+.lvm-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  color: #7b8190;
+}
+
+.lvm-breadcrumb button {
+  border: none;
+  background: none;
+  color: #003acc;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0;
+}
+
+.lvm-breadcrumb button:hover {
+  color: #003acc;
+}
+
+.lvm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.lvm-header h2 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.35rem;
+  color: #0A192F;
+}
+
+.lvm-header p {
+  margin: 0.3rem 0 0;
+  color: #6b7280;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.86rem;
+}
+
+.lvm-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.lvm-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 0.95rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.lvm-btn.primary {
+  background: #003acc;
+  color: #fff;
+}
+
+.lvm-btn.ghost {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.lvm-loading,
+.lvm-empty {
+  background: #fff;
+  border: 1.5px solid #ebebf0;
+  border-radius: 14px;
+  padding: 1.2rem;
+  font-family: 'Nunito', sans-serif;
+  color: #6b7280;
+}
+
+.lvm-empty h4 {
+  margin: 0 0 0.35rem;
+  font-family: 'Sora', sans-serif;
+  color: #0A192F;
+}
+
+.lvm-empty p {
+  margin: 0 0 0.9rem;
+}
+
+.lvm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lvm-item {
+  background: #fff;
+  border: 1.5px solid #ebebf0;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.lvm-item-main {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.lvm-order {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #e0ebff;
+  color: #003acc;
+  font-size: 0.76rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+}
+
+.lvm-item h4 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  color: #0A192F;
+}
+
+.lvm-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.lvm-meta span {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-family: 'Nunito', sans-serif;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.lvm-item-actions {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.lvm-item-actions button {
+  border: 1px solid #d4d7de;
+  background: #fff;
+  color: #4b5563;
+  border-radius: 8px;
+  padding: 0.38rem 0.62rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.lvm-item-actions .lvm-icon-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.lvm-item-actions button:hover {
+  border-color: #003acc;
+  color: #003acc;
+}
+
+.lvm-item-actions .danger {
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.lvm-item-actions .danger:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .lvm-header {
+    flex-direction: column;
+  }
+
+  .lvm-actions {
+    width: 100%;
+  }
+
+  .lvm-item {
+    flex-direction: column;
+  }
+
+  .lvm-item-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

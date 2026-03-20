@@ -113,6 +113,35 @@ class ModuleResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# ── CHALLENGE GROUP (Concept) ───────────────────────────────────────────────
+class ChallengeGroupCreate(BaseModel):
+    module_id: int            = Field(..., ge=1)
+    title: str                = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=255)
+    is_published: bool        = True
+
+
+class ChallengeGroupUpdate(BaseModel):
+    title: Optional[str]       = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = Field(None, max_length=255)
+    is_published: Optional[bool] = None
+
+
+class ChallengeGroupResponse(BaseModel):
+    id: int
+    module_id: int
+    title: str
+    description: Optional[str] = None
+    order_index: int
+    is_published: bool
+    level_count: int
+    total_xp: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ── CHALLENGE FILE ─────────────────────────────────────────────────────────────
 class ChallengeFileCreate(BaseModel):
     filename:   str  = Field(..., min_length=1, max_length=100)
@@ -145,6 +174,7 @@ ChallengeType = Literal["level", "exam"]
 
 class ChallengeCreate(BaseModel):
     module_id:    int            = Field(..., ge=1)
+    challenge_group_id: Optional[int] = Field(None, ge=1)
     challenge_type: ChallengeType = "level"
     custom_title: Optional[str] = Field(None, max_length=255)
     xp_reward:    int            = Field(50, ge=1, le=10000)
@@ -173,6 +203,7 @@ class ChallengeUpdate(BaseModel):
 class ChallengeResponse(BaseModel):
     id:            int
     module_id:     int
+    challenge_group_id: Optional[int] = None
     level_number:  int
     challenge_type: ChallengeType
     custom_title:  Optional[str]
@@ -184,6 +215,52 @@ class ChallengeResponse(BaseModel):
     files:         List[ChallengeFileResponse] = []
     created_at:    datetime
     updated_at:    datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ── LEVEL (new explicit naming) ─────────────────────────────────────────────
+class LevelCreate(BaseModel):
+    challenge_group_id: int    = Field(..., ge=1)
+    challenge_type: ChallengeType = "level"
+    custom_title: Optional[str] = Field(None, max_length=255)
+    xp_reward: int             = Field(50, ge=1, le=10000)
+    expected_output: Optional[str] = Field(None, max_length=10000)
+    content_html: str          = Field(..., min_length=1)
+    is_published: bool         = False
+    files: List[ChallengeFileCreate] = []
+
+    @model_validator(mode='after')
+    def check_exam_xp_cap(self):
+        if self.challenge_type == "exam" and self.xp_reward > 100:
+            raise ValueError("Exam levels cannot exceed 100 XP.")
+        return self
+
+
+class LevelUpdate(BaseModel):
+    challenge_type: Optional[ChallengeType] = None
+    custom_title: Optional[str] = Field(None, max_length=255)
+    xp_reward: Optional[int] = Field(None, ge=1, le=10000)
+    expected_output: Optional[str] = Field(None, max_length=10000)
+    content_html: Optional[str] = Field(None, min_length=1)
+    is_published: Optional[bool] = None
+
+
+class LevelResponse(BaseModel):
+    id: int
+    module_id: int
+    challenge_group_id: int
+    level_number: int
+    challenge_type: ChallengeType
+    custom_title: Optional[str]
+    display_title: str
+    xp_reward: int
+    expected_output: Optional[str] = None
+    content_html: str
+    is_published: bool
+    files: List[ChallengeFileResponse] = []
+    created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 

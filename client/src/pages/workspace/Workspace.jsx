@@ -103,7 +103,7 @@ const formatExecutionText = (executionPayload) => {
 };
 
 export default function Workspace() {
-  const { slug, moduleId, levelNumber } = useParams();
+  const { slug, moduleId, challengeId, levelNumber } = useParams();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -111,6 +111,7 @@ export default function Workspace() {
 
   const [labProgress, setLabProgress] = useState(null);
   const [moduleProgress, setModuleProgress] = useState(null);
+  const [challengeProgress, setChallengeProgress] = useState(null);
   const [currentLevel, setCurrentLevel] = useState(null);
   const [challenge, setChallenge] = useState(null);
 
@@ -143,15 +144,37 @@ export default function Workspace() {
           return;
         }
 
-        const targetLevel = (targetModule.challenges || []).find(
-          (lvl) => Number(lvl.level_number) === Number(levelNumber),
-        );
-        if (!targetLevel || targetLevel.is_locked) {
-          navigate(`/labs/${slug}/modules/${moduleId}`);
-          return;
+        let targetLevel = null;
+        let targetChallenge = null;
+
+        if (challengeId) {
+          targetChallenge = (targetModule.challenge_groups || []).find(
+            (group) => Number(group.challenge_id) === Number(challengeId),
+          );
+
+          if (!targetChallenge) {
+            navigate(`/labs/${slug}/modules/${moduleId}`);
+            return;
+          }
+
+          const groupLevels = targetChallenge.levels || [];
+          const localIndex = Math.max(0, Number(levelNumber) - 1);
+          targetLevel = groupLevels[localIndex] || null;
+          if (!targetLevel || targetLevel.is_locked) {
+            navigate(`/labs/${slug}/modules/${moduleId}/challenges/${challengeId}`);
+            return;
+          }
+        } else {
+          targetLevel = (targetModule.challenges || []).find(
+            (lvl) => Number(lvl.level_number) === Number(levelNumber),
+          );
+          if (!targetLevel || targetLevel.is_locked) {
+            navigate(`/labs/${slug}/modules/${moduleId}`);
+            return;
+          }
         }
 
-        const levelDetail = await api.getChallenge(targetLevel.challenge_id);
+        const levelDetail = await api.getLevel(targetLevel.challenge_id);
         if (cancelled) return;
 
         const normalizedFiles = (levelDetail.files || []).length
@@ -168,6 +191,7 @@ export default function Workspace() {
 
         setLabProgress(progressData);
         setModuleProgress(targetModule);
+        setChallengeProgress(targetChallenge);
         setCurrentLevel(targetLevel);
         setChallenge(levelDetail);
         setFiles(normalizedFiles);
@@ -188,11 +212,13 @@ export default function Workspace() {
     return () => {
       cancelled = true;
     };
-  }, [slug, moduleId, levelNumber, navigate]);
+  }, [slug, moduleId, challengeId, levelNumber, navigate]);
 
   const activeFile = files[activeFileIndex] || files[0] || null;
   const languageId = Number(labProgress?.language_id || 71);
-  const levelPathBase = `/labs/${slug}/modules/${moduleId}/level`;
+  const levelPathBase = challengeId
+    ? `/labs/${slug}/modules/${moduleId}/challenges/${challengeId}/level`
+    : `/labs/${slug}/modules/${moduleId}/level`;
 
   const mainFileIndex = useMemo(() => {
     const idx = files.findIndex((file) => file.is_main);
@@ -274,14 +300,26 @@ export default function Workspace() {
       writeToTerminal(`${executionText}\n\n${xpText}\n${gateText}`, true);
 
       if (response.passed) {
-        const nextLevel = (moduleProgress?.challenges || []).find(
-          (lvl) => Number(lvl.level_number) === Number(levelNumber) + 1,
-        );
+        if (challengeId && challengeProgress) {
+          const levelsInGroup = challengeProgress.levels || [];
+          const currentIndex = Math.max(0, Number(levelNumber) - 1);
+          const nextLevel = levelsInGroup[currentIndex + 1];
 
-        if (nextLevel) {
-          setTimeout(() => navigate(`${levelPathBase}/${nextLevel.level_number}`), 900);
+          if (nextLevel) {
+            setTimeout(() => navigate(`${levelPathBase}/${currentIndex + 2}`), 900);
+          } else {
+            setTimeout(() => navigate(`/labs/${slug}/modules/${moduleId}/challenges/${challengeId}`), 900);
+          }
         } else {
-          setTimeout(() => navigate(`/labs/${slug}/modules/${moduleId}`), 900);
+          const nextLevel = (moduleProgress?.challenges || []).find(
+            (lvl) => Number(lvl.level_number) === Number(levelNumber) + 1,
+          );
+
+          if (nextLevel) {
+            setTimeout(() => navigate(`${levelPathBase}/${nextLevel.level_number}`), 900);
+          } else {
+            setTimeout(() => navigate(`/labs/${slug}/modules/${moduleId}`), 900);
+          }
         }
       }
     } catch (err) {
@@ -299,7 +337,10 @@ export default function Workspace() {
     return (
       <div className="ws-error">
         <h2>{error || 'Workspace unavailable.'}</h2>
-        <button type="button" onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>
+        <button
+          type="button"
+          onClick={() => navigate(challengeId ? `/labs/${slug}/modules/${moduleId}/challenges/${challengeId}` : `/labs/${slug}/modules/${moduleId}`)}
+        >
           Back to Module
         </button>
       </div>
@@ -309,15 +350,22 @@ export default function Workspace() {
   return (
     <div className="ws-shell">
       <header className="ws-header">
-        <button type="button" className="ws-back-btn" onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>
-          Back to Module
+        <button
+          type="button"
+          className="ws-back-btn"
+          onClick={() => navigate(challengeId ? `/labs/${slug}/modules/${moduleId}/challenges/${challengeId}` : `/labs/${slug}/modules/${moduleId}`)}
+        >
+          {challengeId ? 'Back to Challenge' : 'Back to Module'}
         </button>
 
         <div className="ws-level-track">
-          {(moduleProgress.challenges || []).map((lvl) => {
+          {((challengeId ? challengeProgress?.levels : moduleProgress.challenges) || []).map((lvl, idx) => {
             let stateClass = 'future';
             if (lvl.is_completed) stateClass = 'done';
-            if (Number(lvl.level_number) === Number(levelNumber)) stateClass = 'current';
+            const isCurrent = challengeId
+              ? Number(idx + 1) === Number(levelNumber)
+              : Number(lvl.level_number) === Number(levelNumber);
+            if (isCurrent) stateClass = 'current';
             return <span key={lvl.challenge_id} className={`ws-level-dot ${stateClass}`} title={lvl.display_title} />;
           })}
         </div>

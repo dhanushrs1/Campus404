@@ -95,7 +95,72 @@ def delete_module(module_id: int, db: Session = Depends(get_db)):
     return services.delete_module(db, module_id)
 
 
-# ── CHALLENGE ────────────────────────────────────────────────────────────────
+# ── CHALLENGE GROUP (Concept) ────────────────────────────────────────────────
+@router.post("/challenge-groups", response_model=schemas.ChallengeGroupResponse, status_code=201)
+def create_challenge_group(data: schemas.ChallengeGroupCreate, db: Session = Depends(get_db)):
+    return services.create_challenge_group(db, data)
+
+
+@router.get("/modules/{module_id}/challenges", response_model=list[schemas.ChallengeGroupResponse])
+def list_challenge_groups(module_id: int, db: Session = Depends(get_db)):
+    return services.get_challenge_groups(db, module_id)
+
+
+@router.get("/challenge-groups/{challenge_group_id}", response_model=schemas.ChallengeGroupResponse)
+def get_challenge_group(challenge_group_id: int, db: Session = Depends(get_db)):
+    return services.get_challenge_group(db, challenge_group_id)
+
+
+@router.patch("/challenge-groups/{challenge_group_id}", response_model=schemas.ChallengeGroupResponse)
+def update_challenge_group(
+    challenge_group_id: int,
+    data: schemas.ChallengeGroupUpdate,
+    db: Session = Depends(get_db),
+):
+    return services.update_challenge_group(db, challenge_group_id, data)
+
+
+@router.delete("/challenge-groups/{challenge_group_id}")
+def delete_challenge_group(challenge_group_id: int, db: Session = Depends(get_db)):
+    return services.delete_challenge_group(db, challenge_group_id)
+
+
+# ── LEVEL (Exercise) ─────────────────────────────────────────────────────────
+@router.post("/levels", response_model=schemas.LevelResponse, status_code=201)
+def create_level(data: schemas.LevelCreate, db: Session = Depends(get_db)):
+    return services.create_level(db, data)
+
+
+@router.get("/challenges/{challenge_group_id}/levels", response_model=list[schemas.LevelResponse])
+def list_levels(challenge_group_id: int, db: Session = Depends(get_db)):
+    return services.get_levels(db, challenge_group_id)
+
+
+@router.get("/levels/{level_id}", response_model=schemas.LevelResponse)
+def get_level(level_id: int, db: Session = Depends(get_db)):
+    return services.get_level(db, level_id)
+
+
+@router.patch("/levels/{level_id}", response_model=schemas.LevelResponse)
+def update_level(level_id: int, data: schemas.LevelUpdate, db: Session = Depends(get_db)):
+    return services.update_level(db, level_id, data)
+
+
+@router.delete("/levels/{level_id}")
+def delete_level(level_id: int, db: Session = Depends(get_db)):
+    return services.delete_level(db, level_id)
+
+
+@router.put("/levels/{level_id}/files", response_model=list[schemas.ChallengeFileResponse])
+def replace_level_files(
+    level_id: int,
+    files: list[schemas.ChallengeFileCreate],
+    db: Session = Depends(get_db),
+):
+    return services.upsert_level_files(db, level_id, files)
+
+
+# ── CHALLENGE (legacy level endpoints, kept for compatibility) ──────────────
 @router.post("/challenges", response_model=schemas.ChallengeResponse, status_code=201)
 def create_challenge(data: schemas.ChallengeCreate, db: Session = Depends(get_db)):
     return services.create_challenge(db, data)

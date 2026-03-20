@@ -57,6 +57,21 @@ export const api = {
   deleteChallenge:(id)         => req('DELETE', `/challenges/${id}`),
   replaceChallengeFiles: (id, files) => req('PUT', `/challenges/${id}/files`, files),
 
+  // Challenge Groups (Concept layer)
+  getChallengeGroups: (moduleId) => req('GET', `/modules/${moduleId}/challenges`),
+  getChallengeGroup:  (id)       => req('GET', `/challenge-groups/${id}`),
+  createChallengeGroup: (body)   => req('POST', '/challenge-groups', body),
+  updateChallengeGroup: (id, body) => req('PATCH', `/challenge-groups/${id}`, body),
+  deleteChallengeGroup: (id)     => req('DELETE', `/challenge-groups/${id}`),
+
+  // Levels (Exercise layer)
+  getLevels:        (challengeGroupId) => req('GET', `/challenges/${challengeGroupId}/levels`),
+  getLevel:         (id)               => req('GET', `/levels/${id}`),
+  createLevel:      (body)             => req('POST', '/levels', body),
+  updateLevel:      (id, body)         => req('PATCH', `/levels/${id}`, body),
+  deleteLevel:      (id)               => req('DELETE', `/levels/${id}`),
+  replaceLevelFiles:(id, files)        => req('PUT', `/levels/${id}/files`, files),
+
   // Utilities
   getLanguages: ()             => req('GET', '/languages'),
 

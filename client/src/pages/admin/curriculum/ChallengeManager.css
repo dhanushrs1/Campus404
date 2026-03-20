@@ -1,0 +1,244 @@
+.cgm-wrap {
+  max-width: 980px;
+  position: relative;
+}
+
+.cgm-toast {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.75rem;
+  z-index: 9999;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow: 0 8px 24px rgba(10, 25, 47, 0.15);
+}
+
+.cgm-toast.success {
+  background: #0A192F;
+  color: #337bff;
+.cgm-item-actions .cgm-icon-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+}
+
+.cgm-toast.error {
+  background: #ef4444;
+  color: #fff;
+}
+
+.cgm-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  color: #7b8190;
+}
+
+.cgm-breadcrumb button {
+  border: none;
+  background: none;
+  color: #003acc;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 0;
+}
+
+.cgm-breadcrumb button:hover {
+  color: #003acc;
+}
+
+.cgm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.cgm-header h2 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.35rem;
+  color: #0A192F;
+}
+
+.cgm-header p {
+  margin: 0.3rem 0 0;
+  color: #6b7280;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.86rem;
+}
+
+.cgm-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.cgm-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 0.95rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.cgm-btn.primary {
+  background: #003acc;
+  color: #fff;
+}
+
+.cgm-btn.ghost {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.cgm-loading,
+.cgm-empty {
+  background: #fff;
+  border: 1.5px solid #ebebf0;
+  border-radius: 14px;
+  padding: 1.2rem;
+  font-family: 'Nunito', sans-serif;
+  color: #6b7280;
+}
+
+.cgm-empty h4 {
+  margin: 0 0 0.35rem;
+  font-family: 'Sora', sans-serif;
+  color: #0A192F;
+}
+
+.cgm-empty p {
+  margin: 0 0 0.9rem;
+}
+
+.cgm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cgm-item {
+  background: #fff;
+  border: 1.5px solid #ebebf0;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.cgm-item-main {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.cgm-order {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #e0ebff;
+  color: #003acc;
+  font-size: 0.76rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+}
+
+.cgm-item h4 {
+  margin: 0;
+  font-family: 'Sora', sans-serif;
+  font-size: 1rem;
+  color: #0A192F;
+}
+
+.cgm-item p {
+  margin: 0.35rem 0;
+  color: #6b7280;
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.83rem;
+}
+
+.cgm-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cgm-meta span {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-family: 'Nunito', sans-serif;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.cgm-item-actions {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.cgm-item-actions button {
+  border: 1px solid #d4d7de;
+  background: #fff;
+  color: #4b5563;
+  border-radius: 8px;
+  padding: 0.38rem 0.62rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.cgm-item-actions button:hover {
+  border-color: #003acc;
+  color: #003acc;
+}
+
+.cgm-item-actions .danger {
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.cgm-item-actions .danger:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+@media (max-width: 768px) {
+  .cgm-header {
+    flex-direction: column;
+  }
+
+  .cgm-actions {
+    width: 100%;
+  }
+
+  .cgm-item {
+    flex-direction: column;
+  }
+
+  .cgm-item-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}

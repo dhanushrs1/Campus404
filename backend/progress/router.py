@@ -82,6 +82,17 @@ class ChallengeProgressOut(BaseModel):
     is_locked: bool
 
 
+class ChallengeGroupProgressOut(BaseModel):
+    challenge_id: int
+    title: str
+    description: Optional[str]
+    order_index: int
+    total_xp: int
+    level_count: int
+    completed_levels: int
+    levels: List[ChallengeProgressOut]
+
+
 class ModuleProgressOut(BaseModel):
     module_id: int
     unique_id: str
@@ -100,6 +111,7 @@ class ModuleProgressOut(BaseModel):
     is_completed: bool
     challenge_count: int
     completed_challenges: int
+    challenge_groups: List[ChallengeGroupProgressOut]
     badge: Optional[BadgeOut]
     challenges: List[ChallengeProgressOut]
 
@@ -218,10 +230,14 @@ def _get_completion_map(db: Session, user_id: int) -> Dict[int, cm.ChallengeComp
 
 
 def _published_levels(module: cm.Module) -> List[cm.Challenge]:
-    return sorted(
-        [challenge for challenge in module.challenges if challenge.is_published],
-        key=lambda challenge: challenge.level_number,
-    )
+    levels = [challenge for challenge in module.challenges if challenge.is_published]
+
+    def _key(level: cm.Challenge):
+        group_order = level.challenge_group.order_index if level.challenge_group else 10**9
+        group_id = level.challenge_group.id if level.challenge_group else 10**9
+        return (group_order, group_id, level.level_number, level.id)
+
+    return sorted(levels, key=_key)
 
 
 def _module_gate_summary(module: cm.Module, completion_map: Dict[int, cm.ChallengeCompletion]) -> dict:
@@ -582,6 +598,7 @@ def get_lab_progress(slug: str, request: Request, db: Session = Depends(get_db))
 
         previous_standard_done = True
         challenge_progress: List[ChallengeProgressOut] = []
+        challenge_progress_by_id: Dict[int, ChallengeProgressOut] = {}
         for level in levels:
             is_done = level.id in completion_map
 
@@ -594,15 +611,54 @@ def get_lab_progress(slug: str, request: Request, db: Session = Depends(get_db))
                 if not is_done:
                     previous_standard_done = False
 
-            challenge_progress.append(
-                ChallengeProgressOut(
-                    challenge_id=level.id,
-                    level_number=level.level_number,
-                    challenge_type=level.challenge_type,
-                    display_title=title,
-                    xp_reward=level.xp_reward,
-                    is_completed=is_done,
-                    is_locked=is_locked,
+            progress_item = ChallengeProgressOut(
+                challenge_id=level.id,
+                level_number=level.level_number,
+                challenge_type=level.challenge_type,
+                display_title=title,
+                xp_reward=level.xp_reward,
+                is_completed=is_done,
+                is_locked=is_locked,
+            )
+            challenge_progress.append(progress_item)
+            challenge_progress_by_id[level.id] = progress_item
+
+        challenge_groups_out: List[ChallengeGroupProgressOut] = []
+        ordered_groups = sorted(
+            list(module.challenge_groups or []),
+            key=lambda group: (group.order_index, group.id),
+        )
+
+        for group in ordered_groups:
+            group_levels = [lvl for lvl in levels if lvl.challenge_group_id == group.id]
+            level_progress = [challenge_progress_by_id[lvl.id] for lvl in group_levels if lvl.id in challenge_progress_by_id]
+
+            challenge_groups_out.append(
+                ChallengeGroupProgressOut(
+                    challenge_id=group.id,
+                    title=group.title,
+                    description=group.description,
+                    order_index=group.order_index,
+                    total_xp=int(sum(lvl.xp_reward for lvl in group_levels)),
+                    level_count=len(group_levels),
+                    completed_levels=len([lvl for lvl in group_levels if lvl.id in completion_map]),
+                    levels=level_progress,
+                )
+            )
+
+        ungrouped_levels = [lvl for lvl in levels if lvl.challenge_group_id is None]
+        if ungrouped_levels:
+            level_progress = [challenge_progress_by_id[lvl.id] for lvl in ungrouped_levels if lvl.id in challenge_progress_by_id]
+            challenge_groups_out.append(
+                ChallengeGroupProgressOut(
+                    challenge_id=0,
+                    title="General Practice",
+                    description="Ungrouped levels",
+                    order_index=10**6,
+                    total_xp=int(sum(lvl.xp_reward for lvl in ungrouped_levels)),
+                    level_count=len(ungrouped_levels),
+                    completed_levels=len([lvl for lvl in ungrouped_levels if lvl.id in completion_map]),
+                    levels=level_progress,
                 )
             )
 
@@ -627,6 +683,7 @@ def get_lab_progress(slug: str, request: Request, db: Session = Depends(get_db))
                 is_completed=summary["module_completed"],
                 challenge_count=len(levels),
                 completed_challenges=len([lvl for lvl in levels if lvl.id in completion_map]),
+                challenge_groups=challenge_groups_out,
                 badge=badge_out,
                 challenges=challenge_progress,
             )
