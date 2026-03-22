@@ -30,8 +30,9 @@ class Lab(Base):
     title             = Column(String(255), nullable=False)
     slug              = Column(String(255), unique=True, nullable=False, index=True)
     description       = Column(String(160), nullable=True)
-    banner_image_path = Column(String(512), nullable=True)
-    hero_image_url    = Column(String(512), nullable=True)  # external hero/cover image URL
+    banner_image_path    = Column(String(512), nullable=True)
+    isometric_image_path = Column(String(512), nullable=True)   # isometric building image for Labs page
+    hero_image_url       = Column(String(512), nullable=True)   # external hero/cover image URL
     language_id       = Column(Integer, default=71, nullable=False)
     is_published      = Column(Boolean, default=False, nullable=False)
     created_at        = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)

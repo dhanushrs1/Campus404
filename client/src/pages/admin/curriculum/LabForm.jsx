@@ -9,21 +9,23 @@ const SLUG_RE   = /^[a-z0-9-]+$/;
 const toSlug    = (s) => s.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 const DESC_MAX  = 160;
 
-const INITIAL = { title: '', slug: '', description: '', banner_image_path: '', language_id: 71, is_published: false };
+const INITIAL = { title: '', slug: '', description: '', banner_image_path: '', isometric_image_path: '', language_id: 71, is_published: false };
 
 export default function LabForm() {
   const navigate     = useNavigate();
   const { labId }    = useParams();
   const isEdit       = Boolean(labId);
 
-  const [form,       setForm]       = useState(INITIAL);
-  const [bannerUrl,  setBannerUrl]  = useState(null);
-  const [slugManual, setSlugManual] = useState(false);
-  const [errors,     setErrors]     = useState({});
-  const [saving,     setSaving]     = useState(false);
-  const [toast,      setToast]      = useState(null);
-  const [showPicker, setShowPicker] = useState(false);
-  const [languages,  setLanguages]  = useState([]);
+  const [form,             setForm]             = useState(INITIAL);
+  const [bannerUrl,        setBannerUrl]        = useState(null);
+  const [isoUrl,           setIsoUrl]           = useState(null);
+  const [slugManual,       setSlugManual]       = useState(false);
+  const [errors,           setErrors]           = useState({});
+  const [saving,           setSaving]            = useState(false);
+  const [toast,            setToast]            = useState(null);
+  const [showPicker,       setShowPicker]       = useState(false);
+  const [showIsoPicker,    setShowIsoPicker]    = useState(false);
+  const [languages,        setLanguages]        = useState([]);
 
   const [modules,    setModules]    = useState([]);
 
@@ -40,14 +42,16 @@ export default function LabForm() {
     if (!isEdit) return;
     api.getLab(labId).then(lab => {
       setForm({
-        title:             lab.title,
-        slug:              lab.slug,
-        description:       lab.description || '',
-        banner_image_path: lab.banner_image_path || '',
-        language_id:       lab.language_id || 71,
-        is_published:      lab.is_published,
+        title:                lab.title,
+        slug:                 lab.slug,
+        description:          lab.description || '',
+        banner_image_path:    lab.banner_image_path || '',
+        isometric_image_path: lab.isometric_image_path || '',
+        language_id:          lab.language_id || 71,
+        is_published:         lab.is_published,
       });
       setBannerUrl(lab.banner_url);
+      setIsoUrl(lab.isometric_image_url);
       setSlugManual(true);
     }).catch(e => showToast(e.message, 'error'));
 
@@ -80,6 +84,13 @@ export default function LabForm() {
     setShowPicker(false);
   };
 
+  // Called by MediaPickerModal for isometric image
+  const handleIsoPick = ({ url, path }) => {
+    set('isometric_image_path', path);
+    setIsoUrl(url);
+    setShowIsoPicker(false);
+  };
+
   const validate = () => {
     const errs = {};
     if (!form.title.trim()) errs.title = 'Title is required.';
@@ -93,7 +104,7 @@ export default function LabForm() {
     e.preventDefault();
     if (!validate()) return;
     setSaving(true);
-    const payload = { ...form, banner_image_path: form.banner_image_path || null };
+    const payload = { ...form, banner_image_path: form.banner_image_path || null, isometric_image_path: form.isometric_image_path || null };
     try {
       if (isEdit) {
         await api.updateLab(labId, payload);
@@ -117,6 +128,14 @@ export default function LabForm() {
           showAlt={false}
           onSelect={handleBannerPick}
           onClose={() => setShowPicker(false)}
+        />
+      )}
+      {showIsoPicker && (
+        <MediaPickerModal
+          title="Select Isometric Building Image"
+          showAlt={false}
+          onSelect={handleIsoPick}
+          onClose={() => setShowIsoPicker(false)}
         />
       )}
 
@@ -182,6 +201,33 @@ export default function LabForm() {
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                   <span>Set banner image</span>
                   <small>Opens media library</small>
+                </button>
+              )}
+            </div>
+
+            {/* Isometric Building Image */}
+            <div className="lf-field">
+              <label>Isometric Building Image</label>
+              <small className="lf-dim-hint">Recommended: 512 × 512 px · PNG with transparent background · Isometric style</small>
+              {isoUrl ? (
+                <div className="lf-iso-set">
+                  <img src={isoUrl} alt="Isometric" className="lf-iso-preview" />
+                  <div className="lf-banner-set-actions">
+                    <button type="button" className="lf-banner-change" onClick={() => setShowIsoPicker(true)}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Change image
+                    </button>
+                    <button type="button" className="lf-banner-remove"
+                      onClick={() => { set('isometric_image_path', ''); setIsoUrl(null); }}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" className="lf-banner-placeholder-btn" onClick={() => setShowIsoPicker(true)}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  <span>Set isometric building image</span>
+                  <small>Used on the Labs listing page · Opens media library</small>
                 </button>
               )}
             </div>

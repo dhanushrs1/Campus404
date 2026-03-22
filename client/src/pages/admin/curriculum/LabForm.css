@@ -75,6 +75,17 @@
 .lf-spinner { width:24px; height:24px; border:3px solid #e5e5e5; border-top-color:#003acc; border-radius:50%; animation:spin .7s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg) } }
 
+/* Isometric image picker */
+.lf-dim-hint {
+  display:block; font-size:.72rem; color:#999; margin-bottom:.375rem;
+  font-family:'Nunito',sans-serif; line-height:1.45;
+}
+.lf-iso-set { border:1.5px solid #ebebf0; border-radius:12px; overflow:hidden; background:#fafbfe; text-align:center; }
+.lf-iso-preview {
+  max-width:200px; max-height:200px; object-fit:contain; display:inline-block;
+  padding:1rem; image-rendering:auto;
+}
+
 /* Sidebar */
 .lf-sidebar { display:flex; flex-direction:column; gap:1rem; }
 .lf-card { background:#fff; border:1.5px solid #ebebf0; border-radius:14px; padding:1rem; }

@@ -20,47 +20,53 @@ def _validate_image_path(v: Optional[str]) -> Optional[str]:
 
 # ── LAB ───────────────────────────────────────────────────────────────────────
 class LabCreate(BaseModel):
-    title:             str           = Field(..., min_length=1, max_length=255)
-    slug:              str           = Field(..., min_length=1, max_length=255, pattern=r'^[a-z0-9-]+$')
-    description:       Optional[str] = Field(None, max_length=160)
-    banner_image_path: Optional[str] = None
-    language_id:       int           = Field(71, ge=1)   # Judge0 language id; default Python 3
-    is_published:      bool          = False
+    title:                str           = Field(..., min_length=1, max_length=255)
+    slug:                 str           = Field(..., min_length=1, max_length=255, pattern=r'^[a-z0-9-]+$')
+    description:          Optional[str] = Field(None, max_length=160)
+    banner_image_path:    Optional[str] = None
+    isometric_image_path: Optional[str] = None
+    language_id:          int           = Field(71, ge=1)   # Judge0 language id; default Python 3
+    is_published:         bool          = False
 
     @model_validator(mode='after')
     def check_path(self):
         self.banner_image_path = _validate_image_path(self.banner_image_path)
+        self.isometric_image_path = _validate_image_path(self.isometric_image_path)
         return self
 
 
 class LabUpdate(BaseModel):
-    title:             Optional[str]  = Field(None, min_length=1, max_length=255)
-    slug:              Optional[str]  = Field(None, pattern=r'^[a-z0-9-]+$')
-    description:       Optional[str]  = Field(None, max_length=160)
-    banner_image_path: Optional[str]  = None
-    hero_image_url:    Optional[str]  = None
-    language_id:       Optional[int]  = Field(None, ge=1)
-    is_published:      Optional[bool] = None
+    title:                Optional[str]  = Field(None, min_length=1, max_length=255)
+    slug:                 Optional[str]  = Field(None, pattern=r'^[a-z0-9-]+$')
+    description:          Optional[str]  = Field(None, max_length=160)
+    banner_image_path:    Optional[str]  = None
+    isometric_image_path: Optional[str]  = None
+    hero_image_url:       Optional[str]  = None
+    language_id:          Optional[int]  = Field(None, ge=1)
+    is_published:         Optional[bool] = None
 
     @model_validator(mode='after')
     def check_path(self):
         self.banner_image_path = _validate_image_path(self.banner_image_path)
+        self.isometric_image_path = _validate_image_path(self.isometric_image_path)
         return self
 
 
 class LabResponse(BaseModel):
-    id:                int
-    title:             str
-    slug:              str
-    description:       Optional[str] = None
-    banner_image_path: Optional[str] = None
-    banner_url:        Optional[str] = None
-    hero_image_url:    Optional[str] = None
-    language_id:       int
-    is_published:      bool
-    total_xp:          int
-    module_count:      int
-    created_at:        datetime
+    id:                   int
+    title:                str
+    slug:                 str
+    description:          Optional[str] = None
+    banner_image_path:    Optional[str] = None
+    banner_url:           Optional[str] = None
+    isometric_image_path: Optional[str] = None
+    isometric_image_url:  Optional[str] = None
+    hero_image_url:       Optional[str] = None
+    language_id:          int
+    is_published:         bool
+    total_xp:             int
+    module_count:         int
+    created_at:           datetime
 
     model_config = {"from_attributes": True}
 

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/authentication/login/Login';
 import Register from './pages/authentication/register/Register';
 import ForgotPassword from './pages/authentication/forgot-password/ForgotPassword';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 
 import AdminLayout    from './layouts/AdminLayout/AdminLayout';
@@ -29,16 +30,13 @@ import Workspace      from './pages/workspace/Workspace';
 import LabCurriculum  from './pages/workspace/LabCurriculum';
 import ModuleCurriculum from './pages/workspace/ModuleCurriculum';
 import ChallengeLevels from './pages/workspace/ChallengeLevels';
+import LabsExplorer   from './pages/labs/LabsExplorer';
 import GuidePage from './pages/guide/GuidePage';
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={
-        <AuthGuard requireAuth={false}>
-          <Navigate to="/login" replace />
-        </AuthGuard>
-      } />
+      <Route path="/" element={<Home />} />
 
       {/* Workspace route with challenge context */}
       <Route path="/labs/:slug/modules/:moduleId/challenges/:challengeId/level/:levelNumber" element={
@@ -76,7 +74,7 @@ function App() {
 
       <Route path="/labs" element={
         <AuthGuard requireAuth={true}>
-          <Navigate to="/dashboard" replace />
+          <LabsExplorer />
         </AuthGuard>
       } />
 

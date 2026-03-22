@@ -29,6 +29,12 @@ with engine.connect() as conn:
     else:
         print('[SKIP] hero_image_url already exists in labs')
 
+    if 'isometric_image_path' not in lab_cols:
+        conn.execute(text('ALTER TABLE labs ADD COLUMN isometric_image_path VARCHAR(512) NULL'))
+        print('[OK] Added isometric_image_path to labs')
+    else:
+        print('[SKIP] isometric_image_path already exists in labs')
+
     # ── modules: add unique_id + slug ──────────────────────
     mod_cols = [c['name'] for c in insp.get_columns('modules')]
     if 'unique_id' not in mod_cols:

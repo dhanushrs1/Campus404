@@ -49,8 +49,10 @@ def _lab_to_response(db: Session, request: Request, lab: models.Lab) -> schemas.
         slug=lab.slug,
         description=lab.description,
         banner_image_path=lab.banner_image_path,
-        hero_image_url=lab.hero_image_url,
         banner_url=build_image_url(request, lab.banner_image_path),
+        isometric_image_path=lab.isometric_image_path,
+        isometric_image_url=build_image_url(request, lab.isometric_image_path),
+        hero_image_url=lab.hero_image_url,
         language_id=lab.language_id,
         is_published=lab.is_published,
         total_xp=models.compute_lab_total_xp(db, lab.id),
@@ -232,6 +234,8 @@ def update_lab(db, request, lab_id, data):
     update_data = data.model_dump(exclude_unset=True)
     if "banner_image_path" in update_data and update_data["banner_image_path"] != lab.banner_image_path:
         _safe_delete_image(lab.banner_image_path)
+    if "isometric_image_path" in update_data and update_data["isometric_image_path"] != lab.isometric_image_path:
+        _safe_delete_image(lab.isometric_image_path)
     for field, value in update_data.items():
         setattr(lab, field, value)
     db.commit()
@@ -244,6 +248,7 @@ def delete_lab(db, lab_id):
     if not lab:
         raise HTTPException(status_code=404, detail="Lab not found.")
     _safe_delete_image(lab.banner_image_path)
+    _safe_delete_image(lab.isometric_image_path)
     db.delete(lab)
     db.commit()
     return {"message": f"Lab '{lab.title}' deleted.", "id": lab_id}
