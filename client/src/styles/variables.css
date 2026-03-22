@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Nunito:wght@300;400;600;700&family=Sora:wght@400;600;700;800&display=swap');
 
 :root {
+  --site-header-height: 72px;
+  --site-header-max-width: 1200px;
+
   /* Legacy Admin/Auth Tokens */
   --c-alabaster: #f4f4f2;
   --c-obsidian: #0a192f;

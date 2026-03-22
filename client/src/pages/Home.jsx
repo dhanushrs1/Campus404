@@ -1,205 +1,262 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header/Header';
 import Footer from '../components/Footer/Footer';
 import './Home.css';
 
-/* ── Inline SVG icons (no dependency) ────────────────────── */
-const Icons = {
-  Flask: () => (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/>
-    </svg>
-  ),
-  Code: () => (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-    </svg>
-  ),
-  Trophy: () => (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-    </svg>
-  ),
-  Map: () => (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
-    </svg>
-  ),
-  Terminal: () => (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
-    </svg>
-  ),
-  Users: () => (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-  ),
-  Arrow: () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-    </svg>
-  ),
-};
+const PLATFORM_LOGOS = [
+  'Python',
+  'JavaScript',
+  'Java',
+  'C++',
+  'Go',
+  'Rust',
+  'TypeScript',
+  'SQL',
+  'Docker',
+  'GitHub',
+  'Linux',
+  'Node.js',
+];
 
-const FEATURES = [
+const FEATURE_CARDS = [
   {
-    icon: 'Flask',
-    title: 'Interactive Labs',
-    desc: 'Hands-on coding labs with real-world challenges. Write, run, and test code directly in your browser.',
-    color: '#3b82f6',
+    title: 'Challenge Engine',
+    text: 'Practice on real coding tasks with instant test-case feedback and clear performance hints.',
+    stat: '1,200+ challenges',
   },
   {
-    icon: 'Code',
-    title: 'Progressive Challenges',
-    desc: 'Level up through increasingly complex problems. Each challenge builds on what you have already learned.',
-    color: '#8b5cf6',
+    title: 'Roadmap Progression',
+    text: 'Move from fundamentals to advanced topics with guided modules mapped to real developer roles.',
+    stat: '40+ language tracks',
   },
   {
-    icon: 'Trophy',
-    title: 'Badges & XP',
-    desc: 'Earn experience points and unlock badges as you complete modules. Track your growth over time.',
-    color: '#f59e0b',
+    title: 'Skill Verification',
+    text: 'Earn badges and completion signals that show measurable growth across domains.',
+    stat: '95% learner satisfaction',
   },
   {
-    icon: 'Map',
-    title: 'Structured Roadmaps',
-    desc: 'Follow curated learning paths designed by experienced developers. No more tutorial rabbit holes.',
-    color: '#059669',
-  },
-  {
-    icon: 'Terminal',
-    title: 'Sandbox Playground',
-    desc: 'Free coding playground with 40+ languages. Experiment, prototype, and break things safely.',
-    color: '#ef4444',
-  },
-  {
-    icon: 'Users',
-    title: 'Active Community',
-    desc: 'Join discussions, share solutions, and learn from peers on the leaderboard. You are never coding alone.',
-    color: '#06b6d4',
+    title: 'Sandbox IDE',
+    text: 'Run code in-browser with a clean terminal and experiment safely before submitting challenges.',
+    stat: 'Low-latency execution',
   },
 ];
 
-const LANGUAGES = ['Python', 'JavaScript', 'Java', 'C++', 'Go', 'Rust', 'TypeScript', 'Ruby', 'SQL'];
+const LEARNING_STEPS = [
+  {
+    step: '01',
+    title: 'Pick a Path',
+    desc: 'Choose frontend, backend, data structures, or language-specific practice and set weekly goals.',
+  },
+  {
+    step: '02',
+    title: 'Write and Run',
+    desc: 'Code directly in the platform editor, execute test suites, and iterate with guided feedback.',
+  },
+  {
+    step: '03',
+    title: 'Track Progress',
+    desc: 'Monitor solved levels, XP earned, and completion velocity using dashboard insights.',
+  },
+  {
+    step: '04',
+    title: 'Build Credibility',
+    desc: 'Show your completed modules and challenge streaks as proof of practical coding consistency.',
+  },
+];
+
+const FAQ = [
+  {
+    q: 'What is Campus404?',
+    a: 'Campus404 is a coding learning platform where developers practice with challenge-based modules, in-browser execution, and progress tracking.',
+  },
+  {
+    q: 'Who is Campus404 for?',
+    a: 'It is designed for students, self-learners, and working developers who want structured coding practice and measurable progress.',
+  },
+  {
+    q: 'Can beginners use Campus404?',
+    a: 'Yes. Learning paths start from foundational topics and gradually move into intermediate and advanced coding challenges.',
+  },
+  {
+    q: 'Does Campus404 support multiple programming languages?',
+    a: 'Yes. The platform supports multiple languages and module types so learners can practice based on career goals.',
+  },
+];
+
+function upsertMeta(name, content) {
+  let tag = document.querySelector(`meta[name="${name}"]`);
+  if (!tag) {
+    tag = document.createElement('meta');
+    tag.setAttribute('name', name);
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute('content', content);
+}
 
 export default function Home() {
-  const isLoggedIn = !!localStorage.getItem('token');
+  const isLoggedIn = Boolean(localStorage.getItem('token'));
+
+  useEffect(() => {
+    document.title = 'Campus404 | Coding Challenges, Practice Labs, and Developer Roadmaps';
+    upsertMeta(
+      'description',
+      'Campus404 helps developers learn by building real coding skills through challenge labs, guided roadmaps, and measurable progress.'
+    );
+  }, []);
 
   return (
-    <div className="hp-page">
+    <div className="home-page-v2">
       <Header />
 
-      {/* HERO */}
-      <section className="hp-hero">
-        <div className="hp-hero-glow" />
-        <div className="hp-hero-inner">
-          <span className="hp-hero-pill">🚀 The platform for serious developers</span>
-          <h1 className="hp-hero-title">
-            Code. Learn.<br />
-            <span className="hp-hero-accent">Level Up.</span>
-          </h1>
-          <p className="hp-hero-desc">
-            Master programming through hands-on labs, progressive challenges, and structured
-            roadmaps. Earn XP, collect badges, and track your growth &mdash; all in one place.
-          </p>
-          <div className="hp-hero-cta">
-            {isLoggedIn ? (
-              <>
-                <Link to="/labs" className="hp-btn-primary">Explore Labs <Icons.Arrow /></Link>
-                <Link to="/dashboard" className="hp-btn-ghost">My Dashboard</Link>
-              </>
-            ) : (
-              <>
-                <Link to="/register" className="hp-btn-primary">Start for Free <Icons.Arrow /></Link>
-                <Link to="/login" className="hp-btn-ghost">Log In</Link>
-              </>
-            )}
+      <main>
+        <section className="hpv2-hero" aria-label="Campus404 coding platform introduction">
+          <div className="hpv2-grid">
+            <div className="hpv2-copy">
+              <p className="hpv2-kicker">Practical coding practice platform</p>
+              <h1>Build Real Developer Skills with Guided Coding Challenges</h1>
+              <p className="hpv2-subtext">
+                Campus404 combines structured learning paths, real challenge environments, and progress analytics so you can improve faster and code with confidence.
+              </p>
+
+              <div className="hpv2-cta-row">
+                {isLoggedIn ? (
+                  <>
+                    <Link to="/dashboard" className="hpv2-btn hpv2-btn-primary">Open Dashboard</Link>
+                    <Link to="/labs" className="hpv2-btn hpv2-btn-ghost">Explore Labs</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/register" className="hpv2-btn hpv2-btn-primary">Start Learning Free</Link>
+                    <Link to="/login" className="hpv2-btn hpv2-btn-ghost">Login</Link>
+                  </>
+                )}
+              </div>
+
+              <ul className="hpv2-points" aria-label="Platform highlights">
+                <li>Challenge-first learning for interview and real-world coding</li>
+                <li>Clear skill progression from beginner to advanced</li>
+                <li>Consistent weekly practice with XP and badge milestones</li>
+              </ul>
+            </div>
+
+            <div className="hpv2-visual" aria-hidden="true">
+              <div className="hpv2-terminal-card">
+                <div className="hpv2-terminal-top">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <pre>{`$ campus404 run challenge --module "arrays"
+Running tests...\n
+Test 1/5  PASSED
+Test 2/5  PASSED
+Test 3/5  PASSED
+Test 4/5  PASSED
+Test 5/5  PASSED
+
+XP Awarded: +120
+Badge Progress: 78%`}</pre>
+              </div>
+
+              <div className="hpv2-image-card">
+                <img
+                  src="/placeholders/home/hero-lab-scene.svg"
+                  alt="Coding workspace mockup"
+                />
+              </div>
+            </div>
           </div>
-          <div className="hp-hero-langs">
-            {LANGUAGES.map(lang => (
-              <span key={lang} className="hp-lang-chip">{lang}</span>
+        </section>
+
+        <section className="hpv2-logo-strip" aria-label="Supported technologies">
+          <div className="hpv2-marquee-track">
+            {[...PLATFORM_LOGOS, ...PLATFORM_LOGOS].map((logo, i) => (
+              <span key={`${logo}-${i}`} className="hpv2-logo-pill">{logo}</span>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FEATURES */}
-      <section className="hp-section">
-        <div className="hp-section-inner">
-          <div className="hp-section-header">
-            <span className="hp-section-pill">&#10024; Features</span>
-            <h2 className="hp-section-title">Everything you need to grow</h2>
-            <p className="hp-section-desc">
-              A complete learning ecosystem designed to take you from beginner to job-ready.
+        <section className="hpv2-features" aria-label="Platform features">
+          <div className="hpv2-section-head">
+            <p className="hpv2-section-kicker">Why Campus404</p>
+            <h2>Everything Needed for High-Impact Coding Practice</h2>
+          </div>
+
+          <div className="hpv2-feature-grid">
+            {FEATURE_CARDS.map((card) => (
+              <article key={card.title} className="hpv2-feature-card">
+                <h3>{card.title}</h3>
+                <p>{card.text}</p>
+                <span>{card.stat}</span>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="hpv2-learning-path" aria-label="How the learning workflow works">
+          <div className="hpv2-section-head">
+            <p className="hpv2-section-kicker">Learning workflow</p>
+            <h2>From First Problem to Consistent Mastery</h2>
+          </div>
+
+          <div className="hpv2-horizontal-scroll" role="region" aria-label="Learning path steps">
+            {LEARNING_STEPS.map((step) => (
+              <article key={step.step} className="hpv2-path-card">
+                <span className="hpv2-step-id">{step.step}</span>
+                <h3>{step.title}</h3>
+                <p>{step.desc}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="hpv2-showcase" aria-label="Platform preview images">
+          <div className="hpv2-showcase-copy">
+            <p className="hpv2-section-kicker">Visual preview</p>
+            <h2>Clean UI, Focused Coding Experience</h2>
+            <p>
+              The product experience is designed to reduce noise and keep your attention on execution, learning feedback, and measurable momentum.
             </p>
           </div>
-          <div className="hp-features-grid">
-            {FEATURES.map(f => {
-              const Icon = Icons[f.icon];
-              return (
-                <div key={f.title} className="hp-feature-card">
-                  <div className="hp-feature-icon" style={{ background: f.color + '12', color: f.color }}>
-                    <Icon />
-                  </div>
-                  <h3 className="hp-feature-title">{f.title}</h3>
-                  <p className="hp-feature-desc">{f.desc}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
-      {/* HOW IT WORKS */}
-      <section className="hp-section hp-section-alt">
-        <div className="hp-section-inner">
-          <div className="hp-section-header">
-            <span className="hp-section-pill">&#128203; How it works</span>
-            <h2 className="hp-section-title">Three steps to mastery</h2>
+          <div className="hpv2-showcase-grid">
+            <img src="/placeholders/home/dashboard-preview.svg" alt="Dashboard preview placeholder" />
+            <img src="/placeholders/home/challenge-preview.svg" alt="Challenge interface preview placeholder" />
           </div>
-          <div className="hp-steps">
-            <div className="hp-step">
-              <div className="hp-step-num">1</div>
-              <h3>Pick a Lab</h3>
-              <p>Choose from labs in Python, JavaScript, Java, and more. Each lab has structured modules with progressive difficulty.</p>
-            </div>
-            <div className="hp-step-line" />
-            <div className="hp-step">
-              <div className="hp-step-num">2</div>
-              <h3>Solve Challenges</h3>
-              <p>Write code in our in-browser editor, run it against test cases, and earn XP for every challenge you complete.</p>
-            </div>
-            <div className="hp-step-line" />
-            <div className="hp-step">
-              <div className="hp-step-num">3</div>
-              <h3>Earn &amp; Grow</h3>
-              <p>Unlock badges, climb the leaderboard, and build a portfolio of completed challenges that proves your skills.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA BANNER */}
-      <section className="hp-cta-section">
-        <div className="hp-cta-inner">
-          <h2 className="hp-cta-title">Ready to start coding?</h2>
-          <p className="hp-cta-desc">
-            Join thousands of developers building real skills through hands-on practice.
-          </p>
-          <div className="hp-cta-buttons">
+        <section className="hpv2-faq" aria-label="Frequently asked questions">
+          <div className="hpv2-section-head">
+            <p className="hpv2-section-kicker">FAQ</p>
+            <h2>Common Questions About Campus404</h2>
+          </div>
+
+          <div className="hpv2-faq-grid">
+            {FAQ.map((item) => (
+              <article key={item.q} className="hpv2-faq-item">
+                <h3>{item.q}</h3>
+                <p>{item.a}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="hpv2-final-cta" aria-label="Call to action">
+          <h2>Start Practicing with Purpose</h2>
+          <p>Join Campus404 and turn coding consistency into real capability.</p>
+          <div className="hpv2-cta-row hpv2-cta-row-center">
             {isLoggedIn ? (
-              <Link to="/labs" className="hp-btn-primary hp-btn-lg">Browse Labs <Icons.Arrow /></Link>
+              <Link to="/labs" className="hpv2-btn hpv2-btn-primary">Go to Labs</Link>
             ) : (
               <>
-                <Link to="/register" className="hp-btn-primary hp-btn-lg">Create Free Account <Icons.Arrow /></Link>
-                <Link to="/login" className="hp-btn-ghost hp-btn-lg">Already have an account?</Link>
+                <Link to="/register" className="hpv2-btn hpv2-btn-primary">Create Account</Link>
+                <Link to="/login" className="hpv2-btn hpv2-btn-ghost">Login</Link>
               </>
             )}
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <Footer />
     </div>

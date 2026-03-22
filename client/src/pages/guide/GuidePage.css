@@ -159,7 +159,7 @@
 .guide-page-content h2,
 .guide-page-content h3,
 .guide-page-content h4 {
-  scroll-margin-top: 100px;
+  scroll-margin-top: calc(var(--site-header-height, 72px) + 24px);
   font-family: var(--font-heading, var(--font));
   color: #0f172a;
   line-height: 1.3;

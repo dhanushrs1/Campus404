@@ -1,83 +1,145 @@
-/* LabsExplorer — Campus404 Labs Listing Page
-   Light mode theme matching LabCurriculum */
+/* LabsExplorer — Gamified Labs Listing
+   Light theme with hero image, progress rings, XP bars */
 
 /* ── Page ──────────────────────────────────────────── */
 .le-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #f5f5f8;
+  background: #f4f6f8;
 }
 
-/* ── Hero ──────────────────────────────────────────── */
+/* ── Hero with background image ────────────────────── */
+.le-page .site-header + .le-hero,
+.le-hero {
+  margin-top: 0;
+  padding-top: 0;
+}
+
 .le-hero {
   position: relative;
-  background: linear-gradient(130deg, #081a3d 0%, #0a224f 48%, #102f6a 100%);
-  padding: 100px 28px 56px;
-  text-align: center;
+  min-height: clamp(380px, 45vh, 500px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
-.le-hero::before {
-  content: '';
+.le-hero-bg {
   position: absolute;
-  top: -120px; left: 50%;
-  transform: translateX(-50%);
-  width: 700px; height: 350px;
-  background: radial-gradient(ellipse, rgba(0, 58, 204, 0.25), transparent 70%);
-  pointer-events: none;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
 }
-.le-hero-inner {
+.le-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10, 20, 45, 0.95) 0%,
+    rgba(10, 20, 45, 0.8) 50%,
+    rgba(10, 20, 45, 0.4) 100%
+  );
+}
+.le-hero-content {
   position: relative;
-  max-width: 600px;
+  z-index: 2;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 0 2rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 .le-hero-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 16px;
+  gap: 8px;
+  padding: 6px 18px;
   border-radius: 999px;
-  background: rgba(0, 58, 204, 0.15);
-  border: 1px solid rgba(0, 58, 204, 0.3);
-  font-size: 0.78rem;
+  background: rgba(0, 58, 204, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(144, 224, 239, 0.3);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.85rem;
   font-weight: 700;
   color: #90e0ef;
   letter-spacing: 0.04em;
-  font-family: 'Inter', sans-serif;
+  width: fit-content;
 }
 .le-hero-title {
   font-family: 'Sora', sans-serif;
-  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-size: clamp(2.4rem, 6vw, 4rem);
   font-weight: 900;
-  letter-spacing: -0.04em;
   color: #fff;
-  line-height: 1.15;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin: 0;
 }
-.le-hero-accent {
-  background: linear-gradient(135deg, #60a5fa, #003acc);
+.le-accent {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 .le-hero-desc {
   font-family: 'Nunito', sans-serif;
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.65;
-  max-width: 480px;
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+  max-width: 580px;
+  margin: 0;
+}
+
+/* Hero stats strip */
+.le-hero-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 12px 0;
+  width: fit-content;
+  margin-top: 12px;
+}
+.le-hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 32px;
+}
+.le-hero-stat-val {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+}
+.le-hero-stat-label {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+.le-hero-stat-sep {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* ── Main ──────────────────────────────────────────── */
 .le-main {
   flex: 1;
-  max-width: 1120px;
+  max-width: 1200px;
   width: 100%;
   margin: 0 auto;
-  padding: 48px 28px 64px;
+  padding: 24px 28px 80px;
 }
 
 /* ── Loading / Error / Empty ───────────────────────── */
@@ -94,8 +156,8 @@
 }
 .le-state-error { color: #ef4444; }
 .le-spinner {
-  width: 36px; height: 36px;
-  border: 3px solid #e5e5e5;
+  width: 40px; height: 40px;
+  border: 3.5px solid #e5e5e5;
   border-top-color: #003acc;
   border-radius: 50%;
   animation: le-spin 0.7s linear infinite;
@@ -105,14 +167,17 @@
 /* ── Grid ──────────────────────────────────────────── */
 .le-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 32px 28px;
+  margin-top: 60px; /* Space for overlapping images */
 }
 
 /* ── Card ──────────────────────────────────────────── */
 .le-card {
-  background: none;
-  border: none;
+  position: relative;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
   padding: 0;
   cursor: pointer;
   display: flex;
@@ -120,81 +185,83 @@
   align-items: center;
   text-align: center;
   outline: none;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease;
   font-family: 'Inter', sans-serif;
+  margin-top: 80px; /* Crucial: space above the card body for the image to jut out */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 .le-card:hover {
   transform: translateY(-8px);
+  border-color: rgba(0, 58, 204, 0.2);
+  box-shadow: 0 20px 48px rgba(0, 58, 204, 0.08);
+}
+.le-card.completed {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+.le-card.completed:hover {
+  box-shadow: 0 20px 48px rgba(16, 185, 129, 0.08);
 }
 .le-card:focus-visible {
   outline: 2px solid #003acc;
   outline-offset: 4px;
-  border-radius: 16px;
 }
 
-/* Image area */
+/* Image floating halfway out of the card */
 .le-card-image {
-  width: 200px;
-  height: 200px;
+  position: absolute;
+  top: -90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 180px;
+  height: 180px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  position: relative;
-  z-index: 1;
-  margin-bottom: -24px;
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
-  transition: filter 0.3s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 5;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
 }
 .le-card:hover .le-card-image {
-  filter: drop-shadow(0 12px 32px rgba(0, 58, 204, 0.2));
-  transform: translateY(-4px);
+  transform: translateX(-50%) scale(1.06) translateY(-4px);
 }
 .le-iso-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  image-rendering: auto;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.15));
 }
 .le-fallback-svg {
-  width: 160px;
-  height: 160px;
+  width: 140px;
+  height: 140px;
 }
 
-/* Info card below image */
-.le-card-info {
-  background: #fff;
-  border: 1.5px solid #ebebf0;
-  border-radius: 16px;
-  padding: 32px 20px 20px;
+/* Card body — needs heavy top padding because of the image */
+.le-card-body {
+  padding: 100px 24px 28px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
-}
-.le-card:hover .le-card-info {
-  border-color: rgba(0, 58, 204, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 58, 204, 0.1);
+  gap: 12px;
 }
 
 /* Language badge */
 .le-lang-badge {
-  display: inline-block;
-  padding: 3px 12px;
+  display: inline-flex;
+  padding: 4px 14px;
   border-radius: 999px;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.7rem;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   border: 1px solid;
 }
 
 /* Card text */
 .le-card-title {
   font-family: 'Sora', sans-serif;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 1.15rem;
+  font-weight: 800;
   color: #0A192F;
   letter-spacing: -0.02em;
   line-height: 1.3;
@@ -202,9 +269,9 @@
 }
 .le-card-desc {
   font-family: 'Nunito', sans-serif;
-  font-size: 0.8rem;
-  color: #888;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.55;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -212,39 +279,115 @@
   overflow: hidden;
   margin: 0;
 }
-.le-card-meta {
+
+/* Stats row */
+.le-card-stats {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 0.75rem;
-  color: #aaa;
+  gap: 12px;
   margin-top: 4px;
 }
-.le-card-meta strong {
-  color: #555;
+.le-card-stat {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.8rem;
   font-weight: 700;
+  color: #475569;
 }
-.le-dot {
-  opacity: 0.4;
+.le-card-stat-sep {
+  color: #cbd5e1;
+}
+
+/* Progress Section */
+.le-card-progress {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px dashed #e2e8f0;
+}
+.le-card-xp-text {
+  font-family: 'Sora', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #0A192F;
+  text-align: left;
+}
+.le-card-xp-bar {
+  flex: 1;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.le-card-xp-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Status badge (Completed / In Progress) */
+.le-status-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 10;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.le-completed-badge {
+  background: #dcfce7;
+  color: #059669;
+  border: 1px solid #86efac;
+}
+.le-progress-badge {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+}
+
+/* Circular Progress ring — moved to the card footer next to XP text */
+.le-progress-ring-wrap {
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.le-progress-ring {
+  display: block;
+}
+.le-ring-text {
+  font-family: 'Sora', sans-serif;
+  font-size: 10px;
+  font-weight: 800;
 }
 
 /* ── Responsive ────────────────────────────────────── */
-@media (max-width: 768px) {
-  .le-hero { padding: 80px 20px 40px; }
-  .le-main { padding: 32px 16px 48px; }
+@media (max-width: 900px) {
+  .le-hero-content { align-items: center; text-align: center; }
+  .le-hero-desc { text-align: center; }
+  .le-hero-stats { flex-wrap: wrap; justify-content: center; }
+  .le-hero-stat { padding: 0 20px; }
+  .le-hero-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(10, 20, 45, 0.6) 0%,
+      rgba(10, 20, 45, 0.9) 100%
+    );
+  }
+}
+@media (max-width: 600px) {
+  .le-main { padding: 24px 16px 48px; }
   .le-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 24px;
   }
-  .le-card-image { width: 160px; height: 160px; margin-bottom: -20px; }
-}
-@media (max-width: 480px) {
-  .le-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-  .le-card-image { width: 130px; height: 130px; margin-bottom: -16px; }
-  .le-card-info { padding: 24px 14px 16px; }
-  .le-card-title { font-size: 0.88rem; }
 }

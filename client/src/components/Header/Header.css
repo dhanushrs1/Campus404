@@ -4,28 +4,27 @@
 
 .site-header {
   position: sticky;
-  top: 16px; 
-  margin: 16px auto 24px auto; /* Creates the beautiful floating gap */
-  width: calc(100% - 32px);
-  max-width: 1200px;
+  top: 0;
+  margin: 0;
+  width: 100%;
+  max-width: none;
   z-index: 1000;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-radius: 20px; /* Admin pill aesthetic */
-  border: 1px solid rgba(0, 58, 204, 0.12);
-  box-shadow: 0 12px 36px rgba(0, 58, 204, 0.08); /* Matches admin card shadow */
+  height: var(--site-header-height, 72px);
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0, 58, 204, 0.12);
+  box-shadow: 0 3px 14px rgba(10, 25, 47, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .site-header.scrolled {
-  top: 8px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 16px 42px rgba(0, 58, 204, 0.12);
+  top: 0;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(10, 25, 47, 0.1);
 }
 
 .header-inner {
+  max-width: var(--site-header-max-width, 1200px);
+  margin: 0 auto;
   height: 100%;
   display: flex;
   align-items: center;
