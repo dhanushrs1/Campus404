@@ -1,55 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header/Header';
 import Footer from '../../components/Footer/Footer';
 import { API_URL } from '../../config';
-import { resolveAssetUrl } from '../../utils/siteSettings';
-import './LabCurriculum.css';
-import './ModuleCurriculum.css';
+import './ChallengeLevels.css';
 
 const token = () => localStorage.getItem('token');
 const authH = () => ({ Authorization: `Bearer ${token()}` });
-
-const resolveModuleBannerUrl = (module) => {
-  if (!module) return null;
-
-  const candidates = [
-    module.banner_url,
-    module.banner_image_url,
-    module.banner_image_path ? `/uploads/${String(module.banner_image_path).replace(/^\/+/, '')}` : null,
-  ].filter(Boolean);
-
-  if (!candidates.length) return null;
-  return resolveAssetUrl(candidates[0]) || candidates[0];
-};
-
-const CircularProgress = ({ pct, color }) => {
-  const radius = 16;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (pct / 100) * circumference;
-
-  return (
-    <div className="lc-circular-progress-wrap" style={{ width: '64px', height: '64px' }}>
-      <svg className="lc-circular-progress" width="100%" height="100%" viewBox="0 0 40 40">
-        <circle cx="20" cy="20" r="16" fill="transparent" stroke="rgba(255,255,255,0.2)" strokeWidth="3.5" />
-        <circle
-          cx="20"
-          cy="20"
-          r="16"
-          fill="transparent"
-          stroke={color || '#ffffff'}
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          transform="rotate(-90 20 20)"
-          style={{ transition: 'stroke-dashoffset 0.8s ease-in-out' }}
-        />
-      </svg>
-      <div className="lc-circular-text" style={{ fontSize: '1rem' }}>{pct}%</div>
-    </div>
-  );
-};
 
 export default function ChallengeLevels() {
   const { slug, moduleId, challengeId } = useParams();
@@ -57,7 +14,6 @@ export default function ChallengeLevels() {
   const [lab, setLab] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const heroRef = useRef(null);
 
   useEffect(() => {
     fetch(`${API_URL}/labs/${slug}/progress`, { headers: authH() })
@@ -70,20 +26,10 @@ export default function ChallengeLevels() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (heroRef.current) {
-        heroRef.current.style.backgroundPositionY = `${window.scrollY * 0.4}px`;
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   if (loading) {
     return (
-      <div className="lc-loading">
-        <div className="lc-loading-ring" />
+      <div className="cl-loading">
+        <div className="cl-loading-ring" />
         <p>Loading challenge levels...</p>
       </div>
     );
@@ -91,7 +37,7 @@ export default function ChallengeLevels() {
 
   if (error || !lab) {
     return (
-      <div className="lc-error">
+      <div className="cl-error">
         <h2>Oops — {error || 'Challenge not found'}</h2>
         <button onClick={() => navigate('/dashboard')}>← Go back</button>
       </div>
@@ -101,7 +47,7 @@ export default function ChallengeLevels() {
   const mod = lab.modules.find((m) => m.module_id === parseInt(moduleId, 10));
   if (!mod) {
     return (
-      <div className="lc-error">
+      <div className="cl-error">
         <h2>Module not found in this curriculum.</h2>
         <button onClick={() => navigate(`/labs/${slug}`)}>← Back to Course</button>
       </div>
@@ -112,94 +58,160 @@ export default function ChallengeLevels() {
   const selectedGroup = groups.find((group) => Number(group.challenge_id) === Number(challengeId));
   if (!selectedGroup) {
     return (
-      <div className="lc-error">
+      <div className="cl-error">
         <h2>Challenge not found in this module.</h2>
         <button onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>← Back to Challenges</button>
       </div>
     );
   }
 
-  const heroImg = resolveModuleBannerUrl(mod);
   const levels = selectedGroup.levels || [];
-  const pct = selectedGroup.level_count > 0
-    ? Math.round((selectedGroup.completed_levels / selectedGroup.level_count) * 100)
+  const totalXp = Number(selectedGroup.total_xp || 0) || levels.reduce((sum, level) => sum + Number(level.xp_reward || 0), 0);
+  const pct = levels.length > 0
+    ? Math.round((selectedGroup.completed_levels / levels.length) * 100)
     : 0;
+  const currentLevelIndex = levels.findIndex((level) => !level.is_locked && !level.is_completed);
+  const nextLevel = currentLevelIndex >= 0 ? levels[currentLevelIndex] : null;
+
+  const xPattern = [16, 82, 26, 76, 20, 84];
+  const topPadding = 90;
+  const rowGap = 150;
+  const positions = levels.map((_, index) => ({
+    x: xPattern[index % xPattern.length],
+    y: topPadding + (index * rowGap),
+  }));
+  const mapHeight = Math.max(320, topPadding + Math.max(levels.length - 1, 0) * rowGap + 140);
+  const segments = positions.slice(0, -1).map((pos, index) => {
+    const next = positions[index + 1];
+    const curveY = (pos.y + next.y) / 2;
+    const isActive = levels[index]?.is_completed && !levels[index + 1]?.is_locked;
+    return {
+      d: `M ${pos.x} ${pos.y} C ${pos.x} ${curveY}, ${next.x} ${curveY}, ${next.x} ${next.y}`,
+      isActive,
+    };
+  });
 
   return (
-    <div className="mc-page">
+    <div className="cl-page">
       <Header />
 
-      <section
-        className={`lc-hero ${!heroImg ? 'lc-hero-no-img' : ''} mc-hero-slim`}
-        ref={heroRef}
-        style={heroImg ? { backgroundImage: `url(${heroImg})` } : { backgroundColor: '#0A192F' }}
-      >
-        {heroImg && <div className="lc-hero-overlay" />}
-        <div className="lc-hero-content mc-hero-content">
-          <button className="mc-back-btn" onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>
+      <section className="cl-hero">
+        <div className="cl-hero-pattern" />
+        <div className="cl-hero-inner">
+          <button className="cl-back-btn" onClick={() => navigate(`/labs/${slug}/modules/${moduleId}`)}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
             Back to Challenges
           </button>
 
-          <div className="lc-hero-top-info" style={{ marginTop: '1.5rem' }}>
-            <div>
-              <div className="lc-hero-lang" style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }}>
-                {mod.title}
-              </div>
-              <h1 className="lc-hero-title">{selectedGroup.title}</h1>
-              {selectedGroup.description && <p className="lc-hero-desc">{selectedGroup.description}</p>}
-              <div className="lc-hero-meta">
-                <span><strong>{levels.length}</strong> levels</span>
-                <span className="lc-dot">·</span>
-                <span><strong>{selectedGroup.total_xp}</strong> XP total</span>
+          <div className="cl-hero-grid">
+            <div className="cl-hero-copy">
+              <span className="cl-kicker">Quest Path</span>
+              <h1>{selectedGroup.title}</h1>
+              <p>{selectedGroup.description || 'Follow the level route, complete each mission, and unlock the final reward.'}</p>
+
+              <div className="cl-hero-chips">
+                <span className="cl-chip">Module: {mod.title}</span>
+                <span className="cl-chip">{levels.length} Levels</span>
+                <span className="cl-chip">{totalXp} XP Pool</span>
               </div>
             </div>
-            <CircularProgress pct={pct} color="#4ade80" />
+
+            <div className="cl-premium-panel" role="presentation">
+              <div className="cl-premium-row">
+                <span>Completion</span>
+                <strong>{pct}%</strong>
+              </div>
+              <div className="cl-premium-bar" aria-label="Completion progress">
+                <div className="cl-premium-fill" style={{ width: `${pct}%` }} />
+              </div>
+
+              <div className="cl-premium-stats">
+                <div>
+                  <label>Completed</label>
+                  <strong>{selectedGroup.completed_levels}</strong>
+                </div>
+                <div>
+                  <label>Locked</label>
+                  <strong>{levels.filter((level) => level.is_locked).length}</strong>
+                </div>
+                <div>
+                  <label>Open</label>
+                  <strong>{levels.filter((level) => !level.is_locked && !level.is_completed).length}</strong>
+                </div>
+              </div>
+
+              <p className="cl-next-level">
+                {nextLevel ? `Up next: ${nextLevel.display_title || `Level ${currentLevelIndex + 1}`}` : 'All levels completed. Great run!'}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="mc-body">
-        <div className="mc-map-container">
-          <div className="mc-timeline">
+      <main className="cl-body">
+        {levels.length === 0 ? (
+          <div className="cl-empty">
+            <h3>No levels published yet</h3>
+            <p>The challenge exists, but there are no levels available right now.</p>
+          </div>
+        ) : (
+          <section className="cl-game-map" style={{ minHeight: `${mapHeight}px` }}>
+            <svg className="cl-track" viewBox={`0 0 100 ${mapHeight}`} preserveAspectRatio="none" aria-hidden="true">
+              {segments.map((segment, index) => (
+                <path key={`base-${index}`} d={segment.d} className="cl-track-line" />
+              ))}
+              {segments.map((segment, index) => (
+                <path key={`active-${index}`} d={segment.d} className={`cl-track-line-active ${segment.isActive ? 'is-active' : ''}`} />
+              ))}
+            </svg>
+
             {levels.map((level, index) => {
               const uniqueUrl = `/labs/${slug}/modules/${moduleId}/challenges/${challengeId}/level/${index + 1}`;
-              const previous = levels[index - 1];
-              const isCurrent = !level.is_completed && !level.is_locked && (!previous || previous.is_completed);
+              const isCompleted = Boolean(level.is_completed);
+              const isLocked = Boolean(level.is_locked);
+              const isOpen = !isCompleted && !isLocked;
+              const isCurrent = currentLevelIndex === index && isOpen;
 
               return (
-                <div key={level.challenge_id} className={`mc-timeline-node ${level.is_completed ? 'completed' : ''} ${level.is_locked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`}>
-                  <div className="mc-node-line"></div>
-
-                  <div className="mc-node-status">
-                    {level.is_completed ? (
-                      <div className="mc-status-icon success">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                      </div>
-                    ) : level.is_locked ? (
-                      <div className="mc-status-icon locked">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-7 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" /><path d="M7 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h-2V7c0-1.66-1.34-3-3-3S7 5.34 7 7v4H7z" /></svg>
-                      </div>
+                <article
+                  key={level.challenge_id}
+                  className={`cl-level-node ${isCompleted ? 'completed' : ''} ${isLocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`}
+                  style={{ left: `${positions[index].x}%`, top: `${positions[index].y}px` }}
+                >
+                  <button
+                    type="button"
+                    className="cl-level-badge"
+                    onClick={() => !isLocked && navigate(uniqueUrl)}
+                    disabled={isLocked}
+                    aria-label={`${level.display_title || `Level ${index + 1}`} - ${isCompleted ? 'Completed' : isLocked ? 'Locked' : 'Open'}`}
+                  >
+                    {isCompleted ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    ) : isLocked ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-7 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z" /><path d="M7 11V7c0-2.76 2.24-5 5-5s5 2.24 5 5v4h-2V7c0-1.66-1.34-3-3-3S7 5.34 7 7v4H7z" /></svg>
                     ) : (
-                      <div className="mc-status-icon active">
-                        <div className="mc-pulse-dot"></div>
-                      </div>
+                      <span>{index + 1}</span>
+                    )}
+                  </button>
+
+                  <div className={`cl-level-card ${positions[index].x > 50 ? 'to-left' : 'to-right'}`}>
+                    <div className="cl-level-card-top">
+                      <h3>{level.display_title || `Level ${index + 1}`}</h3>
+                      <span>+{level.xp_reward || 0} XP</span>
+                    </div>
+                    <p>{isCompleted ? 'Completed' : isLocked ? 'Locked' : isCurrent ? 'Ready to start' : 'Open'}</p>
+                    {isOpen && (
+                      <button type="button" className="cl-start-btn" onClick={() => navigate(uniqueUrl)}>
+                        {isCurrent ? 'Start Level' : 'Play'}
+                      </button>
                     )}
                   </div>
-
-                  <div className="mc-node-card" onClick={() => !level.is_locked && navigate(uniqueUrl)}>
-                    <div className="mc-node-card-header">
-                      <h3>{level.display_title || `Level ${index + 1}`}</h3>
-                      <span className="mc-node-xp">+{level.xp_reward} XP</span>
-                    </div>
-                    {isCurrent && <button className="mc-node-start-btn">Start Level</button>}
-                  </div>
-                </div>
+                </article>
               );
             })}
-          </div>
-        </div>
-      </div>
+          </section>
+        )}
+      </main>
 
       <Footer />
     </div>
