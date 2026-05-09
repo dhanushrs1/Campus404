@@ -1,0 +1,74 @@
+.frontendDashboardPage {
+  padding: 3rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.frontendDashboardPage__header {
+  margin-bottom: 3rem;
+}
+
+.frontendDashboardPage__eyebrow {
+  color: var(--accent-primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: var(--text-sm);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.frontendDashboardPage__header h1 {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-4xl);
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.frontendDashboardPage__header p {
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  max-width: 600px;
+}
+
+.frontendDashboardPage__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.frontendDashboardPage__card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.frontendDashboardPage__card:hover {
+  border-color: var(--border-focus);
+}
+
+.frontendDashboardPage__cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.frontendDashboardPage__cardIcon {
+  color: var(--accent-primary);
+}
+
+.frontendDashboardPage__card h2 {
+  margin: 0;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+}
+
+.frontendDashboardPage__card p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}

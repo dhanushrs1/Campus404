@@ -1,0 +1,41 @@
+# ============================================================================
+# campus404 API Dependencies
+# ============================================================================
+
+# FastAPI: high-performance API framework for Python.
+fastapi==0.116.1
+
+# Uvicorn ASGI server.
+uvicorn[standard]==0.35.0
+
+# Pydantic v2 with email validation support.
+pydantic[email]==2.11.4
+
+# Async HTTP client — used for OAuth2 provider token exchanges.
+httpx==0.28.1
+
+# Multipart form parser for image/file uploads.
+python-multipart==0.0.20
+
+# Optional .env loading for local development.
+python-dotenv==1.0.1
+
+# ── Auth Layer ───────────────────────────────────────────────────────────────
+
+# Async SQLAlchemy ORM.
+sqlalchemy[asyncio]==2.0.41
+
+# Async SQLite driver (local dev without Docker).
+aiosqlite==0.21.0
+
+# Async MySQL driver (used when DATABASE_URL=mysql+aiomysql://...).
+aiomysql==0.2.0
+
+# Password hashing — kept for potential future use.
+passlib[bcrypt]==1.7.4
+
+# JWT encoding / decoding.
+python-jose[cryptography]==3.3.0
+
+# Cloud media storage provider SDK.
+cloudinary==1.44.1

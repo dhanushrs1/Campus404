@@ -1,0 +1,27 @@
+/* Base structure utilities */
+.container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+.pill {
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
+  border-radius: var(--radius-xs);
+  background-color: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+.pill-brand {
+  color: var(--accent-primary);
+  background-color: var(--accent-glow);
+  border-color: rgba(7, 89, 133, 0.2);
+}

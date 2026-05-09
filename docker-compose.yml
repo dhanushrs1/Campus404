@@ -1,0 +1,183 @@
+services:
+  # ==========================================
+  # PLATFORM SERVICES
+  # ==========================================
+
+  # Main FastAPI — auth + judge proxy only
+  api:
+    image: python:3.11-slim
+    container_name: campus404-api
+    working_dir: /app
+    volumes:
+      - ./api:/app
+    command: >
+      sh -c "pip install -r requirements.txt --quiet &&
+             uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    environment:
+      DATABASE_URL: "mysql+aiomysql://${MYSQL_USER}:${MYSQL_PASSWORD}@campus404-mysql:3306/${MYSQL_DATABASE}"
+      CORS_ORIGINS: "${CORS_ORIGINS}"
+      FRONTEND_URL: "${FRONTEND_URL}"
+      WATCHFILES_FORCE_POLLING: "true"
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_EXPIRE_MINUTES: "${JWT_EXPIRE_MINUTES:-60}"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+      GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID}"
+      GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET}"
+      CLOUDINARY_URL: "${CLOUDINARY_URL}"
+      CLOUDINARY_CLOUD_NAME: "${CLOUDINARY_CLOUD_NAME}"
+      CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
+      CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
+      CLOUDINARY_PUBLIC_ID_PREFIX: "${CLOUDINARY_PUBLIC_ID_PREFIX:-campus404}"
+      JUDGE_URL: "http://campus404-judge:2358"
+    networks:
+      - campus404_net
+    depends_on:
+      campus404-mysql:
+        condition: service_healthy
+      campus404-judge:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend Dev Server (React/Vite)
+  client:
+    image: node:20-alpine
+    container_name: campus404-client
+    working_dir: /app
+    volumes:
+      - ./client:/app
+    expose:
+      - "5173"
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+    networks:
+      - campus404_net
+    restart: unless-stopped
+
+  # NGINX — single public entry point on port 80
+  gateway:
+    image: nginx:alpine
+    container_name: campus404-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+      - client
+    networks:
+      - campus404_net
+    restart: unless-stopped
+
+  # ==========================================
+  # JUDGE MICROSERVICES (isolated execution engine)
+  # ==========================================
+
+  # Judge FastAPI — receives submissions, enqueues to Redis, polls results
+  # NOT exposed to the public internet — internal Docker network only
+  campus404-judge:
+    build:
+      context: ./judge
+      dockerfile: Dockerfile
+    container_name: campus404-judge
+    restart: unless-stopped
+    environment:
+      REDIS_URL: "redis://campus404-redis:6379/0"
+      JUDGE_CPU_TIME_LIMIT: "5"
+      JUDGE_MEMORY_LIMIT_MB: "128"
+    networks:
+      - campus404_net
+    depends_on:
+      - campus404-redis
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2358/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Judge Worker — standalone process that consumes jobs from Redis queue
+  # Separate from the judge API so the API stays fast and non-blocking
+  campus404-judge-worker:
+    build:
+      context: ./judge
+      dockerfile: Dockerfile
+    container_name: campus404-judge-worker
+    # Override CMD: run the worker script instead of the FastAPI server
+    command: ["python", "worker.py"]
+    restart: unless-stopped
+    environment:
+      REDIS_URL: "redis://campus404-redis:6379/0"
+      JUDGE_CPU_TIME_LIMIT: "5"
+      JUDGE_MEMORY_LIMIT_MB: "128"
+    networks:
+      - campus404_net
+    depends_on:
+      - campus404-redis
+
+  # Redis — message broker and job state store
+  # NOT exposed to the public internet — internal Docker network only
+  campus404-redis:
+    image: redis:7-alpine
+    container_name: campus404-redis
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no   # ephemeral — jobs don't need persistence
+    networks:
+      - campus404_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ==========================================
+  # DATABASE SERVICES
+  # ==========================================
+
+  campus404-mysql:
+    image: mysql:8.0
+    container_name: campus404-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_DATABASE: "${MYSQL_DATABASE}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - campus404_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: campus404-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: campus404-mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+    ports:
+      - "8080:80"
+    depends_on:
+      campus404-mysql:
+        condition: service_healthy
+    networks:
+      - campus404_net
+
+volumes:
+  mysql_data:
+
+networks:
+  campus404_net:
+    driver: bridge

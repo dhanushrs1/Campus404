@@ -1,0 +1,554 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  AlertCircle,
+  ArrowRight,
+  AtSign,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  X,
+  XCircle,
+} from "lucide-react";
+import { APP_ROUTES } from "../../../routes/paths.js";
+import { apiUrl } from "../../../shared/api.js";
+import { ASSETS } from "../../../shared/assets.js";
+import "./OAuthCallbackPage.css";
+
+const CAMPUS_AVATARS = [
+  { id: "capGlassesBlackHoodie", label: "404 cap avatar", gender: "male", src: ASSETS.avatars.capGlassesBlackHoodie },
+  { id: "blackHairBlueClipHoodie", label: "blue clip avatar", gender: "male", src: ASSETS.avatars.blackHairBlueClipHoodie },
+  { id: "blackHairGlassesWhiteHoodie", label: "glasses avatar", gender: "male", src: ASSETS.avatars.blackHairGlassesWhiteHoodie },
+  { id: "blondeGreenHoodie", label: "blonde avatar", gender: "female", src: ASSETS.avatars.blondeGreenHoodie },
+  { id: "blueHeadphonesBlackHoodie", label: "headphones avatar", gender: "male", src: ASSETS.avatars.blueHeadphonesBlackHoodie },
+  { id: "blueStreak404Hoodie", label: "blue streak avatar", gender: "male", src: ASSETS.avatars.blueStreak404Hoodie },
+  { id: "brownBunYellowHoodie", label: "yellow hoodie avatar", gender: "female", src: ASSETS.avatars.brownBunYellowHoodie },
+  { id: "brownPonytailBlueHoodie", label: "ponytail avatar", gender: "female", src: ASSETS.avatars.brownPonytailBlueHoodie },
+  { id: "curlyBlackBlueHoodie", label: "curly hair avatar", gender: "male", src: ASSETS.avatars.curlyBlackBlueHoodie },
+  { id: "curlyBlackBlueStarHoodie", label: "star hoodie avatar", gender: "male", src: ASSETS.avatars.curlyBlackBlueStarHoodie },
+  { id: "curlyBlackOrangeHoodie", label: "orange hoodie avatar", gender: "male", src: ASSETS.avatars.curlyBlackOrangeHoodie },
+  { id: "pinkBobBlackHoodie", label: "pink bob avatar", gender: "female", src: ASSETS.avatars.pinkBobBlackHoodie },
+  { id: "silverSpikyGreenHoodie", label: "silver hair avatar", gender: "male", src: ASSETS.avatars.silverSpikyGreenHoodie },
+  { id: "spikyBrownBlueWhiteHoodie", label: "spiky brown avatar", gender: "male", src: ASSETS.avatars.spikyBrownBlueWhiteHoodie },
+  { id: "whiteCapWinkBlackHoodie", label: "white cap avatar", gender: "male", src: ASSETS.avatars.whiteCapWinkBlackHoodie },
+  { id: "yellowHeadbandBunHoodie", label: "yellow headband avatar", gender: "female", src: ASSETS.avatars.yellowHeadbandBunHoodie },
+];
+
+const MIXED_AVATAR_ORDER = [
+  "curlyBlackBlueHoodie",
+  "brownPonytailBlueHoodie",
+  "blueStreak404Hoodie",
+  "blondeGreenHoodie",
+  "blackHairGlassesWhiteHoodie",
+  "pinkBobBlackHoodie",
+  "spikyBrownBlueWhiteHoodie",
+  "yellowHeadbandBunHoodie",
+  "blueHeadphonesBlackHoodie",
+  "brownBunYellowHoodie",
+  "capGlassesBlackHoodie",
+  "curlyBlackOrangeHoodie",
+  "blackHairBlueClipHoodie",
+  "silverSpikyGreenHoodie",
+  "whiteCapWinkBlackHoodie",
+  "curlyBlackBlueStarHoodie",
+];
+
+const AVATAR_PAGE_SIZE = 4;
+
+function decodeJwt(token) {
+  try {
+    const encodedPayload = token.split(".")[1];
+    const normalizedPayload = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      "=",
+    );
+    return JSON.parse(atob(paddedPayload));
+  } catch {
+    return {};
+  }
+}
+
+function normalizeGenderHint(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["male", "m", "man", "boy"].includes(normalized)) return "male";
+  if (["female", "f", "woman", "girl"].includes(normalized)) return "female";
+  return "";
+}
+
+function orderedCampusAvatars(genderHint) {
+  const hint = normalizeGenderHint(genderHint);
+  if (hint === "male" || hint === "female") {
+    const preferred = CAMPUS_AVATARS.filter((avatar) => avatar.gender === hint);
+    const remaining = CAMPUS_AVATARS.filter((avatar) => avatar.gender !== hint);
+    return [...preferred, ...remaining];
+  }
+
+  return MIXED_AVATAR_ORDER
+    .map((id) => CAMPUS_AVATARS.find((avatar) => avatar.id === id))
+    .filter(Boolean);
+}
+
+function normalizeUsername(value) {
+  return value.toLowerCase().replace(/[^a-z0-9_\-]/g, "").slice(0, 64);
+}
+
+function suggestUsername(fullName, email) {
+  const emailName = String(email || "").split("@")[0];
+  const base = emailName || fullName || "";
+  return normalizeUsername(base.replace(/[\s.]+/g, "_"));
+}
+
+function splitDisplayName(value) {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || "",
+    lastName: parts.slice(1).join(" ") || null,
+  };
+}
+
+function formatProviderName(provider) {
+  const value = String(provider || "").trim();
+  if (!value) return "Provider";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function getCallbackError(error, banReason, status, setupToken, token) {
+  if (error === "banned") {
+    return [
+      "Your account cannot be logged in or created because it has been banned from the website.",
+      banReason ? `Reason: ${banReason}` : "",
+      "For more information, contact admin@campus404.dummy.",
+    ].filter(Boolean).join(" ");
+  }
+
+  if (error) return error;
+  if (status === "active" && !token) return "Sign-in finished without a session token. Please try again.";
+  if (status !== "pending_username" || !setupToken) {
+    return "This page can only be reached after signing in with Google or GitHub.";
+  }
+
+  return "";
+}
+
+function CallbackStatus({ icon, title, copy, actionLabel, onAction }) {
+  return (
+    <main className="oauthCallback">
+      <section className="oauthCallback__statusCard">
+        <div className="oauthCallback__statusIcon">{icon}</div>
+        <h1>{title}</h1>
+        <p>{copy}</p>
+        {actionLabel && (
+          <button type="button" className="btn btn-brand oauthCallback__statusButton" onClick={onAction}>
+            {actionLabel}
+          </button>
+        )}
+      </section>
+    </main>
+  );
+}
+
+export default function OAuthCallbackPage() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+
+  const status = params.get("status");
+  const token = params.get("token");
+  const role = params.get("role");
+  const username = params.get("username");
+  const avatarUrl = params.get("avatar_url");
+  const setupToken = params.get("setup_token");
+  const error = params.get("error");
+  const banReason = params.get("reason");
+
+  useEffect(() => {
+    if (status !== "active" || !token) return;
+
+    const nextRole = (role ?? "student").toUpperCase();
+    const nextAvatarUrl = (avatarUrl ?? "").trim();
+    localStorage.setItem("campus404_token", token);
+    localStorage.setItem("campus404_role", nextRole);
+    localStorage.setItem("campus404_username", username ?? "");
+    if (nextAvatarUrl) {
+      localStorage.setItem("campus404_avatar_url", nextAvatarUrl);
+    } else {
+      localStorage.removeItem("campus404_avatar_url");
+    }
+    navigate(APP_ROUTES.frontendDashboard, { replace: true });
+  }, [avatarUrl, navigate, role, status, token, username]);
+
+  const setupTokenPayload = useMemo(() => (setupToken ? decodeJwt(setupToken) : {}), [setupToken]);
+  const providerAvatarUrl = (setupTokenPayload.avatar_url || "").trim();
+  const providerName = formatProviderName(setupTokenPayload.provider);
+  const fullName = (setupTokenPayload.full_name || "").trim();
+  const email = (setupTokenPayload.email || "").trim();
+  const genderHint = setupTokenPayload.gender || setupTokenPayload.gender_hint || "";
+
+  const rawAvatarOptions = useMemo(() => {
+    const providerAvatar = providerAvatarUrl
+      ? [{
+          id: "provider-avatar",
+          label: `${providerName} avatar`,
+          gender: "provider",
+          source: "provider",
+          src: providerAvatarUrl,
+        }]
+      : [];
+
+    return [...providerAvatar, ...orderedCampusAvatars(genderHint)];
+  }, [genderHint, providerAvatarUrl, providerName]);
+
+  const [displayName, setDisplayName] = useState(fullName);
+  const [usernameInput, setUsernameInput] = useState(() => suggestUsername(fullName, email));
+  const [selectedAvatarId, setSelectedAvatarId] = useState("");
+  const [failedAvatarIds, setFailedAvatarIds] = useState(() => new Set());
+  const [loading, setLoading] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState(null);
+
+  const avatarOptions = useMemo(
+    () => rawAvatarOptions.filter((avatar) => !failedAvatarIds.has(avatar.id)),
+    [failedAvatarIds, rawAvatarOptions],
+  );
+
+  const preferredAvatarId = useMemo(() => (
+    avatarOptions.find((avatar) => avatar.source !== "provider")?.id || avatarOptions[0]?.id || ""
+  ), [avatarOptions]);
+
+  useEffect(() => {
+    setDisplayName(fullName);
+    setUsernameInput(suggestUsername(fullName, email));
+    setFailedAvatarIds(new Set());
+    setIsUsernameAvailable(null);
+    setIsCheckingUsername(false);
+  }, [email, fullName, setupToken]);
+
+  useEffect(() => {
+    if (!avatarOptions.length) return;
+    setSelectedAvatarId((currentAvatarId) => (
+      avatarOptions.some((avatar) => avatar.id === currentAvatarId)
+        ? currentAvatarId
+        : preferredAvatarId
+    ));
+  }, [avatarOptions, preferredAvatarId]);
+
+  useEffect(() => {
+    if (usernameInput.length < 3) {
+      setIsUsernameAvailable(null);
+      setIsCheckingUsername(false);
+      return;
+    }
+
+    setIsCheckingUsername(true);
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const res = await fetch(apiUrl(`/auth/check-username?username=${encodeURIComponent(usernameInput)}`));
+        if (res.ok) {
+          const data = await res.json();
+          setIsUsernameAvailable(data.available);
+        } else {
+          setIsUsernameAvailable(null);
+        }
+      } catch {
+        setIsUsernameAvailable(null);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 450);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [usernameInput]);
+
+  const selectedAvatarIndex = (() => {
+    const explicitIndex = avatarOptions.findIndex((avatar) => avatar.id === selectedAvatarId);
+    if (explicitIndex >= 0) return explicitIndex;
+
+    const preferredIndex = avatarOptions.findIndex((avatar) => avatar.id === preferredAvatarId);
+    return preferredIndex >= 0 ? preferredIndex : 0;
+  })();
+  const selectedAvatar = avatarOptions[selectedAvatarIndex] || avatarOptions[0];
+  const avatarSlides = avatarOptions.length
+    ? [-2, -1, 0, 1, 2].map((offset) => {
+        const index = (selectedAvatarIndex + offset + avatarOptions.length) % avatarOptions.length;
+        return {
+          ...avatarOptions[index],
+          index,
+          offset,
+          isSelected: offset === 0,
+        };
+      })
+    : [];
+  const avatarPageCount = Math.ceil(avatarOptions.length / AVATAR_PAGE_SIZE);
+  const activeAvatarPage = Math.floor(selectedAvatarIndex / AVATAR_PAGE_SIZE);
+  const canSubmit = (
+    displayName.trim()
+    && usernameInput.length >= 3
+    && isUsernameAvailable !== false
+    && !isCheckingUsername
+    && !loading
+    && selectedAvatar
+  );
+  const initialError = getCallbackError(error, banReason, status, setupToken, token);
+
+  const handleAvatarStep = (direction) => {
+    if (!avatarOptions.length) return;
+    const nextIndex = (selectedAvatarIndex + direction + avatarOptions.length) % avatarOptions.length;
+    setSelectedAvatarId(avatarOptions[nextIndex].id);
+  };
+
+  const jumpToAvatarPage = (pageIndex) => {
+    const nextIndex = Math.min(pageIndex * AVATAR_PAGE_SIZE, avatarOptions.length - 1);
+    setSelectedAvatarId(avatarOptions[nextIndex]?.id || "");
+  };
+
+  const handleAvatarImageError = (avatar) => {
+    setFailedAvatarIds((currentFailedIds) => {
+      if (currentFailedIds.has(avatar.id)) return currentFailedIds;
+      const nextFailedIds = new Set(currentFailedIds);
+      nextFailedIds.add(avatar.id);
+      return nextFailedIds;
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const { firstName, lastName } = splitDisplayName(displayName);
+    if (!setupToken || !firstName || usernameInput.length < 3 || !selectedAvatar) return;
+
+    setLoading(true);
+    setErrMsg("");
+
+    try {
+      const res = await fetch(apiUrl("/auth/complete-profile"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${setupToken}`,
+        },
+        body: JSON.stringify({
+          username: usernameInput.trim(),
+          first_name: firstName,
+          last_name: lastName,
+          avatar: selectedAvatar.src,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setErrMsg(data.detail ?? "Something went wrong. Please try again.");
+        return;
+      }
+
+      const nextRole = (data.role ?? "student").toUpperCase();
+      const nextUsername = data.username ?? "";
+      const nextAvatarUrl = (data.avatar_url ?? selectedAvatar.src ?? "").trim();
+      localStorage.setItem("campus404_token", data.access_token);
+      localStorage.setItem("campus404_role", nextRole);
+      localStorage.setItem("campus404_username", nextUsername);
+      if (nextAvatarUrl) {
+        localStorage.setItem("campus404_avatar_url", nextAvatarUrl);
+      } else {
+        localStorage.removeItem("campus404_avatar_url");
+      }
+      navigate(APP_ROUTES.frontendDashboard, { replace: true });
+    } catch {
+      setErrMsg("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (status === "active" && token) {
+    return (
+      <CallbackStatus
+        icon={<Loader2 size={30} className="oauthCallback__spin" />}
+        title="Signing you in"
+        copy="We are opening your Campus404 workspace."
+      />
+    );
+  }
+
+  if (initialError) {
+    return (
+      <CallbackStatus
+        icon={<AlertCircle size={34} />}
+        title={error === "banned" ? "Account banned" : "Authentication failed"}
+        copy={initialError}
+        actionLabel="Return home"
+        onAction={() => navigate(APP_ROUTES.home, { replace: true })}
+      />
+    );
+  }
+
+  return (
+    <main className="oauthCallback">
+      <section className="oauthCallback__modal" aria-label="Complete your Campus404 profile">
+        <img className="oauthCallback__pixels oauthCallback__pixels--top" src={ASSETS.decorations.pixelSquaresFade} alt="" />
+        <img className="oauthCallback__pixels oauthCallback__pixels--bottom" src={ASSETS.decorations.pixelSquaresFade} alt="" />
+
+        <button
+          type="button"
+          className="oauthCallback__close"
+          onClick={() => navigate(APP_ROUTES.home, { replace: true })}
+          aria-label="Close profile setup"
+        >
+          <X size={22} />
+        </button>
+
+        <div className="oauthCallback__avatarPanel">
+          <div className="oauthCallback__avatarBadge">
+            <Sparkles size={21} />
+          </div>
+          <h1>Choose your avatar</h1>
+          <p>This helps others recognize you in the community.</p>
+
+          <div className="oauthCallback__avatarStage">
+            <button
+              type="button"
+              className="oauthCallback__avatarNav"
+              onClick={() => handleAvatarStep(-1)}
+              aria-label="Previous avatar"
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <div className="oauthCallback__avatarRail" aria-live="polite">
+              {avatarSlides.map((avatar) => (
+                <button
+                  key={`${avatar.id}-${avatar.offset}`}
+                  type="button"
+                  className={`oauthCallback__avatarOption${avatar.isSelected ? " oauthCallback__avatarOption--selected" : ""}${avatar.source === "provider" ? " oauthCallback__avatarOption--provider" : ""}`}
+                  data-offset={avatar.offset}
+                  onClick={() => setSelectedAvatarId(avatar.id)}
+                  aria-label={`Select ${avatar.label}`}
+                  aria-pressed={avatar.isSelected}
+                >
+                  <img
+                    src={avatar.src}
+                    alt=""
+                    draggable="false"
+                    referrerPolicy={avatar.source === "provider" ? "no-referrer" : undefined}
+                    onError={() => handleAvatarImageError(avatar)}
+                  />
+                  {avatar.isSelected && <Sparkles className="oauthCallback__avatarSpark" size={18} aria-hidden="true" />}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="oauthCallback__avatarNav"
+              onClick={() => handleAvatarStep(1)}
+              aria-label="Next avatar"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
+
+          <div className="oauthCallback__avatarDots" aria-label="Avatar pages">
+            {Array.from({ length: avatarPageCount }).map((_, pageIndex) => (
+              <button
+                key={pageIndex}
+                type="button"
+                className={pageIndex === activeAvatarPage ? "is-active" : ""}
+                onClick={() => jumpToAvatarPage(pageIndex)}
+                aria-label={`Show avatar group ${pageIndex + 1}`}
+                aria-pressed={pageIndex === activeAvatarPage}
+              />
+            ))}
+          </div>
+
+          <div className="oauthCallback__avatarNote">
+            <RefreshCw size={19} />
+            <span>You can change your avatar anytime from profile settings.</span>
+          </div>
+        </div>
+
+        <div className="oauthCallback__profilePanel">
+          <div className="oauthCallback__profileHeader">
+            <img src={ASSETS.brand.logo} alt="Campus404" />
+            <h2>Complete your profile</h2>
+            <p>Your identity is verified. Personalize your profile and activate your workspace.</p>
+          </div>
+
+          <form className="oauthCallback__form" onSubmit={handleSubmit}>
+            <div className="oauthCallback__field">
+              <label htmlFor="callback-display-name">What should we call you? *</label>
+              <div className="oauthCallback__inputWrap oauthCallback__inputWrap--plain">
+                <input
+                  id="callback-display-name"
+                  type="text"
+                  placeholder="e.g. Dhanush R.S"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={128}
+                  required
+                  autoComplete="name"
+                />
+              </div>
+            </div>
+
+            <div className="oauthCallback__field">
+              <label htmlFor="callback-username">Username *</label>
+              <div className="oauthCallback__inputWrap">
+                <AtSign size={18} className="oauthCallback__inputIcon" />
+                <input
+                  id="callback-username"
+                  type="text"
+                  placeholder="devraj_23"
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(normalizeUsername(e.target.value))}
+                  maxLength={64}
+                  required
+                  autoComplete="username"
+                  autoFocus
+                />
+                {isCheckingUsername ? (
+                  <Loader2 size={18} className="oauthCallback__usernameStatus oauthCallback__spin" />
+                ) : usernameInput.length >= 3 && isUsernameAvailable !== null ? (
+                  isUsernameAvailable ? (
+                    <CheckCircle size={18} className="oauthCallback__usernameStatus oauthCallback__usernameStatus--available" />
+                  ) : (
+                    <XCircle size={18} className="oauthCallback__usernameStatus oauthCallback__usernameStatus--taken" />
+                  )
+                ) : null}
+              </div>
+              <span className="oauthCallback__inputHint">
+                {usernameInput.length >= 3 && isUsernameAvailable === false
+                  ? "This username is already taken."
+                  : "3-64 characters. Letters, numbers, _ and - only."}
+              </span>
+            </div>
+
+            {errMsg && <div className="oauthCallback__error">{errMsg}</div>}
+
+            <button type="submit" className="btn btn-brand oauthCallback__submit" disabled={!canSubmit}>
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="oauthCallback__spin" />
+                  Activating...
+                </>
+              ) : (
+                <>
+                  Activate Workspace
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+
+            <p className="oauthCallback__trust">
+              <ShieldCheck size={17} />
+              <span>You can update your details anytime in settings.</span>
+            </p>
+          </form>
+        </div>
+      </section>
+    </main>
+  );
+}

@@ -1,0 +1,66 @@
+.ap-delete-confirm-group {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg-surface, #f8fafc);
+  border: 1px solid var(--border-warning, #fcd34d);
+  border-radius: 8px;
+  overflow: hidden;
+  height: 32px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  animation: slideFadeLeft 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ap-delete-confirm-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-warning, #b45309);
+  white-space: nowrap;
+}
+
+.ap-delete-confirm-btn {
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border-light, #e2e8f0);
+  height: 100%;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ap-delete-confirm-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ap-delete-confirm-btn--yes {
+  color: var(--text-danger, #ef4444);
+}
+
+.ap-delete-confirm-btn--yes:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.ap-delete-confirm-btn--no {
+  color: var(--text-secondary, #64748b);
+}
+
+.ap-text-warning {
+  color: var(--text-warning, #d97706);
+}
+
+@keyframes slideFadeLeft {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -1,0 +1,29 @@
+# Frontend artifacts
+client/node_modules/
+client/dist/
+client/.vite/
+
+# Backend Python artifacts
+api/__pycache__/
+api/.pytest_cache/
+api/.mypy_cache/
+api/.ruff_cache/
+api/.venv/
+*.py[cod]
+
+# Environment and local config
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+
+# Local service data
+mysql_data/
+judge_redis_data/
+judge_postgres_data/
