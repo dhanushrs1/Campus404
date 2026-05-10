@@ -1,15 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   BookOpen,
   CheckCircle2,
   Layers,
-  LayoutGrid,
-  List,
   Loader2,
   Search,
-  SlidersHorizontal,
   Zap,
 } from "lucide-react";
 import { APP_ROUTES } from "../../../routes/paths.js";
@@ -269,14 +266,13 @@ function TechIcon({ type = "general", size = "md" }) {
 
 export default function TracksPage() {
   const navigate = useNavigate();
+  const searchInputRef = useRef(null);
 
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [completedExerciseIds, setCompletedExerciseIds] = useState(() => getCompletedExerciseIds());
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortMode, setSortMode] = useState("popular");
-  const [viewMode, setViewMode] = useState("grid");
 
   useEffect(() => {
     let disposed = false;
@@ -319,6 +315,39 @@ export default function TracksPage() {
     window.addEventListener("focus", refreshProgress);
     return () => {
       window.removeEventListener("focus", refreshProgress);
+    };
+  }, []);
+
+  useEffect(() => {
+    function isEditingText(target) {
+      return target instanceof HTMLInputElement
+        || target instanceof HTMLTextAreaElement
+        || target instanceof HTMLSelectElement
+        || target?.isContentEditable;
+    }
+
+    function handleSearchShortcut(event) {
+      if (event.defaultPrevented) return;
+
+      const isSlashShortcut = event.key === "/"
+        && !event.altKey
+        && !event.ctrlKey
+        && !event.metaKey;
+      const isCommandShortcut = event.key.toLowerCase() === "k"
+        && (event.ctrlKey || event.metaKey)
+        && !event.altKey;
+
+      if (!isSlashShortcut && !isCommandShortcut) return;
+      if (isEditingText(event.target)) return;
+
+      event.preventDefault();
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    }
+
+    window.addEventListener("keydown", handleSearchShortcut);
+    return () => {
+      window.removeEventListener("keydown", handleSearchShortcut);
     };
   }, []);
 
@@ -384,22 +413,8 @@ export default function TracksPage() {
       return !query || track.searchText.includes(query);
     });
 
-    return nextCards.slice().sort((a, b) => {
-      if (sortMode === "title") {
-        return a.title.localeCompare(b.title);
-      }
-
-      if (sortMode === "progress") {
-        return b.progressPercent - a.progressPercent || a.index - b.index;
-      }
-
-      if (sortMode === "lessons") {
-        return b.totalExercises - a.totalExercises || a.index - b.index;
-      }
-
-      return a.index - b.index;
-    });
-  }, [cards, searchQuery, sortMode]);
+    return nextCards;
+  }, [cards, searchQuery]);
 
   const continueCards = useMemo(() => {
     return cards.filter((track) => (
@@ -412,6 +427,15 @@ export default function TracksPage() {
   function openTrackWorkspace(track) {
     if (!track.title) return;
     navigate(APP_ROUTES.frontendTrackOverview(slugify(track.title)));
+  }
+
+  function handleTrackCardKeyDown(event, track) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    openTrackWorkspace(track);
   }
 
   return (
@@ -433,13 +457,16 @@ export default function TracksPage() {
               <label className="tracksPage__search" htmlFor="tracks-search">
                 <Search size={20} aria-hidden="true" />
                 <input
+                  ref={searchInputRef}
                   id="tracks-search"
                   type="search"
-                  aria-label="Search tracks"
+                  aria-label="Search tracks. Press slash or Control K to focus."
+                  aria-keyshortcuts="/ Control+K Meta+K"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Search tracks, topics, or technologies..."
                 />
+                <span className="tracksPage__searchShortcut" aria-hidden="true">/ or Ctrl K</span>
               </label>
 
               <div className="tracksPage__heroStats" aria-label="Track library summary">
@@ -474,46 +501,6 @@ export default function TracksPage() {
 
         {!loading && !error && tracks.length > 0 && (
           <>
-            <div className="tracksPage__toolbar">
-              <div className="tracksPage__controls">
-                <label className="tracksPage__sort">
-                  <SlidersHorizontal size={15} aria-hidden="true" />
-                  <span>Sort by</span>
-                  <select
-                    value={sortMode}
-                    onChange={(event) => setSortMode(event.target.value)}
-                    aria-label="Sort tracks"
-                  >
-                    <option value="popular">Popular</option>
-                    <option value="progress">Progress</option>
-                    <option value="lessons">Lessons</option>
-                    <option value="title">A-Z</option>
-                  </select>
-                </label>
-
-                <div className="tracksPage__viewToggle" aria-label="Track card view">
-                  <button
-                    type="button"
-                    className={viewMode === "grid" ? "is-active" : ""}
-                    onClick={() => setViewMode("grid")}
-                    aria-label="Grid view"
-                    aria-pressed={viewMode === "grid"}
-                  >
-                    <LayoutGrid size={17} />
-                  </button>
-                  <button
-                    type="button"
-                    className={viewMode === "list" ? "is-active" : ""}
-                    onClick={() => setViewMode("list")}
-                    aria-label="List view"
-                    aria-pressed={viewMode === "list"}
-                  >
-                    <List size={17} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
             {continueCards.length > 0 && (
               <section className="tracksPage__continue" aria-labelledby="continue-learning-heading">
                 <div className="tracksPage__sectionHeader">
@@ -571,31 +558,52 @@ export default function TracksPage() {
                   No tracks matched your search. Try another keyword.
                 </div>
               ) : (
-                <div className={`tracksPage__grid tracksPage__grid--${viewMode}`} aria-label="Track archive cards">
+                <div className="tracksPage__grid" aria-label="Track archive cards">
                   {filteredCards.map((track) => {
                     const hasStarted = track.completedExercises > 0;
                     const isComplete = track.progressPercent >= 100;
                     const actionLabel = hasStarted ? "Resume" : "View Track";
 
                     return (
-                      <article className="tracksPage__card" key={track.id}>
+                      <article
+                        className="tracksPage__card"
+                        key={track.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${actionLabel} ${track.title}`}
+                        onClick={() => openTrackWorkspace(track)}
+                        onKeyDown={(event) => handleTrackCardKeyDown(event, track)}
+                      >
                         <div className="tracksPage__cardMedia">
                           <img
                             src={track.imageUrl}
                             alt={`${track.title} featured`}
                             loading="lazy"
                           />
-                          <span className="tracksPage__cardIconPanel" aria-hidden="true">
-                            <svg className="tracksPage__cardIconScoop" viewBox="0 0 440 170" preserveAspectRatio="none" focusable="false">
-                              <path d="M0 170V92C38 58 92 52 129 76C161 97 181 132 229 146C262 156 298 151 336 136C319 155 322 166 352 170H0Z" />
-                            </svg>
-                            <TechIcon type={track.iconType} />
-                          </span>
                         </div>
 
                         <div className="tracksPage__cardBody">
-                          <div className="tracksPage__cardTitleRow">
+                          <div className="tracksPage__cardHeader">
                             <h3>{track.title}</h3>
+                            <span className="tracksPage__cardActionIcon" aria-hidden="true">
+                              <ArrowRight size={15} />
+                            </span>
+                          </div>
+
+                          <p>{track.description || "Structured lessons designed for practical coding mastery."}</p>
+
+                          <div className="tracksPage__cardFooter">
+                            <div className="tracksPage__metaRow">
+                              <span>
+                                <Layers size={14} aria-hidden="true" />
+                                {track.sectionCount} sections
+                              </span>
+                              <span>
+                                <BookOpen size={14} aria-hidden="true" />
+                                {track.totalExercises} lessons
+                              </span>
+                            </div>
+
                             {hasStarted && (
                               <div
                                 className="tracksPage__progressRing"
@@ -604,37 +612,13 @@ export default function TracksPage() {
                               >
                                 <div className="tracksPage__progressInner">
                                   {isComplete ? (
-                                    <CheckCircle2 size={18} className="tracksPage__progressDone" />
+                                    <CheckCircle2 size={16} className="tracksPage__progressDone" />
                                   ) : (
                                     <strong>{track.progressPercent}%</strong>
                                   )}
                                 </div>
                               </div>
                             )}
-                          </div>
-
-                          <p>{track.description || "Structured lessons designed for practical coding mastery."}</p>
-
-                          <div className="tracksPage__metaRow">
-                            <span>
-                              <Layers size={14} aria-hidden="true" />
-                              {track.sectionCount} sections
-                            </span>
-                            <span>
-                              <BookOpen size={14} aria-hidden="true" />
-                              {track.totalExercises} lessons
-                            </span>
-                          </div>
-
-                          <div className="tracksPage__cardFooter">
-                            <button
-                              type="button"
-                              className="btn btn-brand tracksPage__cta"
-                              onClick={() => openTrackWorkspace(track)}
-                            >
-                              {actionLabel}
-                              <ArrowRight size={14} />
-                            </button>
                           </div>
                         </div>
                       </article>
