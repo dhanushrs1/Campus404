@@ -1,4 +1,5 @@
 import { apiUrl } from "./api.js";
+import { clearAuthSession } from "./authSession.js";
 
 function buildHeaders() {
   const token = localStorage.getItem("campus404_token");
@@ -23,6 +24,10 @@ async function request(endpoint, options = {}) {
     } catch {
       // Keep generic error when body is not JSON.
     }
+    if (response.status === 401) {
+      clearAuthSession();
+      message = message || "Please sign in to continue.";
+    }
     throw new Error(message);
   }
 
@@ -35,6 +40,10 @@ export function getTrackTree() {
 
 export function getTrackLeaderboard(trackIdentifier, limit = 5) {
   return request(`/api/tracks/${trackIdentifier}/leaderboard?limit=${encodeURIComponent(limit)}`);
+}
+
+export function getTrackDetailTree(trackIdentifier) {
+  return request(`/api/tracks/${trackIdentifier}/tree`);
 }
 
 export function getExerciseForLearner(exerciseId) {

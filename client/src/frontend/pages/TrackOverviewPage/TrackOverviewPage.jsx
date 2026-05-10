@@ -17,7 +17,7 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { getAllTaskProgress, getTrackLeaderboard, getTrackTree } from "../../../shared/learningApi.js";
+import { getAllTaskProgress, getTrackDetailTree, getTrackLeaderboard, getTrackTree } from "../../../shared/learningApi.js";
 import { getCompletedExerciseIds } from "../../../shared/learningProgress.js";
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { ASSETS } from "../../../shared/assets.js";
@@ -188,14 +188,27 @@ export default function TrackOverviewPage() {
 
     async function fetchData() {
       try {
-        const [payload, taskProgressRes] = await Promise.all([
-          getTrackTree(),
+        const publicTracks = (await getTrackTree()) || [];
+        if (disposed) return;
+
+        const trackSummary = publicTracks
+          .map(normalizeTrack)
+          .find((item) => slugify(item.title) === trackSlug);
+
+        if (!trackSummary?.id) {
+          setTracks([]);
+          setCompletedTaskIds([]);
+          return;
+        }
+
+        const [trackDetail, taskProgressRes] = await Promise.all([
+          getTrackDetailTree(trackSummary.id),
           getAllTaskProgress().catch(() => []),
         ]);
 
         if (disposed) return;
 
-        setTracks((payload || []).map(normalizeTrack));
+        setTracks(trackDetail ? [normalizeTrack(trackDetail)] : []);
         setCompletedTaskIds(taskProgressRes.map((progress) => progress.task_id));
       } catch (err) {
         if (!disposed) {
@@ -213,7 +226,7 @@ export default function TrackOverviewPage() {
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [trackSlug]);
 
   useEffect(() => {
     function refreshProgress() {

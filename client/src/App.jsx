@@ -11,6 +11,7 @@ import FrontendDashboardPage from "./frontend/FrontendDashboardPage.jsx";
 import FrontendLayout from "./frontend/layout/FrontendLayout.jsx";
 import { APP_ROUTES } from "./routes/paths.js";
 import { AlertProvider } from "./shared/Alert/AlertContext.jsx";
+import { RequireAdmin, RequireAuth } from "./shared/RouteGuards.jsx";
 
 const OAuthCallbackPage = lazy(() => import("./frontend/pages/OAuthCallbackPage/OAuthCallbackPage.jsx"));
 
@@ -42,7 +43,14 @@ export default function App() {
         <Route path="/auth/callback" element={<OAuthCallbackRoute />} />
 
         {/* Workspace - fullscreen IDE, no header/footer */}
-        <Route path={APP_ROUTES.frontendExerciseWorkspacePattern} element={<WorkspacePage />} />
+        <Route
+          path={APP_ROUTES.frontendExerciseWorkspacePattern}
+          element={(
+            <RequireAuth>
+              <WorkspacePage />
+            </RequireAuth>
+          )}
+        />
 
         {/* Frontend Unified Layout wrapping user-facing pages */}
         <Route element={<FrontendLayout />}>
@@ -50,7 +58,7 @@ export default function App() {
 
         <Route
           path={APP_ROUTES.frontendRoot}
-          element={<Navigate to={APP_ROUTES.frontendDashboard} replace />}
+          element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
         />
         <Route
           path={APP_ROUTES.frontendDashboardLegacy}
@@ -68,10 +76,30 @@ export default function App() {
           path={APP_ROUTES.frontendWorkspaceRedirect}
           element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
         />
-        <Route path={APP_ROUTES.frontendDashboard} element={<FrontendDashboardPage />} />
-        <Route path={APP_ROUTES.frontendTracks} element={<TracksPage />} />
-        <Route path={APP_ROUTES.frontendTrackLeaderboardPattern} element={<TrackLeaderboardPage />} />
-        <Route path={APP_ROUTES.frontendTrackOverviewPattern} element={<TrackOverviewPage />} />
+        <Route
+          path={APP_ROUTES.frontendDashboard}
+          element={(
+            <RequireAuth>
+              <FrontendDashboardPage />
+            </RequireAuth>
+          )}
+        />
+        <Route
+          path={APP_ROUTES.frontendTracks}
+          element={<TracksPage />}
+        />
+        <Route
+          path={APP_ROUTES.frontendTrackLeaderboardPattern}
+          element={<TrackLeaderboardPage />}
+        />
+        <Route
+          path={APP_ROUTES.frontendTrackOverviewPattern}
+          element={(
+            <RequireAuth>
+              <TrackOverviewPage />
+            </RequireAuth>
+          )}
+        />
       </Route>
 
       {/* Admin Panel remains isolated without global header/footer */}
@@ -81,7 +109,11 @@ export default function App() {
       />
       <Route
         path={APP_ROUTES.adminDashboard}
-        element={<AdminDashboardPage />}
+        element={(
+          <RequireAdmin>
+            <AdminDashboardPage />
+          </RequireAdmin>
+        )}
       />
       <Route
         path={APP_ROUTES.adminOverviewLegacy}

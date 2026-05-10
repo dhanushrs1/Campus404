@@ -12,6 +12,7 @@ import {
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { getTrackTree } from "../../../shared/learningApi.js";
 import { getCompletedExerciseIds } from "../../../shared/learningProgress.js";
+import { readAuthSession } from "../../../shared/authSession.js";
 import { ASSETS } from "../../../shared/assets.js";
 import "./TracksPage.css";
 
@@ -267,11 +268,14 @@ function TechIcon({ type = "general", size = "md" }) {
 export default function TracksPage() {
   const navigate = useNavigate();
   const searchInputRef = useRef(null);
+  const [isAuthenticated] = useState(() => readAuthSession().isAuthenticated);
 
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [completedExerciseIds, setCompletedExerciseIds] = useState(() => getCompletedExerciseIds());
+  const [completedExerciseIds, setCompletedExerciseIds] = useState(() => (
+    isAuthenticated ? getCompletedExerciseIds() : []
+  ));
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -309,14 +313,14 @@ export default function TracksPage() {
 
   useEffect(() => {
     function refreshProgress() {
-      setCompletedExerciseIds(getCompletedExerciseIds());
+      setCompletedExerciseIds(isAuthenticated ? getCompletedExerciseIds() : []);
     }
 
     window.addEventListener("focus", refreshProgress);
     return () => {
       window.removeEventListener("focus", refreshProgress);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     function isEditingText(target) {

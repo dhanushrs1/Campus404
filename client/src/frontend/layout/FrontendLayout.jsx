@@ -1,35 +1,42 @@
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header/Header.jsx";
 import Footer from "../components/Footer/Footer.jsx";
 import AuthModal from "../components/AuthModal/AuthModal.jsx";
 import { APP_ROUTES } from "../../routes/paths.js";
 import { apiUrl } from "../../shared/api.js";
+import { clearAuthSession, readAuthSession } from "../../shared/authSession.js";
 import "./FrontendLayout.css";
 
 // Normal frontend shell. OAuth callback handling lives on its own fast route.
 export default function FrontendLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialSession = readAuthSession();
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState("USER");
-  const [displayName, setDisplayName] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(initialSession.isAuthenticated);
+  const [userRole, setUserRole] = useState(initialSession.role);
+  const [displayName, setDisplayName] = useState(initialSession.username);
+  const [avatarUrl, setAvatarUrl] = useState(initialSession.avatarUrl);
 
   useEffect(() => {
-    const token = localStorage.getItem("campus404_token");
-    const role = localStorage.getItem("campus404_role");
-    const name = localStorage.getItem("campus404_username") ?? "";
-    const storedAvatarUrl = localStorage.getItem("campus404_avatar_url") ?? "";
+    const session = readAuthSession();
 
-    if (token && role) {
+    if (session.isAuthenticated) {
       setIsAuthenticated(true);
-      setUserRole(role.toUpperCase());
-      setDisplayName(name);
-      setAvatarUrl(storedAvatarUrl);
+      setUserRole(session.role);
+      setDisplayName(session.username);
+      setAvatarUrl(session.avatarUrl);
+      return;
     }
   }, []);
+
+  useEffect(() => {
+    if (location.state?.authRequired) {
+      setIsAuthModalOpen(true);
+    }
+  }, [location.state]);
 
   const handleLogout = async () => {
     try {
@@ -46,10 +53,7 @@ export default function FrontendLayout() {
       // Ignore network errors on logout.
     }
 
-    localStorage.removeItem("campus404_token");
-    localStorage.removeItem("campus404_role");
-    localStorage.removeItem("campus404_username");
-    localStorage.removeItem("campus404_avatar_url");
+    clearAuthSession();
     setIsAuthenticated(false);
     setUserRole("USER");
     setDisplayName("");

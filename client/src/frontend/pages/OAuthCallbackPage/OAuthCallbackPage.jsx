@@ -147,7 +147,7 @@ function getCallbackError(error, banReason, status, setupToken, token) {
     return [
       "Your account cannot be logged in or created because it has been banned from the website.",
       banReason ? `Reason: ${banReason}` : "",
-      "For more information, contact admin@campus404.dummy.",
+      "For more information, contact the site administrator.",
     ].filter(Boolean).join(" ");
   }
 

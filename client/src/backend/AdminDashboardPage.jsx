@@ -24,6 +24,7 @@ import MediaLibraryPage from "./media/MediaLibraryPage.jsx";
 import BadgeLibraryPage from "./media/BadgeLibraryPage.jsx";
 import AdminAccountPage from "./account/AdminAccountPage.jsx";
 import AdminSettingsPage from "./settings/AdminSettingsPage.jsx";
+import { clearAuthSession, readAuthSession } from "../shared/authSession.js";
 import "./AdminDashboardPage.css";
 
 // ── Sidebar items ──────────────────────────────────────────────────────────
@@ -229,10 +230,11 @@ const ELEVATED = new Set(["ADMIN", "EDITOR"]);
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const initialSession = readAuthSession();
 
-  const [role, setRole] = useState("USER");
-  const [username, setUsername] = useState("guest");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [role, setRole] = useState(initialSession.role);
+  const [username, setUsername] = useState(initialSession.username || "guest");
+  const [avatarUrl, setAvatarUrl] = useState(initialSession.avatarUrl);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -274,9 +276,7 @@ export default function AdminDashboardPage() {
   }, [searchParams, setSearchParams]);
 
   const clearSessionAndRedirect = useCallback(() => {
-    ["campus404_token", "campus404_role", "campus404_username", "campus404_avatar_url", "campus404_setup_token"].forEach(
-      (k) => localStorage.removeItem(k)
-    );
+    clearAuthSession();
     setRole("USER");
     setUsername("guest");
     setAvatarUrl("");
@@ -318,9 +318,10 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
-    setRole((localStorage.getItem("campus404_role") || "USER").toUpperCase());
-    setUsername(localStorage.getItem("campus404_username") || "guest");
-    setAvatarUrl(localStorage.getItem("campus404_avatar_url") || "");
+    const session = readAuthSession();
+    setRole(session.role);
+    setUsername(session.username || "guest");
+    setAvatarUrl(session.avatarUrl);
   }, []);
 
   useEffect(() => {

@@ -65,6 +65,24 @@ class ExerciseInDB(ExerciseBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ExercisePublicSummary(ExerciseBase):
+    id: int
+    section_id: int
+    order: int
+    total_tasks: int = 0
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SectionPublicWithExercises(BaseModel):
+    id: int
+    track_id: int
+    order: int
+    title: str
+    badge_url: Optional[str] = None
+    exercises: List[ExercisePublicSummary] = Field(default_factory=list)
+    model_config = ConfigDict(from_attributes=True)
+
+
 class SectionStudentWithExercises(BaseModel):
     id: int
     track_id: int
@@ -175,6 +193,11 @@ class TrackInDB(TrackBase):
 
 
 class TrackTree(TrackInDB):
+    sections: List[SectionPublicWithExercises] = Field(default_factory=list)
+    learner_count: int = 0
+
+
+class TrackDetailTree(TrackInDB):
     sections: List[SectionStudentWithExercises] = Field(default_factory=list)
     learner_count: int = 0
 

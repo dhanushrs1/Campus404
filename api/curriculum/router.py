@@ -990,10 +990,45 @@ async def get_track_leaderboard(
         for index, entry in enumerate(ranked)
     ]
 
+@router.get("/api/tracks/{track_identifier}/tree", response_model=schemas.TrackDetailTree)
+async def get_track_detail_tree(
+    track_identifier: str,
+    db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> models.Track:
+    statement = (
+        select(models.Track)
+        .options(
+            selectinload(models.Track.sections)
+            .selectinload(models.Section.exercises)
+            .selectinload(models.Exercise.tasks)
+        )
+        .where(models.Track.is_published == True)
+    )
+    if track_identifier.isdigit():
+        statement = statement.where(models.Track.id == int(track_identifier))
+    else:
+        statement = statement.where(models.Track.slug == track_identifier)
+
+    track = await db.scalar(statement)
+    if not track:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
+
+    track.sections.sort(key=lambda section: int(section.order or 0))
+    for section in track.sections:
+        section.exercises.sort(key=lambda exercise: int(exercise.order or 0))
+        for exercise in section.exercises:
+            exercise.total_tasks = len(exercise.tasks) if exercise.tasks else 0
+            exercise.task_ids = [task.id for task in exercise.tasks] if exercise.tasks else []
+
+    track.learner_count = 0
+    return track
+
 @router.get("/api/tracks/{track_identifier}", response_model=schemas.TrackStudent)
 async def get_track_student(
     track_identifier: str,
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> models.Track:
     statement = select(models.Track).options(selectinload(models.Track.sections)).where(models.Track.is_published == True)
     if track_identifier.isdigit():
@@ -1013,6 +1048,7 @@ async def get_track_student(
 async def get_exercise_student(
     exercise_identifier: str,
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> models.Exercise:
     statement = select(models.Exercise).options(selectinload(models.Exercise.tasks))
     if exercise_identifier.isdigit():
@@ -1032,6 +1068,7 @@ async def get_exercise_student(
 async def get_exercise_workspace(
     exercise_identifier: str,
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> dict:
     """Return everything the workspace page needs in a single call."""
     statement = select(models.Exercise).options(selectinload(models.Exercise.tasks))
@@ -1094,6 +1131,7 @@ async def evaluate_task(
     task_id: int,
     payload: schemas.TaskEvaluateRequest,
     db: AsyncSession = Depends(get_db),
+    _user: User = Depends(get_current_user),
 ) -> dict:
     """Securely evaluates a task's source code against backend-hidden test cases."""
     task = await db.scalar(
