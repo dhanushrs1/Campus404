@@ -1,24 +1,29 @@
 .tracksPage {
   --tracks-feature-width: 1440px;
-  padding-bottom: 4rem;
+  --tracks-card-radius: 8px;
+  min-height: 100%;
+  padding-bottom: 4.5rem;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 46%, #ffffff 100%);
 }
 
 .tracksPage__hero {
   background: var(--bg-page);
-  padding: 16px clamp(18px, 2.5vw, 40px) 20px;
+  padding: 16px clamp(18px, 2.5vw, 40px) 22px;
 }
 
 .tracksPage__heroStage {
   width: min(100%, var(--tracks-feature-width));
-  min-height: clamp(280px, 24vw, 360px);
+  min-height: clamp(318px, 30vw, 398px);
   margin: 0 auto;
   overflow: hidden;
-  background-size: cover;
-  background-position: center;
   display: flex;
   align-items: center;
+  border: 1px solid rgba(184, 200, 227, 0.72);
   border-radius: 18px;
-  border: 1px solid var(--border-light);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 22px 54px rgba(15, 23, 42, 0.12);
 }
 
 .tracksPage__heroStage .container {
@@ -26,38 +31,98 @@
 }
 
 .tracksPage__heroInner {
+  width: min(100%, 680px);
+  padding: clamp(34px, 5vw, 64px) 0;
   color: #e2e8f0;
-  padding-top: 2rem;
-  padding-bottom: 2rem;
   text-align: left;
-  max-width: 800px;
 }
 
 .tracksPage__heroInner h1 {
-  color: #f8fafc;
+  max-width: 620px;
   margin: 0;
-  font-size: clamp(2rem, 1.4rem + 2.3vw, 3.2rem);
+  color: #f8fafc;
+  font-size: clamp(2.2rem, 1.35rem + 3.2vw, 4rem);
+  line-height: 1.05;
 }
 
 .tracksPage__heroInner p {
-  margin: 0.8rem 0 0;
-  color: rgba(241, 245, 249, 0.92);
-  font-size: 1.05rem;
-  line-height: 1.6;
+  max-width: 560px;
+  margin: 1rem 0 0;
+  color: rgba(241, 245, 249, 0.94);
+  font-size: clamp(0.98rem, 0.92rem + 0.25vw, 1.12rem);
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.tracksPage__search {
+  width: min(100%, 520px);
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 28px;
+  padding: 0 18px;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: var(--tracks-card-radius);
+  background: rgba(255, 255, 255, 0.96);
+  color: #52617d;
+  box-shadow: 0 18px 38px rgba(2, 6, 23, 0.18);
+}
+
+.tracksPage__search svg {
+  flex: 0 0 auto;
+  color: #0f234d;
+}
+
+.tracksPage__search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0f234d;
+  font-size: 0.94rem;
+  font-weight: 700;
+}
+
+.tracksPage__search input::placeholder {
+  color: #75839d;
+  font-weight: 600;
+}
+
+.tracksPage__heroStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.tracksPage__heroStats span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid rgba(219, 234, 254, 0.34);
+  border-radius: var(--tracks-card-radius);
+  background: rgba(15, 23, 42, 0.32);
+  color: rgba(248, 250, 252, 0.94);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .tracksPage__content {
-  margin-top: -36px;
   position: relative;
   z-index: 2;
+  margin-top: 0;
 }
 
 .tracksPage__status {
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--tracks-card-radius);
   background: var(--bg-card);
   color: var(--text-secondary);
   padding: 0.95rem 1rem;
+  font-weight: 600;
 }
 
 .tracksPage__status--error {
@@ -82,92 +147,207 @@
   }
 }
 
-.tracksPage__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1rem;
-}
-
-@media (min-width: 1024px) {
-  .tracksPage__grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 380px));
-  }
-}
-
-.tracksPage__card {
-  border: 1px solid var(--border-light);
-  border-radius: calc(var(--radius-md) + 4px);
-  background: var(--bg-card);
-  overflow: hidden;
+.tracksPage__toolbar {
   display: flex;
-  flex-direction: column;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 6px;
 }
 
-/* .tracksPage__card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
-  border-color: var(--border-light);
-} */
-
-.tracksPage__cardMedia {
-  position: relative;
-  aspect-ratio: 32 / 9;
-  background: var(--bg-hover);
-  overflow: hidden;
+.tracksPage__continueRail::-webkit-scrollbar {
+  height: 8px;
 }
 
-.tracksPage__cardMedia img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.5s ease;
-}
-
-/* .tracksPage__card:hover .tracksPage__cardMedia img {
-  transform: scale(1.04);
-} */
-
-.tracksPage__cardLanguage {
-  position: absolute;
-  left: 0.75rem;
-  bottom: 0.75rem;
-  padding: 0.2rem 0.55rem;
+.tracksPage__continueRail::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
-  background: rgba(2, 6, 23, 0.65);
-  color: #e2e8f0;
-  font-size: 0.74rem;
+  background: rgba(37, 99, 235, 0.24);
+}
+
+.tracksPage__controls {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tracksPage__sort {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 9px 0 12px;
+  border: 1px solid #d9e4f6;
+  border-radius: var(--tracks-card-radius);
+  background: #ffffff;
+  color: #0f234d;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.tracksPage__sort svg {
+  color: var(--accent-primary);
+}
+
+.tracksPage__sort select {
+  min-width: 96px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0f234d;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tracksPage__viewToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid #d9e4f6;
+  border-radius: var(--tracks-card-radius);
+  background: #ffffff;
+}
+
+.tracksPage__viewToggle button {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #52617d;
+  background: transparent;
+}
+
+.tracksPage__viewToggle button.is-active {
+  background: var(--accent-primary);
+  color: #ffffff;
+}
+
+.tracksPage__sectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.tracksPage__sectionHeader h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: #0f234d;
+  font-size: clamp(1.24rem, 1.12rem + 0.35vw, 1.48rem);
+  line-height: 1.2;
+}
+
+.tracksPage__sectionHeader h2 svg {
+  color: var(--accent-primary);
+}
+
+.tracksPage__sectionHeader p {
+  margin: 7px 0 0;
+  color: #657391;
+  font-size: 0.88rem;
   font-weight: 600;
 }
 
-.tracksPage__cardBody {
-  background: var(--bg-card);
-  padding: 0.9rem;
+.tracksPage__sectionHeader--compact {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.tracksPage__sectionHeader--compact p {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin-top: 8px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #edf4ff;
+  color: #52617d;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.tracksPage__continue {
+  margin-top: 34px;
+  padding: 24px;
+  border-radius: var(--tracks-card-radius);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(37, 99, 235, 0.12), transparent 38%),
+    linear-gradient(135deg, #f5f9ff 0%, #eef5ff 100%);
+}
+
+.tracksPage__continueRail {
+  display: flex;
+  gap: 22px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  padding: 0 2px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37, 99, 235, 0.32) transparent;
+}
+
+.tracksPage__continueCard {
+  position: relative;
+  flex: 0 0 min(360px, calc(100vw - 92px));
+  min-height: 220px;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  overflow: hidden;
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: var(--tracks-card-radius);
+  background-color: #0f234d;
+  background-position: center;
+  background-size: cover;
+  color: #ffffff;
+  scroll-snap-align: start;
+  box-shadow: 0 18px 34px rgba(15, 35, 77, 0.2);
 }
 
-.tracksPage__cardTop {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.8rem;
+.tracksPage__continueCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.18), transparent 44%),
+    linear-gradient(90deg, rgba(2, 6, 23, 0.42), transparent 62%);
 }
 
-.tracksPage__cardTop h3 {
-  margin: 0;
-  font-size: 1.05rem;
+.tracksPage__continueCard > * {
+  position: relative;
+  z-index: 1;
 }
 
-.tracksPage__cardTop p {
-  margin: 0.4rem 0;
-  color: var(--text-secondary);
-  font-size: 0.86rem;
-  line-height: 1.55;
+.tracksPage__continueTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.tracksPage__continueCard h3 {
+  max-width: 245px;
+  margin: 18px 0 0;
+  color: #ffffff;
+  font-size: 1.16rem;
+  line-height: 1.22;
+}
+
+.tracksPage__continueCard p {
+  max-width: 280px;
+  margin: 9px 0 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -175,93 +355,449 @@
   overflow: hidden;
 }
 
-.tracksPage__sectionsCount {
-  color: var(--text-tertiary);
-  font-size: 0.78rem;
+.tracksPage__continueBottom {
+  margin-top: auto;
+  padding-top: 20px;
 }
 
-.tracksPage__progressWrap {
+.tracksPage__linearProgress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.28);
+}
+
+.tracksPage__linearProgress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-primary);
+}
+
+.tracksPage__continueMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-right: 118px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.tracksPage__continueMeta strong {
+  color: #ffffff;
+}
+
+.tracksPage__continueCard button {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: var(--tracks-card-radius);
+  background: #ffffff;
+  color: var(--accent-primary);
+  font-size: 0.78rem;
+  font-weight: 900;
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.18);
+}
+
+.tracksPage__continueCard button:hover {
+  color: #ffffff;
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+}
+
+.tracksPage__allTracks {
+  margin-top: 34px;
+}
+
+.tracksPage__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.tracksPage__card {
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #dbe5f5;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+}
+
+.tracksPage__card:hover {
+  transform: translateY(-3px);
+  border-color: #bfd2f3;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.1);
+}
+
+.tracksPage__cardMedia {
+  position: relative;
+  min-height: 0;
+  aspect-ratio: 16 / 6.7;
+  margin: 10px 10px 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #0f234d;
+}
+
+.tracksPage__cardMedia::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.18), transparent 58%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.02), rgba(2, 6, 23, 0.14));
+}
+
+.tracksPage__cardMedia img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+.tracksPage__cardIconPanel {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
+}
+
+.tracksPage__cardIconScoop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.tracksPage__cardIconScoop path {
+  fill: #ffffff;
+}
+
+.tracksPage__cardIconPanel .tracksPage__techIcon {
+  position: absolute;
+  left: 48px;
+  bottom: 32px;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+}
+
+.tracksPage__cardBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 18px;
+}
+
+.tracksPage__cardTitleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.35rem;
+  gap: 14px;
+}
+
+.tracksPage__cardTitleRow h3 {
+  margin: 0;
+  color: #0f234d;
+  font-size: 1.04rem;
+  line-height: 1.24;
+}
+
+.tracksPage__cardBody > p {
+  min-height: 44px;
+  margin: 0;
+  color: #52617d;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.52;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tracksPage__metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  color: #52617d;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.tracksPage__metaRow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tracksPage__metaRow svg {
+  color: var(--accent-primary);
+}
+
+.tracksPage__cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.tracksPage__cta {
+  min-width: 112px;
+  min-height: 36px;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid var(--accent-primary);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--accent-primary);
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.tracksPage__cta:hover {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .tracksPage__progressRing {
   --progress-value: 0%;
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: conic-gradient(var(--accent-primary) var(--progress-value), var(--bg-hover) 0);
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
-  flex-shrink: 0;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent-primary) var(--progress-value), #e8eef8 0);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
 }
 
 .tracksPage__progressInner {
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: var(--bg-base);
-  border: 1px solid var(--border-light);
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
+  border: 1px solid #dbe5f5;
+  border-radius: 50%;
+  background: #ffffff;
 }
 
 .tracksPage__progressInner strong {
-  font-size: 0.84rem;
-  color: var(--text-primary);
+  color: #0f234d;
+  font-size: 0.76rem;
+  font-weight: 900;
 }
 
 .tracksPage__progressDone {
   color: var(--state-success);
 }
 
-.tracksPage__progressLabel {
-  font-size: 0.74rem;
-  color: var(--text-tertiary);
-}
-
-.tracksPage__progressLabel.is-complete {
-  color: var(--state-success);
-  font-weight: 600;
-}
-
-.tracksPage__cta {
+.tracksPage__techIcon {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  flex: 0 0 auto;
 }
 
-.tracksPage__cta:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+.tracksPage__techIcon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.tracksPage__card:hover .tracksPage__cta:not(:disabled) {
-  background: var(--accent-hover);
-  transform: translateY(-1px);
+.tracksPage__techIcon--md {
+  width: 40px;
+  height: 40px;
 }
 
-@media (max-width: 700px) {
-  .tracksPage__hero {
-    padding: 8px;
+.tracksPage__techIcon--sm {
+  width: 28px;
+  height: 28px;
+}
+
+.tracksPage__techIcon--xs {
+  width: 18px;
+  height: 18px;
+}
+
+.tracksPage__grid--list {
+  grid-template-columns: 1fr;
+}
+
+.tracksPage__grid--list .tracksPage__card {
+  display: grid;
+  grid-template-columns: minmax(260px, 34%) minmax(0, 1fr);
+}
+
+.tracksPage__grid--list .tracksPage__cardMedia {
+  height: 100%;
+  min-height: 210px;
+  aspect-ratio: auto;
+}
+
+.tracksPage__grid--list .tracksPage__cardBody {
+  padding: 22px;
+}
+
+.tracksPage__grid--list .tracksPage__cardBody > p {
+  max-width: 620px;
+}
+
+@media (max-width: 980px) {
+  .tracksPage__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .tracksPage__heroStage {
-    min-height: 290px;
-    border-radius: 14px;
+  .tracksPage__toolbar {
+    justify-content: space-between;
   }
 
-  .tracksPage__content {
-    margin-top: -24px;
+  .tracksPage__controls {
+    width: 100%;
   }
 
-  .tracksPage__cardTop {
+  .tracksPage__sort {
+    flex: 1;
+  }
+
+  .tracksPage__grid--list .tracksPage__card {
     grid-template-columns: 1fr;
   }
 
-  .tracksPage__progressWrap {
+  .tracksPage__grid--list .tracksPage__cardMedia {
+    min-height: 0;
+    aspect-ratio: 16 / 7;
+  }
+}
+
+@media (max-width: 700px) {
+  .tracksPage {
+    padding-bottom: 3rem;
+  }
+
+  .tracksPage__hero {
+    padding: 10px;
+  }
+
+  .tracksPage__heroStage {
+    min-height: 390px;
+    align-items: flex-end;
+    border-radius: 14px;
+    background-position: center right;
+  }
+
+  .tracksPage__heroInner {
+    padding: 40px 0 30px;
+  }
+
+  .tracksPage__heroInner h1 {
+    font-size: clamp(2rem, 11vw, 3rem);
+  }
+
+  .tracksPage__heroInner p {
+    font-size: 0.96rem;
+  }
+
+  .tracksPage__search {
+    min-height: 50px;
+    margin-top: 22px;
+    padding: 0 14px;
+  }
+
+  .tracksPage__controls {
+    gap: 8px;
+  }
+
+  .tracksPage__sort span {
+    display: none;
+  }
+
+  .tracksPage__continue {
+    margin-top: 26px;
+    padding: 18px;
+  }
+
+  .tracksPage__sectionHeader {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tracksPage__sectionHeader--compact {
+    flex-direction: row;
+  }
+
+  .tracksPage__continueRail {
+    gap: 14px;
+  }
+
+  .tracksPage__continueCard {
+    flex-basis: min(318px, calc(100vw - 56px));
+    min-height: 238px;
+    padding: 20px;
+  }
+
+  .tracksPage__continueMeta {
+    padding-right: 0;
+    padding-bottom: 48px;
+  }
+
+  .tracksPage__continueCard button {
+    left: 20px;
+    right: auto;
+    bottom: 18px;
+  }
+
+  .tracksPage__allTracks {
+    margin-top: 28px;
+  }
+
+  .tracksPage__grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .tracksPage__cardIconPanel {
+    inset: 0;
+  }
+
+  .tracksPage__cardIconPanel .tracksPage__techIcon {
+    width: 44px;
+    height: 44px;
+    left: 40px;
+    bottom: 30px;
+  }
+
+  .tracksPage__cta {
+    width: 100%;
   }
 }
