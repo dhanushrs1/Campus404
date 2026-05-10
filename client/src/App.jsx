@@ -6,6 +6,7 @@ import WorkspacePage from "./frontend/pages/WorkspacePage/WorkspacePage.jsx";
 import TracksPage from "./frontend/pages/TracksPage/TracksPage.jsx";
 import TrackOverviewPage from "./frontend/pages/TrackOverviewPage/TrackOverviewPage.jsx";
 import TrackLeaderboardPage from "./frontend/pages/TrackLeaderboardPage/TrackLeaderboardPage.jsx";
+import ContactPage from "./frontend/pages/ContactPage/ContactPage.jsx";
 import LegalCenterPage from "./frontend/pages/LegalPage/LegalCenterPage.jsx";
 import PrivacyPolicyPage from "./frontend/pages/LegalPage/PrivacyPolicyPage.jsx";
 import TermsAndConditionsPage from "./frontend/pages/LegalPage/TermsAndConditionsPage.jsx";
@@ -107,6 +108,7 @@ export default function App() {
               </RequireAuth>
             )}
           />
+          <Route path={APP_ROUTES.contactUs} element={<ContactPage />} />
           <Route
             path={APP_ROUTES.legalLegacy}
             element={<Navigate to={APP_ROUTES.legal} replace />}

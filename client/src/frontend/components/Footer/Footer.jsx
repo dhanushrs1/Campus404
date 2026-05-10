@@ -37,6 +37,7 @@ const FOOTER_COLUMNS = [
       { label: "Guides", to: APP_ROUTES.home },
       { label: "FAQs", to: APP_ROUTES.home },
       { label: "Status", to: APP_ROUTES.home },
+      { label: "Contact Us", to: APP_ROUTES.contactUs },
     ],
   },
   {
@@ -125,7 +126,8 @@ export default function Footer() {
         <div className="footerBottom">
           <p>&copy; {new Date().getFullYear()} Campus404. All rights reserved.</p>
 
-          <nav aria-label="Legal links">
+          <nav aria-label="Footer quick links">
+            <Link to={APP_ROUTES.contactUs}>Contact</Link>
             <Link to={APP_ROUTES.privacyPolicy}>Privacy</Link>
             <Link to={APP_ROUTES.termsAndConditions}>Terms</Link>
             <Link to={APP_ROUTES.cookiePolicy}>Cookies</Link>

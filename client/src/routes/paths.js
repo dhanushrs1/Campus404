@@ -11,6 +11,7 @@ export const APP_ROUTES = Object.freeze({
   frontendTrackLeaderboard: (trackSlug) => `/tracks/${trackSlug}/leaderboard`,
   frontendExerciseWorkspacePattern: "/:trackSlug/:sectionSlug/:exerciseSlug/:taskId",
   frontendExerciseWorkspace: (trackSlug, sectionSlug, exerciseSlug, taskId) => `/${trackSlug}/${sectionSlug}/${exerciseSlug}/${taskId}`,
+  contactUs: "/contact-us",
 
   // Public legal and policy pages.
   legal: "/legal-centre",

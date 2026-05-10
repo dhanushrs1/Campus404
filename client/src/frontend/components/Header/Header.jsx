@@ -47,6 +47,12 @@ const NAV_MENU_ITEMS = [
     label: "Documentation",
     path: APP_ROUTES.home,
   },
+  {
+    key: "contact",
+    type: "link",
+    label: "Contact",
+    path: APP_ROUTES.contactUs,
+  },
 ];
 
 const MEGA_MENU_ITEMS = [
