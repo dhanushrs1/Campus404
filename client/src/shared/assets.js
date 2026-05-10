@@ -27,6 +27,9 @@ export const ASSETS = Object.freeze({
   campus: {
     kvgCampus: publicAsset("campus/kvg-campus.avif"),
   },
+  contact: {
+    heroBuildLearn: publicAsset("contact/contact-hero-build-learn.webp"),
+  },
   decorations: {
     pixelCloud: publicAsset("decorations/pixel-cloud.png"),
     pixelCorner: publicAsset("decorations/pixel-corner.svg"),
