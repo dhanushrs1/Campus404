@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -58,6 +58,9 @@ const MIXED_AVATAR_ORDER = [
 ];
 
 const AVATAR_PAGE_SIZE = 4;
+const AVATAR_LOOP_COPIES = 5;
+const AVATAR_LOOP_MIDDLE_COPY = Math.floor(AVATAR_LOOP_COPIES / 2);
+const AVATAR_LOOP_RESET_DELAY_MS = 420;
 
 function decodeJwt(token) {
   try {
@@ -115,6 +118,28 @@ function formatProviderName(provider) {
   const value = String(provider || "").trim();
   if (!value) return "Provider";
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function normalizeAvatarLoopIndex(index, optionCount) {
+  if (!optionCount) return 0;
+  return ((index % optionCount) + optionCount) % optionCount;
+}
+
+function getMiddleAvatarLoopIndex(avatarIndex, optionCount) {
+  if (!optionCount) return 0;
+  return (optionCount > 1 ? AVATAR_LOOP_MIDDLE_COPY : 0) * optionCount + avatarIndex;
+}
+
+function getNearestAvatarLoopIndex(currentLoopIndex, targetAvatarIndex, optionCount) {
+  if (!optionCount) return 0;
+
+  const currentAvatarIndex = normalizeAvatarLoopIndex(currentLoopIndex, optionCount);
+  let delta = targetAvatarIndex - currentAvatarIndex;
+
+  if (delta > optionCount / 2) delta -= optionCount;
+  if (delta < -optionCount / 2) delta += optionCount;
+
+  return currentLoopIndex + delta;
 }
 
 function getCallbackError(error, banReason, status, setupToken, token) {
@@ -210,6 +235,9 @@ export default function OAuthCallbackPage() {
   const [errMsg, setErrMsg] = useState("");
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isUsernameAvailable, setIsUsernameAvailable] = useState(null);
+  const [selectedAvatarLoopIndex, setSelectedAvatarLoopIndex] = useState(null);
+  const avatarButtonRefs = useRef(new Map());
+  const avatarScrollBehaviorRef = useRef("auto");
 
   const avatarOptions = useMemo(
     () => rawAvatarOptions.filter((avatar) => !failedAvatarIds.has(avatar.id)),
@@ -272,17 +300,22 @@ export default function OAuthCallbackPage() {
     return preferredIndex >= 0 ? preferredIndex : 0;
   })();
   const selectedAvatar = avatarOptions[selectedAvatarIndex] || avatarOptions[0];
-  const avatarSlides = avatarOptions.length
-    ? [-2, -1, 0, 1, 2].map((offset) => {
-        const index = (selectedAvatarIndex + offset + avatarOptions.length) % avatarOptions.length;
-        return {
-          ...avatarOptions[index],
-          index,
-          offset,
-          isSelected: offset === 0,
-        };
-      })
-    : [];
+  const activeAvatarLoopIndex = avatarOptions.length
+    ? selectedAvatarLoopIndex ?? getMiddleAvatarLoopIndex(selectedAvatarIndex, avatarOptions.length)
+    : 0;
+  const loopedAvatarOptions = useMemo(() => {
+    if (!avatarOptions.length) return [];
+
+    const copyCount = avatarOptions.length > 1 ? AVATAR_LOOP_COPIES : 1;
+    return Array.from({ length: copyCount }, (_, copyIndex) => (
+      avatarOptions.map((avatar, index) => ({
+        ...avatar,
+        avatarIndex: index,
+        loopIndex: (copyIndex * avatarOptions.length) + index,
+        loopKey: `${copyIndex}-${avatar.id}`,
+      }))
+    )).flat();
+  }, [avatarOptions]);
   const avatarPageCount = Math.ceil(avatarOptions.length / AVATAR_PAGE_SIZE);
   const activeAvatarPage = Math.floor(selectedAvatarIndex / AVATAR_PAGE_SIZE);
   const canSubmit = (
@@ -295,15 +328,89 @@ export default function OAuthCallbackPage() {
   );
   const initialError = getCallbackError(error, banReason, status, setupToken, token);
 
+  useEffect(() => {
+    if (!avatarOptions.length) {
+      setSelectedAvatarLoopIndex(null);
+      return;
+    }
+
+    setSelectedAvatarLoopIndex((currentLoopIndex) => {
+      if (
+        Number.isInteger(currentLoopIndex)
+        && normalizeAvatarLoopIndex(currentLoopIndex, avatarOptions.length) === selectedAvatarIndex
+      ) {
+        return currentLoopIndex;
+      }
+
+      avatarScrollBehaviorRef.current = "auto";
+      return getMiddleAvatarLoopIndex(selectedAvatarIndex, avatarOptions.length);
+    });
+  }, [avatarOptions.length, selectedAvatarIndex]);
+
+  useEffect(() => {
+    if (!avatarOptions.length) return undefined;
+
+    const selectedAvatarButton = avatarButtonRefs.current.get(activeAvatarLoopIndex);
+    if (!selectedAvatarButton) return undefined;
+
+    const frameId = window.requestAnimationFrame(() => {
+      selectedAvatarButton.scrollIntoView({
+        behavior: avatarScrollBehaviorRef.current,
+        block: "nearest",
+        inline: "center",
+      });
+      avatarScrollBehaviorRef.current = "smooth";
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activeAvatarLoopIndex, avatarOptions.length]);
+
+  useEffect(() => {
+    if (!avatarOptions.length || avatarOptions.length <= 1 || !Number.isInteger(selectedAvatarLoopIndex)) {
+      return undefined;
+    }
+
+    const middleStart = avatarOptions.length * AVATAR_LOOP_MIDDLE_COPY;
+    const middleEnd = middleStart + avatarOptions.length;
+    if (selectedAvatarLoopIndex >= middleStart && selectedAvatarLoopIndex < middleEnd) {
+      return undefined;
+    }
+
+    const resetLoopIndex = getMiddleAvatarLoopIndex(
+      normalizeAvatarLoopIndex(selectedAvatarLoopIndex, avatarOptions.length),
+      avatarOptions.length,
+    );
+    const resetTimeoutId = window.setTimeout(() => {
+      avatarScrollBehaviorRef.current = "auto";
+      setSelectedAvatarLoopIndex(resetLoopIndex);
+    }, AVATAR_LOOP_RESET_DELAY_MS);
+
+    return () => window.clearTimeout(resetTimeoutId);
+  }, [avatarOptions.length, selectedAvatarLoopIndex]);
+
+  const selectAvatarAtLoopIndex = (nextLoopIndex) => {
+    if (!avatarOptions.length) return;
+
+    const renderedAvatarCount = avatarOptions.length * (avatarOptions.length > 1 ? AVATAR_LOOP_COPIES : 1);
+    const nextAvatarIndex = normalizeAvatarLoopIndex(nextLoopIndex, avatarOptions.length);
+    const safeLoopIndex = nextLoopIndex >= 0 && nextLoopIndex < renderedAvatarCount
+      ? nextLoopIndex
+      : getMiddleAvatarLoopIndex(nextAvatarIndex, avatarOptions.length);
+
+    avatarScrollBehaviorRef.current = "smooth";
+    setSelectedAvatarLoopIndex(safeLoopIndex);
+    setSelectedAvatarId(avatarOptions[nextAvatarIndex].id);
+  };
+
   const handleAvatarStep = (direction) => {
     if (!avatarOptions.length) return;
-    const nextIndex = (selectedAvatarIndex + direction + avatarOptions.length) % avatarOptions.length;
-    setSelectedAvatarId(avatarOptions[nextIndex].id);
+    selectAvatarAtLoopIndex(activeAvatarLoopIndex + direction);
   };
 
   const jumpToAvatarPage = (pageIndex) => {
     const nextIndex = Math.min(pageIndex * AVATAR_PAGE_SIZE, avatarOptions.length - 1);
-    setSelectedAvatarId(avatarOptions[nextIndex]?.id || "");
+    if (nextIndex < 0) return;
+    selectAvatarAtLoopIndex(getNearestAvatarLoopIndex(activeAvatarLoopIndex, nextIndex, avatarOptions.length));
   };
 
   const handleAvatarImageError = (avatar) => {
@@ -419,26 +526,40 @@ export default function OAuthCallbackPage() {
             </button>
 
             <div className="oauthCallback__avatarRail" aria-live="polite">
-              {avatarSlides.map((avatar) => (
-                <button
-                  key={`${avatar.id}-${avatar.offset}`}
-                  type="button"
-                  className={`oauthCallback__avatarOption${avatar.isSelected ? " oauthCallback__avatarOption--selected" : ""}${avatar.source === "provider" ? " oauthCallback__avatarOption--provider" : ""}`}
-                  data-offset={avatar.offset}
-                  onClick={() => setSelectedAvatarId(avatar.id)}
-                  aria-label={`Select ${avatar.label}`}
-                  aria-pressed={avatar.isSelected}
-                >
-                  <img
-                    src={avatar.src}
-                    alt=""
-                    draggable="false"
-                    referrerPolicy={avatar.source === "provider" ? "no-referrer" : undefined}
-                    onError={() => handleAvatarImageError(avatar)}
-                  />
-                  {avatar.isSelected && <Sparkles className="oauthCallback__avatarSpark" size={18} aria-hidden="true" />}
-                </button>
-              ))}
+              {loopedAvatarOptions.map((avatar) => {
+                const isSelected = avatar.loopIndex === activeAvatarLoopIndex;
+                const distanceFromSelected = Math.abs(avatar.loopIndex - activeAvatarLoopIndex);
+                const visualDistance = distanceFromSelected > 2 ? "far" : String(distanceFromSelected);
+
+                return (
+                  <button
+                    key={avatar.loopKey}
+                    ref={(node) => {
+                      if (node) {
+                        avatarButtonRefs.current.set(avatar.loopIndex, node);
+                      } else {
+                        avatarButtonRefs.current.delete(avatar.loopIndex);
+                      }
+                    }}
+                    type="button"
+                    className={`oauthCallback__avatarOption${isSelected ? " oauthCallback__avatarOption--selected" : ""}${avatar.source === "provider" ? " oauthCallback__avatarOption--provider" : ""}`}
+                    data-distance={visualDistance}
+                    onClick={() => selectAvatarAtLoopIndex(avatar.loopIndex)}
+                    aria-label={`Select ${avatar.label}`}
+                    aria-pressed={isSelected}
+                    tabIndex={isSelected || distanceFromSelected <= 2 ? 0 : -1}
+                  >
+                    <img
+                      src={avatar.src}
+                      alt=""
+                      draggable="false"
+                      referrerPolicy={avatar.source === "provider" ? "no-referrer" : undefined}
+                      onError={() => handleAvatarImageError(avatar)}
+                    />
+                    {isSelected && <Sparkles className="oauthCallback__avatarSpark" size={18} aria-hidden="true" />}
+                  </button>
+                );
+              })}
             </div>
 
             <button
