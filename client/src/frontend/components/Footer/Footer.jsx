@@ -40,12 +40,15 @@ const FOOTER_COLUMNS = [
     ],
   },
   {
-    title: "Company",
+    title: "Legal",
     links: [
-      { label: "About Us", to: APP_ROUTES.home },
-      { label: "Careers", to: APP_ROUTES.home },
-      { label: "Contact", to: APP_ROUTES.home },
-      { label: "Privacy", to: APP_ROUTES.home },
+      { label: "Legal Centre", to: APP_ROUTES.legal },
+      { label: "Privacy Policy", to: APP_ROUTES.privacyPolicy },
+      { label: "Terms", to: APP_ROUTES.termsAndConditions },
+      { label: "Cookie Policy", to: APP_ROUTES.cookiePolicy },
+      { label: "Acceptable Use", to: APP_ROUTES.acceptableUsePolicy },
+      { label: "Data Deletion", to: APP_ROUTES.dataDeletion },
+      { label: "Security", to: APP_ROUTES.securityPractices },
     ],
   },
 ];
@@ -123,10 +126,10 @@ export default function Footer() {
           <p>&copy; {new Date().getFullYear()} Campus404. All rights reserved.</p>
 
           <nav aria-label="Legal links">
-            <Link to={APP_ROUTES.home}>Privacy</Link>
-            <Link to={APP_ROUTES.home}>Terms</Link>
-            <Link to={APP_ROUTES.home}>Cookies</Link>
-            <Link to={APP_ROUTES.home}>Security</Link>
+            <Link to={APP_ROUTES.privacyPolicy}>Privacy</Link>
+            <Link to={APP_ROUTES.termsAndConditions}>Terms</Link>
+            <Link to={APP_ROUTES.cookiePolicy}>Cookies</Link>
+            <Link to={APP_ROUTES.securityPractices}>Security</Link>
           </nav>
         </div>
       </div>

@@ -6,6 +6,13 @@ import WorkspacePage from "./frontend/pages/WorkspacePage/WorkspacePage.jsx";
 import TracksPage from "./frontend/pages/TracksPage/TracksPage.jsx";
 import TrackOverviewPage from "./frontend/pages/TrackOverviewPage/TrackOverviewPage.jsx";
 import TrackLeaderboardPage from "./frontend/pages/TrackLeaderboardPage/TrackLeaderboardPage.jsx";
+import LegalCenterPage from "./frontend/pages/LegalPage/LegalCenterPage.jsx";
+import PrivacyPolicyPage from "./frontend/pages/LegalPage/PrivacyPolicyPage.jsx";
+import TermsAndConditionsPage from "./frontend/pages/LegalPage/TermsAndConditionsPage.jsx";
+import CookiePolicyPage from "./frontend/pages/LegalPage/CookiePolicyPage.jsx";
+import AcceptableUsePolicyPage from "./frontend/pages/LegalPage/AcceptableUsePolicyPage.jsx";
+import DataDeletionPage from "./frontend/pages/LegalPage/DataDeletionPage.jsx";
+import SecurityPracticesPage from "./frontend/pages/LegalPage/SecurityPracticesPage.jsx";
 import NotFoundPage from "./shared/404/NotFoundPage.jsx";
 import FrontendDashboardPage from "./frontend/FrontendDashboardPage.jsx";
 import FrontendLayout from "./frontend/layout/FrontendLayout.jsx";
@@ -56,93 +63,104 @@ export default function App() {
         <Route element={<FrontendLayout />}>
           <Route path={APP_ROUTES.home} element={<HomePage />} />
 
+          <Route
+            path={APP_ROUTES.frontendRoot}
+            element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
+          />
+          <Route
+            path={APP_ROUTES.frontendDashboardLegacy}
+            element={<Navigate to={APP_ROUTES.frontendDashboard} replace />}
+          />
+          <Route
+            path={APP_ROUTES.frontendTracksLegacy}
+            element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
+          />
+          <Route
+            path={APP_ROUTES.frontendWorkspaceLegacy}
+            element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
+          />
+          <Route
+            path={APP_ROUTES.frontendWorkspaceRedirect}
+            element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
+          />
+          <Route
+            path={APP_ROUTES.frontendDashboard}
+            element={(
+              <RequireAuth>
+                <FrontendDashboardPage />
+              </RequireAuth>
+            )}
+          />
+          <Route
+            path={APP_ROUTES.frontendTracks}
+            element={<TracksPage />}
+          />
+          <Route
+            path={APP_ROUTES.frontendTrackLeaderboardPattern}
+            element={<TrackLeaderboardPage />}
+          />
+          <Route
+            path={APP_ROUTES.frontendTrackOverviewPattern}
+            element={(
+              <RequireAuth>
+                <TrackOverviewPage />
+              </RequireAuth>
+            )}
+          />
+          <Route
+            path={APP_ROUTES.legalLegacy}
+            element={<Navigate to={APP_ROUTES.legal} replace />}
+          />
+          <Route path={APP_ROUTES.legal} element={<LegalCenterPage />} />
+          <Route path={APP_ROUTES.privacyPolicy} element={<PrivacyPolicyPage />} />
+          <Route path={APP_ROUTES.termsAndConditions} element={<TermsAndConditionsPage />} />
+          <Route path={APP_ROUTES.cookiePolicy} element={<CookiePolicyPage />} />
+          <Route path={APP_ROUTES.acceptableUsePolicy} element={<AcceptableUsePolicyPage />} />
+          <Route path={APP_ROUTES.dataDeletion} element={<DataDeletionPage />} />
+          <Route path={APP_ROUTES.securityPractices} element={<SecurityPracticesPage />} />
+        </Route>
+
+        {/* Admin Panel remains isolated without global header/footer */}
         <Route
-          path={APP_ROUTES.frontendRoot}
-          element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
+          path={APP_ROUTES.adminRoot}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />}
         />
         <Route
-          path={APP_ROUTES.frontendDashboardLegacy}
-          element={<Navigate to={APP_ROUTES.frontendDashboard} replace />}
-        />
-        <Route
-          path={APP_ROUTES.frontendTracksLegacy}
-          element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
-        />
-        <Route
-          path={APP_ROUTES.frontendWorkspaceLegacy}
-          element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
-        />
-        <Route
-          path={APP_ROUTES.frontendWorkspaceRedirect}
-          element={<Navigate to={APP_ROUTES.frontendTracks} replace />}
-        />
-        <Route
-          path={APP_ROUTES.frontendDashboard}
+          path={APP_ROUTES.adminDashboard}
           element={(
-            <RequireAuth>
-              <FrontendDashboardPage />
-            </RequireAuth>
+            <RequireAdmin>
+              <AdminDashboardPage />
+            </RequireAdmin>
           )}
         />
         <Route
-          path={APP_ROUTES.frontendTracks}
-          element={<TracksPage />}
+          path={APP_ROUTES.adminOverviewLegacy}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />}
         />
         <Route
-          path={APP_ROUTES.frontendTrackLeaderboardPattern}
-          element={<TrackLeaderboardPage />}
+          path={APP_ROUTES.adminTracksLegacy}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("tracks")} replace />}
         />
         <Route
-          path={APP_ROUTES.frontendTrackOverviewPattern}
-          element={(
-            <RequireAuth>
-              <TrackOverviewPage />
-            </RequireAuth>
-          )}
+          path={APP_ROUTES.adminMediaLegacy}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("media")} replace />}
         />
-      </Route>
+        <Route
+          path={APP_ROUTES.adminUsersLegacy}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("users")} replace />}
+        />
+        <Route
+          path={APP_ROUTES.backendRootLegacy}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />}
+        />
+        <Route
+          path={APP_ROUTES.backendDashboardLegacy}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />}
+        />
+        <Route path="/admin/*" element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />} />
 
-      {/* Admin Panel remains isolated without global header/footer */}
-      <Route
-        path={APP_ROUTES.adminRoot}
-        element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />}
-      />
-      <Route
-        path={APP_ROUTES.adminDashboard}
-        element={(
-          <RequireAdmin>
-            <AdminDashboardPage />
-          </RequireAdmin>
-        )}
-      />
-      <Route
-        path={APP_ROUTES.adminOverviewLegacy}
-        element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />}
-      />
-      <Route
-        path={APP_ROUTES.adminTracksLegacy}
-        element={<Navigate to={APP_ROUTES.adminDashboardTab("tracks")} replace />}
-      />
-      <Route
-        path={APP_ROUTES.adminMediaLegacy}
-        element={<Navigate to={APP_ROUTES.adminDashboardTab("media")} replace />}
-      />
-      <Route
-        path={APP_ROUTES.adminUsersLegacy}
-        element={<Navigate to={APP_ROUTES.adminDashboardTab("users")} replace />}
-      />
-      <Route
-        path={APP_ROUTES.backendRootLegacy}
-        element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />}
-      />
-      <Route
-        path={APP_ROUTES.backendDashboardLegacy}
-        element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />}
-      />
-      <Route path="/admin/*" element={<Navigate to={APP_ROUTES.adminDashboardTab("overview")} replace />} />
-
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
     </AlertProvider>
   );
 }

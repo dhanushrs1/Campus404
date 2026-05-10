@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /backend
+Disallow: /dashboard
+Disallow: /frontend/dashboard
+Disallow: /workspace
+Disallow: /auth
+Disallow: /*/*/*/*
+
+# Add the production sitemap URL after the final public domain is known.
+# Example: Sitemap: https://www.example.com/sitemap.xml

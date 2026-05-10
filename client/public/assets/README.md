@@ -25,6 +25,13 @@ Use `client/src/shared/assets.js` from React code instead of hardcoding paths.
 - `decorations/pixel-squares-fade.webp` - soft pixel-square fade decoration.
 - `icons/hint-bulb.png` - hint light bulb icon.
 - `icons/lock-blue.png` - blue lock status icon.
+- `icons/Privacy Policy.webp` - Privacy Policy page icon.
+- `icons/Terms and Conditions.webp` - Terms and Conditions page icon.
+- `icons/Cookie Policy.webp` - Cookie Policy page icon.
+- `icons/Acceptable Use Policy.webp` - Acceptable Use Policy page icon.
+- `icons/Data Deletion.webp` - Data Deletion page icon.
+- `icons/Security Practices.webp` - Security Practices page icon.
+- `icons/help-desk.webp` - legal help desk icon.
 - `icons/streak-fire.png` - streak fire icon.
 - `icons/timeline-flag.png` - timeline checkpoint flag icon.
 - `icons/trophy-cup.png` - trophy reward icon.

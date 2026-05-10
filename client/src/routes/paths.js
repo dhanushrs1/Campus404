@@ -12,6 +12,16 @@ export const APP_ROUTES = Object.freeze({
   frontendExerciseWorkspacePattern: "/:trackSlug/:sectionSlug/:exerciseSlug/:taskId",
   frontendExerciseWorkspace: (trackSlug, sectionSlug, exerciseSlug, taskId) => `/${trackSlug}/${sectionSlug}/${exerciseSlug}/${taskId}`,
 
+  // Public legal and policy pages.
+  legal: "/legal-centre",
+  legalLegacy: "/legal",
+  privacyPolicy: "/privacy-policy",
+  termsAndConditions: "/terms-and-conditions",
+  cookiePolicy: "/cookie-policy",
+  acceptableUsePolicy: "/acceptable-use-policy",
+  dataDeletion: "/data-deletion",
+  securityPractices: "/security",
+
   // Legacy frontend-prefixed slugs kept for redirects.
   frontendRoot: "/frontend",
   frontendDashboardLegacy: "/frontend/dashboard",
