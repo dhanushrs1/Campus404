@@ -228,10 +228,14 @@ function TechIcon({ type = "general", size = "md" }) {
           {normalizedType === "dsa" && (
             <>
               <rect width="36" height="36" x="6" y="6" rx="10" fill="#4f46e5" />
-              <path stroke="#fff" strokeLinecap="round" strokeWidth="2.4" d="M16 31 24 17l8 14M19 27h10" />
-              <circle cx="16" cy="31" r="3" fill="#38bdf8" />
-              <circle cx="24" cy="17" r="3" fill="#fbbf24" />
-              <circle cx="32" cy="31" r="3" fill="#34d399" />
+              <path
+                fill="none"
+                stroke="#ffffff"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="3"
+                d="M20 14c-3 0-4.5 1.6-4.5 4.7v2.6c0 1.7-.9 2.7-2.5 2.7 1.6 0 2.5 1 2.5 2.7v2.6c0 3.1 1.5 4.7 4.5 4.7M28 14c3 0 4.5 1.6 4.5 4.7v2.6c0 1.7.9 2.7 2.5 2.7-1.6 0-2.5 1-2.5 2.7v2.6c0 3.1-1.5 4.7-4.5 4.7"
+              />
             </>
           )}
           {normalizedType === "projects" && (
@@ -579,6 +583,9 @@ export default function TracksPage() {
                         onKeyDown={(event) => handleTrackCardKeyDown(event, track)}
                       >
                         <div className="tracksPage__cardMedia">
+                          <span className="tracksPage__cardSymbol" aria-hidden="true">
+                            <TechIcon type={track.iconType} size="md" />
+                          </span>
                           <img
                             src={track.imageUrl}
                             alt={`${track.title} featured`}
