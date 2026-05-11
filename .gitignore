@@ -24,6 +24,7 @@ api/.venv/
 Thumbs.db
 
 # Local service data
+api/*.db
 mysql_data/
 judge_redis_data/
 judge_postgres_data/

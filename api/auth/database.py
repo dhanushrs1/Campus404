@@ -26,6 +26,7 @@ async def init_db() -> None:
     # Importing inside the function ensures auth.database is fully initialized first.
     from media.models import MediaFile as _MediaFile  # noqa: F401 — registers on Base.metadata
     from media.models import MediaStorageSettings as _MediaStorageSettings  # noqa: F401
+    from contact.models import ContactMessage as _ContactMessage  # noqa: F401
 
     async with engine.begin() as conn:
         # create_all is idempotent — only creates tables that don't already exist.
@@ -48,6 +49,10 @@ async def init_db() -> None:
             "ALTER TABLE media_files ADD COLUMN storage_provider VARCHAR(32) NOT NULL DEFAULT 'local'",
             "ALTER TABLE media_files ADD COLUMN cloud_public_id TEXT NULL",
             "ALTER TABLE media_files ADD COLUMN cloud_resource_type VARCHAR(32) NULL",
+            # Contact message table additions
+            "ALTER TABLE contact_messages ADD COLUMN consent_accepted BOOLEAN NOT NULL DEFAULT 1",
+            "ALTER TABLE contact_messages ADD COLUMN ip_address VARCHAR(64) DEFAULT NULL",
+            "ALTER TABLE contact_messages ADD COLUMN user_agent VARCHAR(512) DEFAULT NULL",
         ]
         for migration_sql in migrations:
             try:

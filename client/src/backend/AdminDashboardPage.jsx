@@ -14,6 +14,7 @@ import {
   FolderTree,
   Settings2,
   Award,
+  Inbox,
 } from "lucide-react";
 import { APP_ROUTES } from "../routes/paths.js";
 import { apiUrl } from "../shared/api.js";
@@ -24,16 +25,19 @@ import MediaLibraryPage from "./media/MediaLibraryPage.jsx";
 import BadgeLibraryPage from "./media/BadgeLibraryPage.jsx";
 import AdminAccountPage from "./account/AdminAccountPage.jsx";
 import AdminSettingsPage from "./settings/AdminSettingsPage.jsx";
+import AdminContactInbox from "./contacts/AdminContactInbox.jsx";
 import { clearAuthSession, readAuthSession } from "../shared/authSession.js";
+import { fetchAdminContactMessages } from "../shared/contactApi.js";
 import "./AdminDashboardPage.css";
 
 // ── Sidebar items ──────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
+  { key: "contacts", label: "Contact Inbox", icon: Inbox },
   { key: "tracks", label: "Track Manager", icon: FolderTree },
   { key: "media", label: "Media Library", icon: Image },
-    { key: "badges", label: "Badge Library", icon: Award },
+  { key: "badges", label: "Badge Library", icon: Award },
   { key: "users", label: "User Management", icon: Users },
   { key: "account", label: "My Account", icon: User },
   { key: "settings", label: "Settings", icon: Settings2 },
@@ -66,8 +70,9 @@ function useLiveClock() {
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 
-function AdminSidebar({ activeKey, onSelect, isOpen, onToggle, onLogout }) {
+function AdminSidebar({ activeKey, onSelect, isOpen, onToggle, onLogout, unreadContactCount = 0 }) {
   const VERSION = import.meta.env.VITE_APP_VERSION ?? "1.0.0";
+  const contactBadgeLabel = unreadContactCount > 99 ? "99+" : String(unreadContactCount);
 
   return (
     <aside className={`ap-sidebar ${isOpen ? "ap-sidebar--open" : "ap-sidebar--closed"}`}>
@@ -97,24 +102,32 @@ function AdminSidebar({ activeKey, onSelect, isOpen, onToggle, onLogout }) {
 
       {/* Nav */}
       <nav className="ap-sidebar__nav" aria-label="Admin navigation">
-        {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            className={`ap-sidebar__item ${activeKey === key ? "ap-sidebar__item--active" : ""}`}
-            onClick={() => onSelect(key)}
-          >
-            <Icon size={18} className="ap-sidebar__itemIcon" />
-            
-            {isOpen && <span className="ap-sidebar__itemLabel">{label}</span>}
-            {isOpen && activeKey === key && <ChevronRight size={14} className="ap-sidebar__chevron" />}
-            
-            {/* Custom Tooltip for closed state */}
-            {!isOpen && (
-              <span className="ap-sidebar__tooltip">{label}</span>
-            )}
-          </button>
-        ))}
+        {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+          const hasContactBadge = key === "contacts" && unreadContactCount > 0;
+
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`ap-sidebar__item ${activeKey === key ? "ap-sidebar__item--active" : ""}`}
+              onClick={() => onSelect(key)}
+            >
+              <Icon size={18} className="ap-sidebar__itemIcon" />
+
+              {isOpen && <span className="ap-sidebar__itemLabel">{label}</span>}
+              {hasContactBadge && (
+                <span className="ap-sidebar__itemBadge" aria-label={`${unreadContactCount} new contact messages`}>
+                  {contactBadgeLabel}
+                </span>
+              )}
+              {isOpen && activeKey === key && <ChevronRight size={14} className="ap-sidebar__chevron" />}
+
+              {!isOpen && (
+                <span className="ap-sidebar__tooltip">{label}</span>
+              )}
+            </button>
+          );
+        })}
       </nav>
 
       {/* Footer */}
@@ -237,6 +250,7 @@ export default function AdminDashboardPage() {
   const [avatarUrl, setAvatarUrl] = useState(initialSession.avatarUrl);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [contactUnreadCount, setContactUnreadCount] = useState(0);
 
   const activeKey = useMemo(() => {
     const tab = (searchParams.get("tab") || "").toLowerCase();
@@ -372,6 +386,36 @@ export default function AdminDashboardPage() {
     };
   }, [handleSessionExpired]);
 
+  useEffect(() => {
+    if (!ELEVATED.has(role)) {
+      setContactUnreadCount(0);
+      return undefined;
+    }
+
+    let disposed = false;
+
+    async function loadContactUnreadCount() {
+      try {
+        const data = await fetchAdminContactMessages({ status: "unread", limit: 1 });
+        if (!disposed) {
+          setContactUnreadCount(Number(data?.total) || 0);
+        }
+      } catch (err) {
+        if (err?.status === 401) {
+          handleSessionExpired();
+        }
+      }
+    }
+
+    void loadContactUnreadCount();
+    const intervalId = window.setInterval(loadContactUnreadCount, 60000);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [handleSessionExpired, role]);
+
   const handleLogout = useCallback(async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
@@ -404,6 +448,7 @@ export default function AdminDashboardPage() {
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen((prev) => !prev)}
         onLogout={handleLogout}
+        unreadContactCount={contactUnreadCount}
       />
 
       <div className="ap-content">
@@ -418,8 +463,16 @@ export default function AdminDashboardPage() {
 
         <div className="ap-body">
           {activeKey === "overview" && <OverviewPage />}
-            {activeKey === "tracks" && <TrackManagerPage />}
-          {activeKey === "media" && <MediaLibraryPage />}            {activeKey === "badges" && <BadgeLibraryPage />}          {activeKey === "users" && (
+          {activeKey === "contacts" && (
+            <AdminContactInbox
+              onSessionExpired={handleSessionExpired}
+              onUnreadCountChange={setContactUnreadCount}
+            />
+          )}
+          {activeKey === "tracks" && <TrackManagerPage />}
+          {activeKey === "media" && <MediaLibraryPage />}
+          {activeKey === "badges" && <BadgeLibraryPage />}
+          {activeKey === "users" && (
             <UserManagement
               role={role}
               username={username}
