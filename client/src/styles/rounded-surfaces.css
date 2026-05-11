@@ -1,0 +1,99 @@
+/* ==========================================================================
+   Rounded Surfaces
+   Lightweight container polish without pixel clipping or filter-heavy edges.
+   ========================================================================== */
+
+:root {
+  --surface-radius-hero: 16px;
+  --surface-radius-card: 8px;
+  --surface-radius-modal: 12px;
+}
+
+html,
+body,
+#root {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+body {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+:where(
+  .homeHero,
+  .tracksPage,
+  .legalPage,
+  .contactPage,
+  .trackLeaderboardPage,
+  .frontendDashboardPage,
+  .notFoundPage
+) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+:where(
+  .homeHero__stage,
+  .tracksPage__heroStage,
+  .legalPage__heroStage,
+  .legalPage__heroStage--policy,
+  .contactHero__stage,
+  .trackOverviewPage__hero,
+  .trackLeaderboardPage__hero
+) {
+  border-radius: var(--surface-radius-hero) !important;
+  clip-path: none !important;
+  filter: none !important;
+}
+
+:where(
+  .modal-shell,
+  .oauthCallback__modal,
+  .oauthCallback__statusCard
+) {
+  border-radius: var(--surface-radius-modal) !important;
+  clip-path: none !important;
+  filter: none !important;
+}
+
+:where(
+  .contactForm,
+  .tracksPage__continue,
+  .tracksPage__continueCard,
+  .tracksPage__card,
+  .legalPage__card,
+  .frontendDashboardPage__card,
+  .ws-left-panel,
+  .ws-right-panel,
+  .trackOverviewPage__exercisePanel,
+  .trackOverviewPage__sideCard,
+  .trackOverviewPage__helperCard,
+  .trackOverviewPage__leaderboardCard,
+  .trackOverviewPage__continueCard,
+  .trackOverviewPage__rewardsCard,
+  .trackOverviewPage__certificateCard,
+  .trackOverviewPage__skillsCard,
+  .trackOverviewPage__stateCard,
+  .trackLeaderboardPage__stateCard,
+  .notFoundPage__panel
+) {
+  border-radius: var(--surface-radius-card) !important;
+  clip-path: none !important;
+  filter: none !important;
+}
+
+:where(
+  .tracksPage__search,
+  .tracksPage__heroStats span,
+  .tracksPage__metaRow span,
+  .trackOverviewPage__heroBadge,
+  .trackLeaderboardPage__heroStats span,
+  .contactForm__consent,
+  .modal-error
+) {
+  border-radius: var(--surface-radius-card) !important;
+  clip-path: none !important;
+  filter: none !important;
+}

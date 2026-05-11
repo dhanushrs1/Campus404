@@ -184,6 +184,131 @@
   opacity: 0.55;
 }
 
+.trackOverviewPage__primaryAction,
+.trackOverviewPage__wideAction,
+.trackOverviewPage__outlineAction,
+.trackOverviewPage__exerciseAction {
+  border-radius: 0 !important;
+  clip-path: var(--track-button-corners, var(--pixel-button-corners-tiny)) !important;
+  font-family: var(--font-pixel) !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 0.95 !important;
+  text-decoration: none !important;
+  transform: translateY(0) !important;
+  transition:
+    transform 0.12s ease,
+    filter 0.12s ease,
+    box-shadow 0.12s ease,
+    background-color 0.12s ease,
+    border-color 0.12s ease !important;
+}
+
+.trackOverviewPage__primaryAction {
+  --track-button-corners: var(--pixel-button-corners-mini);
+  min-height: 52px !important;
+  min-width: 204px;
+  padding: 0 26px 4px !important;
+  border: 2px solid #0d47d8 !important;
+  background: linear-gradient(180deg, var(--pixel-button-blue-top), var(--pixel-button-blue-bottom)) !important;
+  color: #ffffff !important;
+  font-size: 1.45rem !important;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -3px 0 rgba(5, 22, 70, 0.22),
+    0 3px 0 var(--pixel-button-shadow),
+    0 6px 0 var(--pixel-button-shadow-dark),
+    0 12px 18px rgba(15, 23, 42, 0.2) !important;
+}
+
+.trackOverviewPage__wideAction {
+  --track-button-corners: var(--pixel-button-corners-tiny);
+  min-height: 44px !important;
+  padding: 0 16px 3px !important;
+  border: 2px solid #0d47d8 !important;
+  background: linear-gradient(180deg, var(--pixel-button-blue-top), var(--pixel-button-blue-bottom)) !important;
+  color: #ffffff !important;
+  font-size: 1.18rem !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 0 rgba(5, 22, 70, 0.22),
+    0 2px 0 var(--pixel-button-shadow),
+    0 4px 0 var(--pixel-button-shadow-dark),
+    0 8px 13px rgba(15, 23, 42, 0.14) !important;
+}
+
+.trackOverviewPage__outlineAction {
+  --track-button-corners: var(--pixel-button-corners-tiny);
+  min-height: 36px !important;
+  padding: 0 13px 3px !important;
+  border: 2px solid transparent !important;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fbff 50%, #edf5ff 100%) padding-box,
+    linear-gradient(180deg, #e4f0ff 0%, #b8d4ff 52%, #82afff 100%) border-box !important;
+  color: var(--accent-primary) !important;
+  font-size: 1.02rem !important;
+  box-shadow:
+    inset 0 2px 0 rgba(37, 99, 235, 0.08),
+    inset 0 -2px 0 rgba(15, 23, 42, 0.04),
+    0 2px 0 #d6e3f6,
+    0 4px 0 #adc0dc,
+    0 8px 12px rgba(15, 23, 42, 0.08) !important;
+}
+
+.trackOverviewPage__primaryAction:hover:not(:disabled),
+.trackOverviewPage__wideAction:hover:not(:disabled) {
+  filter: brightness(1.05) saturate(1.04) !important;
+  transform: translateY(-1px) !important;
+}
+
+.trackOverviewPage__primaryAction:hover:not(:disabled) {
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -3px 0 rgba(5, 22, 70, 0.2),
+    0 4px 0 var(--pixel-button-shadow),
+    0 7px 0 var(--pixel-button-shadow-dark),
+    0 14px 20px rgba(15, 23, 42, 0.22) !important;
+}
+
+.trackOverviewPage__wideAction:hover:not(:disabled) {
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -2px 0 rgba(5, 22, 70, 0.2),
+    0 3px 0 var(--pixel-button-shadow),
+    0 5px 0 var(--pixel-button-shadow-dark),
+    0 10px 16px rgba(15, 23, 42, 0.16) !important;
+}
+
+.trackOverviewPage__outlineAction:hover:not(:disabled) {
+  filter: brightness(1.03) !important;
+  transform: translateY(-1px) !important;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f4f9ff 52%, #e7f1ff 100%) padding-box,
+    linear-gradient(180deg, #d8eaff 0%, #a8c8ff 52%, #6f9fff 100%) border-box !important;
+  box-shadow:
+    inset 0 2px 0 rgba(37, 99, 235, 0.1),
+    inset 0 -2px 0 rgba(15, 23, 42, 0.04),
+    0 3px 0 #d6e3f6,
+    0 5px 0 #adc0dc,
+    0 10px 14px rgba(15, 23, 42, 0.1) !important;
+}
+
+.trackOverviewPage__primaryAction:active:not(:disabled),
+.trackOverviewPage__wideAction:active:not(:disabled),
+.trackOverviewPage__outlineAction:active:not(:disabled) {
+  transform: translateY(2px) !important;
+}
+
+.trackOverviewPage__primaryAction:disabled,
+.trackOverviewPage__wideAction:disabled {
+  filter: grayscale(0.15) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 0 rgba(80, 94, 112, 0.1),
+    0 2px 0 #9fafc2,
+    0 4px 0 #8b9bad !important;
+}
+
 .trackOverviewPage__learnerProof {
   display: flex;
   align-items: center;
@@ -716,31 +841,109 @@
   white-space: nowrap;
 }
 
+.trackOverviewPage__exerciseAction {
+  --track-button-corners: var(--pixel-button-corners-tiny);
+  min-width: 82px !important;
+  min-height: 30px !important;
+  padding: 0 10px 3px !important;
+  border: 2px solid transparent !important;
+  font-size: 0.9rem !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(5, 22, 70, 0.18),
+    0 2px 0 rgba(15, 23, 42, 0.18),
+    0 4px 0 rgba(15, 23, 42, 0.18) !important;
+}
+
 .trackOverviewPage__exerciseAction--start,
 .trackOverviewPage__exerciseAction--continue {
   color: #ffffff;
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+  background: linear-gradient(180deg, var(--pixel-button-blue-top), var(--pixel-button-blue-bottom)) !important;
+  border-color: #0d47d8 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(5, 22, 70, 0.2),
+    0 2px 0 var(--pixel-button-shadow),
+    0 4px 0 var(--pixel-button-shadow-dark) !important;
 }
 
 .trackOverviewPage__exerciseAction--review {
   color: #16703b;
-  background: var(--track-green-bg);
-  border-color: #b7e7c4;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f5fff8 50%, #e8f8ee 100%) padding-box,
+    linear-gradient(180deg, #cbf4d7, #8fd7a8) border-box !important;
+  border-color: transparent !important;
+  box-shadow:
+    inset 0 1px 0 rgba(22, 163, 74, 0.08),
+    inset 0 -1px 0 rgba(22, 101, 52, 0.08),
+    0 2px 0 #b8e5c6,
+    0 4px 0 #8bc99f !important;
 }
 
 .trackOverviewPage__exerciseAction--locked,
 .trackOverviewPage__lockedPill {
   color: var(--text-tertiary);
-  background: #f8fafc;
-  border-color: var(--border-light);
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  clip-path: none !important;
 }
 
 .trackOverviewPage__exerciseAction--locked,
 .trackOverviewPage__lockedPill--iconOnly {
-  width: 34px;
-  min-width: 34px;
+  width: 24px;
+  min-width: 24px;
+  min-height: 24px;
   padding: 0;
+}
+
+.trackOverviewPage__exerciseAction:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+}
+
+.trackOverviewPage__exerciseAction--start:hover:not(:disabled),
+.trackOverviewPage__exerciseAction--continue:hover:not(:disabled) {
+  filter: brightness(1.05) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -1px 0 rgba(5, 22, 70, 0.18),
+    0 3px 0 var(--pixel-button-shadow),
+    0 5px 0 var(--pixel-button-shadow-dark) !important;
+}
+
+.trackOverviewPage__exerciseAction--review:hover:not(:disabled) {
+  filter: brightness(1.02) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(22, 163, 74, 0.1),
+    inset 0 -1px 0 rgba(22, 101, 52, 0.08),
+    0 3px 0 #b8e5c6,
+    0 5px 0 #8bc99f !important;
+}
+
+.trackOverviewPage__exerciseAction--locked:hover,
+.trackOverviewPage__lockedPill:hover {
+  transform: none !important;
+}
+
+.trackOverviewPage__exerciseAction.trackOverviewPage__exerciseAction--locked,
+.trackOverviewPage__exerciseAction.trackOverviewPage__exerciseAction--locked:disabled,
+.trackOverviewPage__exerciseAction.trackOverviewPage__exerciseAction--locked:hover,
+.trackOverviewPage__exerciseAction.trackOverviewPage__exerciseAction--locked:disabled:hover,
+.trackOverviewPage__lockedPill,
+.trackOverviewPage__lockedPill--iconOnly {
+  width: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text-tertiary) !important;
+  clip-path: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .trackOverviewPage__exerciseChevron {

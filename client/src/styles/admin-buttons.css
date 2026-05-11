@@ -1,0 +1,349 @@
+/* ==========================================================================
+   Admin Button Reset
+   Admin screens stay clean and utilitarian; public pages keep pixel buttons.
+   ========================================================================== */
+
+.ap-root :where(
+  .aa-btn,
+  .as-btn,
+  .ci-btn,
+  .um-btn,
+  .um-reset-btn,
+  .um-save-btn,
+  .um-filter-btn,
+  .ml-btn,
+  .ml-filter-btn,
+  .ml-view-btn,
+  .mp-btn,
+  .umm-btn,
+  .cfm-btn,
+  .cfm-pagination-btn,
+  .es-back-btn,
+  .es-save-btn,
+  .es-add-level-btn,
+  .es-tab-btn,
+  .es-file-add-btn,
+  .es-add-testcase-btn,
+  .rcm-btn-secondary,
+  .rcm-btn-run,
+  .rcm-btn-apply,
+  .ap-topbar__visitBtn,
+  .cfm-sublist-actions button,
+  .es-file-add-input button
+) {
+  min-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 0 13px !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: var(--radius-sm) !important;
+  background: #ffffff !important;
+  color: var(--text-secondary) !important;
+  clip-path: none !important;
+  filter: none !important;
+  font-family: var(--font-ui) !important;
+  font-size: 0.84rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast) !important;
+}
+
+.ap-root :where(
+  .aa-btn,
+  .as-btn,
+  .ci-btn,
+  .um-btn,
+  .um-reset-btn,
+  .um-save-btn,
+  .um-filter-btn,
+  .ml-btn,
+  .ml-filter-btn,
+  .ml-view-btn,
+  .mp-btn,
+  .umm-btn,
+  .cfm-btn,
+  .cfm-pagination-btn,
+  .es-back-btn,
+  .es-save-btn,
+  .es-add-level-btn,
+  .es-tab-btn,
+  .es-file-add-btn,
+  .es-add-testcase-btn,
+  .rcm-btn-secondary,
+  .rcm-btn-run,
+  .rcm-btn-apply,
+  .ap-topbar__visitBtn,
+  .cfm-sublist-actions button,
+  .es-file-add-input button
+):hover:not(:disabled) {
+  border-color: var(--border-focus) !important;
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  filter: none !important;
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
+}
+
+.ap-root :where(
+  .aa-btn--primary,
+  .as-btn--primary,
+  .ci-btn--primary,
+  .um-btn--primary,
+  .um-save-btn,
+  .ml-btn--primary,
+  .mp-btn--primary,
+  .umm-btn--primary,
+  .cfm-btn:not(.cfm-btn--ghost):not(.cfm-btn--danger),
+  .es-save-btn,
+  .rcm-btn-run,
+  .rcm-btn-apply
+) {
+  border-color: var(--accent-primary) !important;
+  background: var(--accent-primary) !important;
+  color: var(--text-inverse) !important;
+}
+
+.ap-root :where(
+  .aa-btn--primary,
+  .as-btn--primary,
+  .ci-btn--primary,
+  .um-btn--primary,
+  .um-save-btn,
+  .ml-btn--primary,
+  .mp-btn--primary,
+  .umm-btn--primary,
+  .cfm-btn:not(.cfm-btn--ghost):not(.cfm-btn--danger),
+  .es-save-btn,
+  .rcm-btn-run,
+  .rcm-btn-apply
+):hover:not(:disabled) {
+  border-color: var(--accent-hover) !important;
+  background: var(--accent-hover) !important;
+  color: var(--text-inverse) !important;
+}
+
+.ap-root :where(
+  .ci-btn--ghost,
+  .as-btn--ghost,
+  .um-btn--ghost,
+  .cfm-btn--ghost,
+  .ml-btn--ghost,
+  .mp-btn--ghost,
+  .umm-btn--ghost,
+  .um-reset-btn,
+  .rcm-btn-secondary
+) {
+  border-color: var(--border-light) !important;
+  background: #ffffff !important;
+  color: var(--text-secondary) !important;
+}
+
+.ap-root :where(
+  .aa-btn--danger,
+  .um-btn--danger,
+  .cfm-btn--danger,
+  .ml-btn--danger-solid
+) {
+  border-color: var(--state-error) !important;
+  background: var(--state-error) !important;
+  color: #ffffff !important;
+}
+
+.ap-root :where(
+  .aa-btn--danger,
+  .um-btn--danger,
+  .cfm-btn--danger,
+  .ml-btn--danger-solid
+):hover:not(:disabled) {
+  border-color: #b91c1c !important;
+  background: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.ap-root :where(
+  .ci-icon-btn,
+  .um-action-btn,
+  .ml-action-btn,
+  .ml-icon-btn,
+  .ml-btn--icon,
+  .ml-overlay-btn,
+  .cfm-track-card__icon-btn,
+  .es-run-icon-btn,
+  .ap-sidebar__toggle,
+  .ap-curriculum-panel__icon-btn,
+  .ap-delete-confirm-btn,
+  .ci-modal__close,
+  .um-modal__close,
+  .rcm-close,
+  .ml-error__dismiss,
+  .cfm-modal-close,
+  .ml-modal-close,
+  .mp-modal__close,
+  .umm-close
+) {
+  width: 36px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: var(--radius-sm) !important;
+  background: #ffffff !important;
+  color: var(--text-secondary) !important;
+  clip-path: none !important;
+  filter: none !important;
+  font-family: var(--font-ui) !important;
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast) !important;
+}
+
+.ap-root :where(
+  .ci-icon-btn,
+  .um-action-btn,
+  .ml-action-btn,
+  .ml-icon-btn,
+  .ml-btn--icon,
+  .ml-overlay-btn,
+  .cfm-track-card__icon-btn,
+  .es-run-icon-btn,
+  .ap-sidebar__toggle,
+  .ap-curriculum-panel__icon-btn,
+  .ap-delete-confirm-btn,
+  .ci-modal__close,
+  .um-modal__close,
+  .rcm-close,
+  .ml-error__dismiss,
+  .cfm-modal-close,
+  .ml-modal-close,
+  .mp-modal__close,
+  .umm-close
+):hover:not(:disabled) {
+  border-color: var(--border-focus) !important;
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  filter: none !important;
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
+}
+
+.ap-root :where(
+  .um-action-btn--danger,
+  .cfm-track-card__icon-btn--danger,
+  .ml-action-btn--delete,
+  .ml-icon-btn--danger,
+  .ap-delete-confirm-btn--yes
+) {
+  border-color: rgba(220, 38, 38, 0.2) !important;
+  background: var(--state-error-bg) !important;
+  color: var(--state-error) !important;
+}
+
+.ap-root :where(.um-action-btn--success, .es-save-btn--saved) {
+  border-color: rgba(16, 185, 129, 0.28) !important;
+  background: var(--state-success-bg) !important;
+  color: var(--state-success) !important;
+}
+
+.ap-root :where(button, a):disabled,
+.ap-root :where(button, a)[disabled] {
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+  filter: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.ap-root :where(button, a):focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.22) !important;
+  outline-offset: 2px !important;
+}
+
+.ap-root :where(
+  .ci-modal__close,
+  .um-modal__close,
+  .rcm-close,
+  .ml-error__dismiss,
+  .cfm-modal-close,
+  .ml-modal-close,
+  .mp-modal__close,
+  .umm-close
+) {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  clip-path: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.ap-root :where(
+  .ci-modal__close,
+  .um-modal__close,
+  .rcm-close,
+  .ml-error__dismiss,
+  .cfm-modal-close,
+  .ml-modal-close,
+  .mp-modal__close,
+  .umm-close
+):hover:not(:disabled) {
+  background: transparent !important;
+  color: var(--accent-primary) !important;
+  filter: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.ap-root :where(
+  .aa-card,
+  .as-card,
+  .um-timeline-card,
+  .ml-card,
+  .mp-card,
+  .cfm-track-card,
+  .cfm-track-create-panel,
+  .cfm-tree-panel,
+  .cfm-detail-panel,
+  .cfm-editor-panel,
+  .es-tc-card,
+  .ci-modal,
+  .um-modal,
+  .rcm-modal,
+  .ml-confirm-modal,
+  .mp-modal,
+  .umm-modal,
+  .cfm-modal
+),
+:where(.ap-denied__card) {
+  clip-path: none !important;
+  filter: none !important;
+  border-radius: var(--radius-md) !important;
+}
