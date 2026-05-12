@@ -571,6 +571,7 @@ export default function TracksPage() {
                     const hasStarted = track.completedExercises > 0;
                     const isComplete = track.progressPercent >= 100;
                     const actionLabel = hasStarted ? "Resume" : "View Track";
+                    const trackNumber = String(track.index + 1).padStart(2, "0");
 
                     return (
                       <article
@@ -586,6 +587,7 @@ export default function TracksPage() {
                           <span className="tracksPage__cardSymbol" aria-hidden="true">
                             <TechIcon type={track.iconType} size="md" />
                           </span>
+                          <span className="tracksPage__cardNumber" aria-hidden="true">Track {trackNumber}</span>
                           <img
                             src={track.imageUrl}
                             alt={`${track.title} featured`}
@@ -594,6 +596,11 @@ export default function TracksPage() {
                         </div>
 
                         <div className="tracksPage__cardBody">
+                          <div className="tracksPage__cardKicker">
+                            <span>{track.visualLabel}</span>
+                            <span>{hasStarted ? `${track.progressPercent}% complete` : "Ready to start"}</span>
+                          </div>
+
                           <div className="tracksPage__cardHeader">
                             <h3>{track.title}</h3>
                             <span className="tracksPage__cardActionIcon" aria-hidden="true">
