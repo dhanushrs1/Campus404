@@ -25,6 +25,13 @@ python-dotenv==1.0.1
 # Async SQLAlchemy ORM.
 sqlalchemy[asyncio]==2.0.41
 
+# Versioned database migrations.
+alembic==1.13.2
+
+# Test runner for backend service checks.
+pytest==8.3.3
+pytest-asyncio==0.24.0
+
 # Async SQLite driver (local dev without Docker).
 aiosqlite==0.21.0
 

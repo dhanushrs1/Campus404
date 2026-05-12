@@ -1243,3 +1243,506 @@
     font-weight: 700;
   }
 }
+
+/* Learning engine workspace additions */
+.ws-learning-engine {
+  background: #f6f9ff;
+  color: #0f2747;
+}
+
+.ws-xp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #cfe4ff;
+  border-radius: 8px;
+  background: #eef7ff;
+  color: #123a62;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.ws-engine-body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 330px;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px;
+  flex: 1;
+}
+
+.ws-level-sidebar,
+.ws-instruction-panel {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #dbeafe;
+  background: #ffffff;
+}
+
+.ws-level-sidebar {
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.ws-sidebar-tools {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ws-sidebar-tools button,
+.ws-reference-button,
+.ws-hint-row button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ws-level-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.ws-level-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0f2747;
+}
+
+.ws-section-list {
+  display: grid;
+  gap: 10px;
+}
+
+.ws-section-group {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.ws-section-title {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  font-weight: 900;
+  color: #123a62;
+}
+
+.ws-section-title strong {
+  color: #2563eb;
+  font-size: 0.78rem;
+}
+
+.ws-level-list {
+  display: grid;
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.ws-level-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #123a62;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ws-level-row small {
+  grid-column: 2;
+  color: #64748b;
+  text-transform: capitalize;
+}
+
+.ws-level-row.is-active {
+  border-color: #60a5fa;
+  background: #dff0ff;
+}
+
+.ws-level-row.is-completed {
+  background: #ecfdf5;
+}
+
+.ws-level-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.ws-engine-main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) minmax(160px, 28%);
+  min-width: 0;
+  min-height: 0;
+  gap: 10px;
+}
+
+.ws-engine-main--frontend_preview {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.ws-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+.ws-mode-banner--success {
+  border: 1px solid #86efac;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.ws-mode-banner--error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.ws-mode-center,
+.ws-editor-shell,
+.ws-preview-pane,
+.ws-theory-mode,
+.ws-quiz-mode {
+  min-height: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ws-mode-center {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #07111f;
+  border: 1px solid #14243a;
+}
+
+.ws-file-strip {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px;
+  border-bottom: 1px solid #14243a;
+  background: #0c1728;
+}
+
+.ws-file-strip button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #1e2e46;
+  border-radius: 6px;
+  background: #101f35;
+  color: #b8c7dd;
+  cursor: pointer;
+}
+
+.ws-file-strip button.is-active {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.ws-editor-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.ws-editor-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #14243a;
+  color: #dbeafe;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.ws-editor-meta small {
+  color: #93a4bd;
+}
+
+.ws-code-editor {
+  width: 100%;
+  height: 100%;
+  min-height: 240px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  padding: 16px;
+  background: #07111f;
+  color: #dbeafe;
+  font: 500 0.95rem/1.55 "JetBrains Mono", Consolas, monospace;
+}
+
+.ws-terminal--engine {
+  min-height: 0;
+  max-height: none;
+  border-radius: 8px;
+}
+
+.ws-visible-tests {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  margin: 10px 0;
+  list-style: none;
+}
+
+.ws-visible-tests li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ws-visible-tests li.is-pass {
+  color: #86efac;
+}
+
+.ws-visible-tests li.is-fail {
+  color: #fca5a5;
+}
+
+.ws-preview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 42%);
+  gap: 10px;
+  min-height: 0;
+}
+
+.ws-preview-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid #dbeafe;
+  background: #ffffff;
+}
+
+.ws-preview-toolbar {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #123a62;
+  font-weight: 900;
+}
+
+.ws-preview-pane iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+.ws-theory-mode,
+.ws-quiz-mode {
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid #dbeafe;
+  background: #ffffff;
+}
+
+.ws-theory-lesson {
+  max-width: 860px;
+  color: #123a62;
+  line-height: 1.75;
+}
+
+.ws-wide-action {
+  margin-top: 14px;
+}
+
+.ws-quiz-header,
+.ws-question-card {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.ws-quiz-header {
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.ws-question-list {
+  display: grid;
+  gap: 12px;
+}
+
+.ws-question-card {
+  padding: 14px;
+}
+
+.ws-question-card span {
+  color: #2563eb;
+  font-weight: 900;
+  font-size: 0.8rem;
+}
+
+.ws-question-card pre {
+  overflow: auto;
+  padding: 12px;
+  border-radius: 8px;
+  background: #07111f;
+  color: #dbeafe;
+}
+
+.ws-option-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ws-option-list button {
+  min-height: 42px;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #123a62;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ws-option-list button.is-selected {
+  border-color: #2563eb;
+  background: #dff0ff;
+  font-weight: 900;
+}
+
+.ws-instruction-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.ws-instruction-card {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 14px;
+}
+
+.ws-mode-pill {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #dff0ff;
+  color: #1d4ed8;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.ws-instruction-card h1,
+.ws-instruction-card h2 {
+  margin: 0 0 10px;
+  color: #0f2747;
+}
+
+.ws-instruction-card h1 {
+  font-size: 1.35rem;
+}
+
+.ws-instruction-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+}
+
+.ws-instruction-copy {
+  color: #334155;
+  line-height: 1.65;
+}
+
+.ws-hint-row {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.ws-hint-row + .ws-hint-row {
+  margin-top: 8px;
+}
+
+.ws-hint-row div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ws-hint-row small,
+.ws-muted {
+  color: #64748b;
+}
+
+.ws-hint-row.is-locked {
+  opacity: 0.72;
+}
+
+.ws-reference-button {
+  width: 100%;
+}
+
+@media (max-width: 1180px) {
+  .ws-engine-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .ws-instruction-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 940px) and (orientation: landscape) {
+  .ws-engine-body {
+    grid-template-columns: 190px minmax(0, 1fr);
+    padding: 8px;
+  }
+
+  .ws-preview-layout {
+    grid-template-columns: 1fr;
+  }
+}

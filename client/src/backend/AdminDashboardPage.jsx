@@ -15,12 +15,15 @@ import {
   Settings2,
   Award,
   Inbox,
+  Activity,
+  BarChart3,
+  ClipboardCheck,
 } from "lucide-react";
 import { APP_ROUTES } from "../routes/paths.js";
 import { apiUrl } from "../shared/api.js";
 import { ASSETS } from "../shared/assets.js";
 import UserManagement from "./users/UserManagement.jsx";
-import TrackManagerPage from "./curriculum/file-manager/TrackManagerPage.jsx";
+import CurriculumStudioPage from "./curriculum/CurriculumStudioPage.jsx";
 import MediaLibraryPage from "./media/MediaLibraryPage.jsx";
 import BadgeLibraryPage from "./media/BadgeLibraryPage.jsx";
 import AdminAccountPage from "./account/AdminAccountPage.jsx";
@@ -34,17 +37,24 @@ import "./AdminDashboardPage.css";
 
 const NAV_ITEMS = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
-  { key: "contacts", label: "Contact Inbox", icon: Inbox },
-  { key: "tracks", label: "Track Manager", icon: FolderTree },
+  { key: "curriculum", label: "Curriculum Studio", icon: FolderTree },
+  { key: "users", label: "Learners", icon: Users },
+  { key: "submissions", label: "Submissions", icon: ClipboardCheck },
+  { key: "leaderboards", label: "Leaderboards", icon: BarChart3 },
+  { key: "rewards", label: "Rewards & Badges", icon: Award },
   { key: "media", label: "Media Library", icon: Image },
-  { key: "badges", label: "Badge Library", icon: Award },
-  { key: "users", label: "User Management", icon: Users },
+  { key: "contacts", label: "Contact Inbox", icon: Inbox },
+  { key: "health", label: "System Health", icon: Activity },
   { key: "account", label: "My Account", icon: User },
   { key: "settings", label: "Settings", icon: Settings2 },
 ];
 
 const NAV_KEY_SET = new Set(NAV_ITEMS.map((item) => item.key));
-const TRACK_QUERY_KEYS = [
+const NAV_ALIASES = {
+  tracks: "curriculum",
+  badges: "rewards",
+};
+const CURRICULUM_QUERY_KEYS = [
   "trackPage",
   "mode",
   "trackId",
@@ -53,6 +63,7 @@ const TRACK_QUERY_KEYS = [
   "exerciseId",
   "taskId",
   "levelTab",
+  "studioExerciseId",
   "page",
   "perPage",
 ];
@@ -206,13 +217,56 @@ function AdminTopBar({ activeKey, username, role, avatarUrl, onLogout, isLogging
 // ── Pages ──────────────────────────────────────────────────────────────────
 
 function OverviewPage() {
+  const [stats, setStats] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let disposed = false;
+    async function loadStats() {
+      try {
+        const token = localStorage.getItem("campus404_token");
+        const response = await fetch(apiUrl("/api/admin/dashboard/stats"), {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Unable to load admin metrics.");
+        }
+        const payload = await response.json();
+        if (!disposed) setStats(payload);
+      } catch (err) {
+        if (!disposed) setError(err.message || "Unable to load admin metrics.");
+      }
+    }
+    loadStats();
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  const cards = [
+    ["Total users", stats?.total_users ?? 0],
+    ["Active learners", stats?.active_learners ?? 0],
+    ["Exercises solved", stats?.exercises_solved ?? 0],
+    ["Quiz completions", stats?.quiz_completions ?? 0],
+    ["Pending content", stats?.pending_content ?? 0],
+    ["Leaderboard health", stats?.leaderboard_health ?? "loading"],
+    ["Judge health", stats?.judge_health ?? "loading"],
+  ];
+
   return (
     <div className="ap-page">
-      <div className="ap-page__empty">
-        <LayoutDashboard size={40} strokeWidth={1.2} />
-        <h2>Overview</h2>
-        <p>Dashboard metrics and summaries will appear here.</p>
+      <div className="ap-overview-metrics">
+        {cards.map(([label, value]) => (
+          <article key={label}>
+            <LayoutDashboard size={18} />
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </article>
+        ))}
       </div>
+      {error && <p className="ap-overview-error">{error}</p>}
     </div>
   );
 }
@@ -220,6 +274,108 @@ function OverviewPage() {
 
 
 // ── Access denied ──────────────────────────────────────────────────────────
+
+function LearningOpsPage({ variant = "health" }) {
+  const [health, setHealth] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let disposed = false;
+    async function loadHealth() {
+      try {
+        const token = localStorage.getItem("campus404_token");
+        const response = await fetch(apiUrl("/api/admin/learning-engine/health"), {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`Unable to load learning engine health (${response.status}).`);
+        }
+        const payload = await response.json();
+        if (!disposed) setHealth(payload);
+      } catch (err) {
+        if (!disposed) setError(err.message || "Unable to load learning engine health.");
+      }
+    }
+    loadHealth();
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
+  const title = variant === "leaderboards"
+    ? "Leaderboard Operations"
+    : variant === "submissions"
+      ? "Submission Monitor"
+      : "System Health";
+
+  return (
+    <div className="ap-page ap-ops-page">
+      <div className="ap-ops-hero">
+        <div>
+          <span>Learning engine</span>
+          <h2>{title}</h2>
+          <p>Production signals for judge availability, content readiness, learner submissions, and leaderboard integrity.</p>
+        </div>
+      </div>
+      {error && <p className="ap-overview-error">{error}</p>}
+      <div className="ap-overview-metrics">
+        <article>
+          <Activity size={18} />
+          <span>Content health</span>
+          <strong>{health?.content_health ?? "loading"}</strong>
+        </article>
+        <article>
+          <Activity size={18} />
+          <span>Judge health</span>
+          <strong>{health?.judge_health ?? "loading"}</strong>
+        </article>
+        <article>
+          <BarChart3 size={18} />
+          <span>Leaderboard health</span>
+          <strong>{health?.leaderboard_health ?? "loading"}</strong>
+        </article>
+      </div>
+      <section className="ap-ops-table">
+        <header>
+          <h3>Recent attempts</h3>
+          <p>Latest learner runs stored by the backend. User code still executes only inside Judge.</p>
+        </header>
+        <div className="ap-table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Learner</th>
+                <th>Exercise</th>
+                <th>Mode</th>
+                <th>Status</th>
+                <th>Checks</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(health?.recent_attempts || []).map((attempt) => (
+                <tr key={attempt.id}>
+                  <td>{attempt.username}</td>
+                  <td>{attempt.exercise_title}</td>
+                  <td>{String(attempt.mode || "code").replaceAll("_", " ")}</td>
+                  <td><span className={`ap-status-pill ap-status-pill--${attempt.status}`}>{attempt.status}</span></td>
+                  <td>{attempt.tests_passed} / {attempt.tests_total}</td>
+                </tr>
+              ))}
+              {(!health?.recent_attempts || health.recent_attempts.length === 0) && (
+                <tr>
+                  <td colSpan="5">No submissions yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 
 function AccessDenied() {
   return (
@@ -254,7 +410,8 @@ export default function AdminDashboardPage() {
 
   const activeKey = useMemo(() => {
     const tab = (searchParams.get("tab") || "").toLowerCase();
-    return NAV_KEY_SET.has(tab) ? tab : "overview";
+    const normalized = NAV_ALIASES[tab] || tab;
+    return NAV_KEY_SET.has(normalized) ? normalized : "overview";
   }, [searchParams]);
 
   const handleMenuSelect = useCallback(
@@ -267,9 +424,9 @@ export default function AdminDashboardPage() {
         const next = new URLSearchParams(prev);
         next.set("tab", key);
 
-        // Track manager uses additional query params; clear them when leaving the tab.
-        if (key !== "tracks") {
-          TRACK_QUERY_KEYS.forEach((queryKey) => next.delete(queryKey));
+        // Curriculum Studio uses additional query params; clear them when leaving the tab.
+        if (key !== "curriculum") {
+          CURRICULUM_QUERY_KEYS.forEach((queryKey) => next.delete(queryKey));
         }
 
         return next;
@@ -280,7 +437,16 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const tab = (searchParams.get("tab") || "").toLowerCase();
-    if (!NAV_KEY_SET.has(tab)) {
+    const normalized = NAV_ALIASES[tab] || tab;
+    if (normalized !== tab && NAV_KEY_SET.has(normalized)) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("tab", normalized);
+        return next;
+      }, { replace: true });
+      return;
+    }
+    if (!NAV_KEY_SET.has(normalized)) {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.set("tab", "overview");
@@ -469,9 +635,12 @@ export default function AdminDashboardPage() {
               onUnreadCountChange={setContactUnreadCount}
             />
           )}
-          {activeKey === "tracks" && <TrackManagerPage />}
+          {activeKey === "curriculum" && <CurriculumStudioPage />}
           {activeKey === "media" && <MediaLibraryPage />}
-          {activeKey === "badges" && <BadgeLibraryPage />}
+          {activeKey === "rewards" && <BadgeLibraryPage />}
+          {activeKey === "submissions" && <LearningOpsPage variant="submissions" />}
+          {activeKey === "leaderboards" && <LearningOpsPage variant="leaderboards" />}
+          {activeKey === "health" && <LearningOpsPage variant="health" />}
           {activeKey === "users" && (
             <UserManagement
               role={role}

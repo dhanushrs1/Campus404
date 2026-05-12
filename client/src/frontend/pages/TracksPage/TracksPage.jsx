@@ -10,8 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import { APP_ROUTES } from "../../../routes/paths.js";
-import { getTrackTree } from "../../../shared/learningApi.js";
-import { getCompletedExerciseIds } from "../../../shared/learningProgress.js";
+import { getMyProgress, getTrackTree } from "../../../shared/learningApi.js";
 import { readAuthSession } from "../../../shared/authSession.js";
 import { ASSETS } from "../../../shared/assets.js";
 import "./TracksPage.css";
@@ -275,11 +274,9 @@ export default function TracksPage() {
   const [isAuthenticated] = useState(() => readAuthSession().isAuthenticated);
 
   const [tracks, setTracks] = useState([]);
+  const [progressByTrack, setProgressByTrack] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [completedExerciseIds, setCompletedExerciseIds] = useState(() => (
-    isAuthenticated ? getCompletedExerciseIds() : []
-  ));
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -290,13 +287,17 @@ export default function TracksPage() {
       setError("");
 
       try {
-        const payload = await getTrackTree();
+        const [payload, progressPayload] = await Promise.all([
+          getTrackTree(),
+          isAuthenticated ? getMyProgress().catch(() => null) : Promise.resolve(null),
+        ]);
         if (disposed) {
           return;
         }
 
         const normalized = normalizeTracks(payload);
         setTracks(normalized);
+        setProgressByTrack(Object.fromEntries((progressPayload?.tracks || []).map((item) => [Number(item.track_id), item])));
       } catch (err) {
         if (!disposed) {
           setError(err.message || "Unable to load tracks right now.");
@@ -314,17 +315,6 @@ export default function TracksPage() {
       disposed = true;
     };
   }, []);
-
-  useEffect(() => {
-    function refreshProgress() {
-      setCompletedExerciseIds(isAuthenticated ? getCompletedExerciseIds() : []);
-    }
-
-    window.addEventListener("focus", refreshProgress);
-    return () => {
-      window.removeEventListener("focus", refreshProgress);
-    };
-  }, [isAuthenticated]);
 
   useEffect(() => {
     function isEditingText(target) {
@@ -368,20 +358,21 @@ export default function TracksPage() {
       const visual = TRACK_VISUALS[iconType] || TRACK_VISUALS.general;
 
       let totalExercises = 0;
-      let completedExercises = 0;
+      const backendProgress = progressByTrack[Number(track.id)];
+      let completedExercises = Number(backendProgress?.completed_exercises ?? track.completed_exercises ?? 0);
 
       for (const section of sections) {
         for (const exercise of section.exercises ?? []) {
           totalExercises += 1;
-          if (completedExerciseIds.includes(Number(exercise.id))) {
-            completedExercises += 1;
-          }
         }
       }
+      if (backendProgress?.total_exercises) {
+        totalExercises = Number(backendProgress.total_exercises);
+      }
 
-      const progressPercent = totalExercises > 0
+      const progressPercent = backendProgress?.progress_percent ?? (totalExercises > 0
         ? Math.round((completedExercises * 100) / totalExercises)
-        : 0;
+        : 0);
 
       const enrichedTrack = {
         ...track,
@@ -401,7 +392,7 @@ export default function TracksPage() {
         searchText: getSearchText(enrichedTrack),
       };
     });
-  }, [completedExerciseIds, tracks]);
+  }, [progressByTrack, tracks]);
 
   const stats = useMemo(() => {
     return cards.reduce(

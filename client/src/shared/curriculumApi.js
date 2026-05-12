@@ -87,6 +87,15 @@ export const updateExercise = (exerciseId, data) => request(`/api/admin/exercise
 export const deleteExercise = (id) => request(`/api/admin/exercises/${id}`, { method: "DELETE" });
 export const reorderExercises = (item_ids) => request("/api/admin/exercises/reorder", { method: "PUT", body: JSON.stringify({ item_ids }) });
 
+// Learning engine studio
+export const getCurriculumTree = () => request("/api/admin/curriculum/tree");
+export const getExerciseStudio = (exerciseId) => request(`/api/admin/exercises/${exerciseId}/studio`);
+export const saveExerciseStudio = (exerciseId, data) => request(`/api/admin/exercises/${exerciseId}/studio`, { method: "PUT", body: JSON.stringify(data) });
+export const validateExerciseStudio = (exerciseId, data = {}) => request(`/api/admin/exercises/${exerciseId}/validate`, { method: "POST", body: JSON.stringify(data) });
+export const previewExerciseStudio = (exerciseId) => request(`/api/admin/exercises/${exerciseId}/preview`, { method: "POST", body: JSON.stringify({}) });
+export const checkTrackPublish = (trackId) => request(`/api/admin/tracks/${trackId}/publish-check`, { method: "POST", body: JSON.stringify({}) });
+export const getLearningEngineHealth = () => request("/api/admin/learning-engine/health");
+
 // Tasks
 export const getTasks = (exerciseId) => request(`/api/admin/exercises/${exerciseId}/tasks`);
 export const createTask = (exerciseId, data) => request(`/api/admin/exercises/${exerciseId}/tasks`, { method: "POST", body: JSON.stringify(data) });

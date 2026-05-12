@@ -1,380 +1,602 @@
 import DOMPurify from "dompurify";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  Play, Square, ChevronLeft, ChevronRight, Loader2, Terminal,
-  CheckCircle, XCircle, AlertTriangle, Send, User,
-  List, ArrowLeft, Check, Lock, Printer, Copy
+  ArrowLeft,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileCode2,
+  Folder,
+  FolderOpen,
+  Lightbulb,
+  Loader2,
+  Lock,
+  Play,
+  Search,
+  Send,
+  Sparkles,
+  Terminal,
+  Trophy,
+  User,
+  XCircle,
 } from "lucide-react";
-import { getExerciseWorkspace, evaluateTask, saveTaskProgress, getAllTaskProgress } from "../../../shared/learningApi.js";
+import {
+  answerQuiz,
+  completeTheoryExercise,
+  finishQuiz,
+  getWorkspaceExercise,
+  recordReferenceAccess,
+  runExercise,
+  startQuiz,
+  submitExercise,
+  useExerciseHint,
+} from "../../../shared/learningApi.js";
 import { APP_ROUTES } from "../../../routes/paths.js";
-import { PythonIcon, JavaIcon, CppIcon, CIcon, JSIcon, SQLIcon, TextIcon } from "../../components/LanguageIcons/LanguageIcons.jsx";
 import { ASSETS } from "../../../shared/assets.js";
 import "./WorkspacePage.css";
 
-const settingOptopus = ASSETS.mascot.workspaceGuide;
-const successOptopus = ASSETS.mascot.workspaceGuide;
-
-/* ── Language helpers ──────────────────────────────────────────────────── */
-const LANG_MAP = {
-  71:  { name: "Python",     ext: "py",   mono: "python",     Icon: PythonIcon, starter: "# Write code below\n" },
-  63:  { name: "JavaScript", ext: "js",   mono: "javascript", Icon: JSIcon,     starter: "// Write code below\n" },
-  62:  { name: "Java",       ext: "java", mono: "java",       Icon: JavaIcon,   starter: "// Write code below\n" },
-  54:  { name: "C++",        ext: "cpp",  mono: "cpp",        Icon: CppIcon,    starter: "// Write code below\n" },
-  50:  { name: "C",          ext: "c",    mono: "c",          Icon: CIcon,      starter: "// Write code below\n" },
-  60:  { name: "Go",         ext: "go",   mono: "go",         Icon: TextIcon,   starter: "// Write code below\n" },
-  73:  { name: "Rust",       ext: "rs",   mono: "rust",       Icon: TextIcon,   starter: "// Write code below\n" },
-  74:  { name: "TypeScript", ext: "ts",   mono: "typescript", Icon: JSIcon,     starter: "// Write code below\n" },
-};
-const DEFAULT_LANG = LANG_MAP[71];
-
-function getLangInfo(languageId) {
-  return LANG_MAP[languageId] || DEFAULT_LANG;
-}
-
-/* ── File icon component ───────────────────────────────────────────────── */
-function FileIcon({ ext }) {
-  const lang = Object.values(LANG_MAP).find(l => l.ext === ext);
-  const IconComponent = lang ? lang.Icon : TextIcon;
-  return (
-    <span className="ws-file-icon">
-      <IconComponent size={16} />
-    </span>
-  );
-}
-
-/* ── Verdict helpers ───────────────────────────────────────────────────── */
-const VERDICT_META = {
-  Accepted:             { color: "var(--state-success)", Icon: CheckCircle },
-  "Wrong Answer":       { color: "#f59e0b", Icon: XCircle },
-  "Runtime Error":      { color: "var(--state-error)", Icon: XCircle },
-  "Compilation Error":  { color: "var(--state-error)", Icon: AlertTriangle },
-  "Time Limit Exceeded":{ color: "#f59e0b", Icon: AlertTriangle },
-  "Internal Error":     { color: "var(--state-error)", Icon: AlertTriangle },
-};
-
-/* ── Parse starter code from task ──────────────────────────────────────── */
-function parseStarterCode(task, langInfo) {
-  if (!task?.starter_code) return { filename: `script.${langInfo.ext}`, content: langInfo.starter };
-  
-  try {
-    const files = JSON.parse(task.starter_code);
-    if (Array.isArray(files) && files.length > 0) {
-      const mainFile = files.find(f => f.is_main) || files[0];
-      return { filename: mainFile.filename, content: mainFile.content || "" };
-    }
-  } catch {
-    // starter_code is plain text, not JSON
-    return { filename: `script.${langInfo.ext}`, content: task.starter_code };
-  }
-  return { filename: `script.${langInfo.ext}`, content: langInfo.starter };
-}
-
-/* ── Detect judge language ID from file extension ──────────────────────── */
-function detectJudgeLangId(filename, trackLangId) {
-  const extMap = { ".py": 71, ".js": 63, ".ts": 74, ".java": 62, ".cpp": 54, ".c": 50, ".go": 60, ".rs": 73 };
-  const ext = Object.keys(extMap).find(e => filename.endsWith(e));
-  return ext ? extMap[ext] : (trackLangId || 71);
-}
-
 function slugify(text) {
-  return (text || "")
+  return String(text || "")
     .toLowerCase()
     .replace(/[^\w ]+/g, "")
     .replace(/ +/g, "-");
 }
 
-/* ── Advanced Garbage Code Preventer ── */
-function isLikelyGarbageCode(code, langId) {
-  const cleanCode = code.trim();
-  
-  // 1. Far too short to be executable (e.g. "kkk")
-  // Most valid basic programs checking assertions have at least 5+ characters.
-  if (cleanCode.length < 5) return true;
-
-  // 2. Just a single contiguous string with no syntax punctuation at all
-  // Basically checks if someone just smashed their keyboard like "asdfasdfasdf" or "kkk"
-  if (/^[a-zA-Z0-9_\s]+$/.test(cleanCode)) {
-    // True python code needs parentheses `()`, quotes `""`, or operators `=`.
-    return true;
-  }
-
-  // 3. Must contain at least SOME standard syntax identifier
-  // e.g., brackets, parentheses, quotes, equals signs, math operators, colons, or dots
-  const hasSyntax = /[()={};:,"'+[\]*/.-]/.test(cleanCode);
-  if (!hasSyntax) return true;
-
-  // 4. Strongly typed C-family languages typically require some brackets or semicolons
-  // 62: Java, 54: C++, 50: C, 73: Rust, 60: Go, 74: TypeScript
-  if ([62, 54, 50, 73, 60, 74].includes(langId)) {
-    if (!/[{}]/.test(cleanCode) && !/[()]/.test(cleanCode) && !/import/.test(cleanCode)) return true;
-  }
-
-  return false;
+function normalizeMode(mode) {
+  return mode === "task" ? "code" : mode || "code";
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   MAIN COMPONENT
-   ══════════════════════════════════════════════════════════════════════════ */
+function languageForPath(path = "") {
+  const lower = path.toLowerCase();
+  if (lower.endsWith(".py")) return "python";
+  if (lower.endsWith(".js")) return "javascript";
+  if (lower.endsWith(".ts")) return "typescript";
+  if (lower.endsWith(".html")) return "html";
+  if (lower.endsWith(".css")) return "css";
+  if (lower.endsWith(".java")) return "java";
+  if (lower.endsWith(".cpp") || lower.endsWith(".c")) return "cpp";
+  return "plaintext";
+}
+
+function filesFromPayload(payload) {
+  const files = Array.isArray(payload?.files) ? payload.files : [];
+  if (files.length > 0) {
+    return files.map((file, index) => ({
+      file_path: file.file_path || `file-${index + 1}.txt`,
+      content: file.starter_code || "",
+      language: file.language || languageForPath(file.file_path),
+      is_entrypoint: Boolean(file.is_entrypoint),
+      is_editable: file.is_editable !== false,
+      order: file.order || index + 1,
+    }));
+  }
+
+  return [
+    {
+      file_path: "main.py",
+      content: "# Write your code here\n",
+      language: "python",
+      is_entrypoint: true,
+      is_editable: true,
+      order: 1,
+    },
+  ];
+}
+
+function previewSrcDoc(files) {
+  const byPath = Object.fromEntries(files.map((file) => [file.file_path.toLowerCase(), file.content || ""]));
+  const html = byPath["index.html"] || "";
+  const css = byPath["styles.css"] || byPath["style.css"] || "";
+  const js = byPath["script.js"] || byPath["main.js"] || "";
+
+  if (!html.trim()) {
+    return `<!doctype html><html><head><style>${css}</style></head><body><main class="preview-empty">Add index.html content to preview your work.</main><script>${js}</script></body></html>`;
+  }
+
+  const hasHead = /<head[\s>]/i.test(html);
+  const hasBody = /<body[\s>]/i.test(html);
+  if (hasHead || hasBody) {
+    return html
+      .replace(/<\/head>/i, `<style>${css}</style></head>`)
+      .replace(/<\/body>/i, `<script>${js}</script></body>`);
+  }
+  return `<!doctype html><html><head><style>${css}</style></head><body>${html}<script>${js}</script></body></html>`;
+}
+
+function StatusBanner({ result, submitResult }) {
+  if (submitResult?.xp_awarded > 0) {
+    return (
+      <div className="ws-mode-banner ws-mode-banner--success">
+        <Trophy size={18} />
+        Completed. +{submitResult.xp_awarded} XP earned.
+      </div>
+    );
+  }
+  if (!result) return null;
+  if (result.passed) {
+    return (
+      <div className="ws-mode-banner ws-mode-banner--success">
+        <CheckCircle2 size={18} />
+        All checks passed. Submit is ready.
+      </div>
+    );
+  }
+  return (
+    <div className="ws-mode-banner ws-mode-banner--error">
+      <XCircle size={18} />
+      {result.error || result.verdict || "Some checks failed."}
+    </div>
+  );
+}
+
+function WorkspaceSidebar({ sections, activeExerciseId, viewAll, setViewAll, search, setSearch, goToExercise }) {
+  const query = search.trim().toLowerCase();
+
+  return (
+    <aside className="ws-level-sidebar">
+      <div className="ws-sidebar-tools">
+        <label className="ws-level-search">
+          <Search size={14} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search levels" />
+        </label>
+        <button type="button" onClick={() => setViewAll((value) => !value)}>
+          {viewAll ? "Active only" : "View all levels"}
+        </button>
+      </div>
+
+      <div className="ws-section-list">
+        {(sections || []).map((section) => {
+          const exercises = (section.exercises || []).filter((exercise) => (
+            !query || `${exercise.title} ${exercise.mode}`.toLowerCase().includes(query)
+          ));
+          const isActiveSection = exercises.some((exercise) => Number(exercise.id) === Number(activeExerciseId));
+          const expanded = viewAll || isActiveSection || query;
+
+          return (
+            <section className={`ws-section-group ${expanded ? "is-expanded" : ""}`} key={section.id}>
+              <div className="ws-section-title">
+                {expanded ? <FolderOpen size={15} /> : <Folder size={15} />}
+                <span>{section.title}</span>
+                <strong>{section.progress_percent || 0}%</strong>
+              </div>
+              {expanded && (
+                <div className="ws-level-list">
+                  {exercises.map((exercise) => {
+                    const active = Number(exercise.id) === Number(activeExerciseId);
+                    const locked = exercise.status === "locked";
+                    return (
+                      <button
+                        type="button"
+                        key={exercise.id}
+                        className={`ws-level-row ${active ? "is-active" : ""} ${exercise.status === "completed" ? "is-completed" : ""}`}
+                        disabled={locked}
+                        onClick={() => goToExercise(section, exercise)}
+                      >
+                        <span>
+                          {locked ? <Lock size={13} /> : exercise.status === "completed" ? <Check size={13} /> : <FileCode2 size={13} />}
+                        </span>
+                        <span>{exercise.title}</span>
+                        <small>{normalizeMode(exercise.mode).replaceAll("_", " ")}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
+function CodeEditorPane({ files, setFiles, activePath, setActivePath, mode }) {
+  const activeFile = files.find((file) => file.file_path === activePath) || files[0];
+
+  function updateActive(content) {
+    setFiles((current) => current.map((file) => (
+      file.file_path === activeFile.file_path ? { ...file, content } : file
+    )));
+  }
+
+  return (
+    <div className={`ws-mode-center ${mode === "frontend_preview" ? "ws-mode-center--preview" : ""}`}>
+      <div className="ws-file-strip">
+        {files.map((file) => (
+          <button
+            type="button"
+            key={file.file_path}
+            className={file.file_path === activeFile.file_path ? "is-active" : ""}
+            onClick={() => setActivePath(file.file_path)}
+          >
+            <FileCode2 size={14} />
+            {file.file_path}
+          </button>
+        ))}
+      </div>
+
+      <div className="ws-editor-shell">
+        <div className="ws-editor-meta">
+          <span>{activeFile?.file_path}</span>
+          <small>{activeFile?.is_editable === false ? "Read-only" : languageForPath(activeFile?.file_path)}</small>
+        </div>
+        <textarea
+          className="ws-code-editor"
+          spellCheck={false}
+          value={activeFile?.content || ""}
+          readOnly={activeFile?.is_editable === false}
+          onChange={(event) => updateActive(event.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TerminalPane({ running, result }) {
+  return (
+    <div className="ws-terminal ws-terminal--engine">
+      <div className="ws-terminal-header">
+        <Terminal size={14} />
+        <span>Checks</span>
+      </div>
+      <div className="ws-terminal-body">
+        {running && (
+          <div className="ws-terminal-running">
+            <Loader2 size={18} className="ws-spin" />
+            Running checks...
+          </div>
+        )}
+        {!running && !result && (
+          <div className="ws-terminal-placeholder">
+            <p>Run the exercise to see output and visible test results.</p>
+          </div>
+        )}
+        {!running && result && (
+          <div className="ws-terminal-result">
+            <strong>{result.verdict}</strong>
+            <p>{result.passed_cases || 0} / {result.total_cases || 0} checks passed</p>
+            {result.visible_results?.length > 0 && (
+              <ul className="ws-visible-tests">
+                {result.visible_results.map((item, index) => (
+                  <li key={`${item.label}-${index}`} className={item.passed ? "is-pass" : "is-fail"}>
+                    {item.passed ? <Check size={13} /> : <XCircle size={13} />}
+                    <span>{item.label}</span>
+                    <small>{item.verdict}</small>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {result.output && <pre className="ws-terminal-stdout">{result.output}</pre>}
+            {result.error && <pre className="ws-terminal-stderr">{result.error}</pre>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FrontendPreviewPane({ files }) {
+  return (
+    <div className="ws-preview-pane">
+      <div className="ws-preview-toolbar">
+        <span>Live Preview</span>
+      </div>
+      <iframe title="Frontend preview" sandbox="allow-scripts" srcDoc={previewSrcDoc(files)} />
+    </div>
+  );
+}
+
+function TheoryMode({ data, onComplete, completing }) {
+  return (
+    <div className="ws-theory-mode">
+      <article
+        className="ws-theory-lesson"
+        dangerouslySetInnerHTML={{
+          __html: DOMPurify.sanitize(data.theory_content || data.instructions_md || ""),
+        }}
+      />
+      <button type="button" className="btn btn-brand ws-wide-action" onClick={onComplete} disabled={completing}>
+        {completing ? <Loader2 size={16} className="ws-spin" /> : <CheckCircle2 size={16} />}
+        I Tried It
+      </button>
+    </div>
+  );
+}
+
+function QuizMode({ data, quizAttemptId, answers, setAnswers, onStart, onAnswer, onFinish, finishing }) {
+  const questions = data.quiz_questions || [];
+  const answered = Object.keys(answers).length;
+
+  return (
+    <div className="ws-quiz-mode">
+      <div className="ws-quiz-header">
+        <BookOpen size={18} />
+        <div>
+          <h2>{data.title}</h2>
+          <p>{answered} / {questions.length} answered. Passing score: {data.passing_score_pct}%.</p>
+        </div>
+      </div>
+      {!quizAttemptId ? (
+        <button type="button" className="btn btn-brand ws-wide-action" onClick={onStart}>
+          <Play size={16} />
+          Start Quiz
+        </button>
+      ) : (
+        <div className="ws-question-list">
+          {questions.map((question, index) => (
+            <section className="ws-question-card" key={question.id}>
+              <span>Question {index + 1}</span>
+              <h3>{question.question_text}</h3>
+              {question.code_snippet && <pre>{question.code_snippet}</pre>}
+              <div className="ws-option-list">
+                {(question.options || []).map((option) => (
+                  <button
+                    type="button"
+                    key={option.id}
+                    className={Number(answers[question.id]) === Number(option.id) ? "is-selected" : ""}
+                    onClick={() => {
+                      setAnswers((current) => ({ ...current, [question.id]: option.id }));
+                      onAnswer(question.id, option.id);
+                    }}
+                  >
+                    {option.option_text}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+          <button
+            type="button"
+            className="btn btn-brand ws-wide-action"
+            onClick={onFinish}
+            disabled={finishing || answered < questions.length}
+          >
+            {finishing ? <Loader2 size={16} className="ws-spin" /> : <Send size={16} />}
+            Finish Quiz
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InstructionPanel({ data, hints, onUseHint, onOpenReference }) {
+  return (
+    <aside className="ws-instruction-panel">
+      <div className="ws-instruction-card">
+        <span className="ws-mode-pill">{normalizeMode(data.mode).replaceAll("_", " ")}</span>
+        <h1>{data.title}</h1>
+        <div
+          className="ws-instruction-copy"
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(data.instructions_md || data.theory_content || ""),
+          }}
+        />
+      </div>
+
+      <div className="ws-instruction-card">
+        <h2>
+          <Lightbulb size={16} />
+          Hints
+        </h2>
+        {(hints || []).length === 0 && <p className="ws-muted">No hints for this level.</p>}
+        {(hints || []).map((hint) => (
+          <div className={`ws-hint-row ${hint.is_unlocked ? "is-unlocked" : "is-locked"}`} key={hint.id}>
+            <div>
+              <strong>Hint {hint.order}</strong>
+              <small>{hint.penalty_xp ? `-${hint.penalty_xp} XP` : "No XP penalty"}</small>
+            </div>
+            {hint.is_unlocked ? (
+              <>
+                {hint.content_md && <p>{hint.content_md}</p>}
+                {!hint.has_used && (
+                  <button type="button" onClick={() => onUseHint(hint.id)}>
+                    Reveal
+                  </button>
+                )}
+              </>
+            ) : (
+              <span><Lock size={13} /> Locked</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {(data.reference_solution_url || data.docs_url) && (
+        <div className="ws-instruction-card">
+          <h2>Reference</h2>
+          <button type="button" className="ws-reference-button" onClick={onOpenReference}>
+            Open reference
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 export default function WorkspacePage() {
   const { trackSlug, sectionSlug, exerciseSlug, taskId: exerciseId } = useParams();
   const navigate = useNavigate();
-
-  /* ── Data state ── */
   const [data, setData] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [activePath, setActivePath] = useState("");
+  const [hints, setHints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  /* ── Levels state ── */
-  const [activeTaskIndex, setActiveTaskIndex] = useState(0);
-  const [completedTasks, setCompletedTasks] = useState(new Set()); // Store IDs of completed tasks
-
-  /* ── Editor state ── */
-  const [code, setCode] = useState("");
-  const [filename, setFilename] = useState("script.py");
-
-  /* ── Execution state ── */
-  const [output, setOutput] = useState(null);
   const [running, setRunning] = useState(false);
-
-  /* ── UI state ── */
-  const [tocOpen, setTocOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [runResult, setRunResult] = useState(null);
+  const [submitResult, setSubmitResult] = useState(null);
+  const [attemptId, setAttemptId] = useState(null);
+  const [viewAll, setViewAll] = useState(false);
+  const [search, setSearch] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [showEmptyWarning, setShowEmptyWarning] = useState(false);
-  const [warningMsg, setWarningMsg] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [quizAttemptId, setQuizAttemptId] = useState(null);
+  const [quizAnswers, setQuizAnswers] = useState({});
 
   useEffect(() => {
     setAvatarUrl(localStorage.getItem("campus404_avatar_url") || "");
   }, []);
 
-  /* ── Load exercise data ── */
   useEffect(() => {
     let disposed = false;
     async function load() {
-      if (!exerciseId) { setLoading(false); setError("Missing exercise id."); return; }
       setLoading(true);
       setError("");
-      setOutput(null);
-      setActiveTaskIndex(0);
-      setCompletedTasks(new Set());
+      setRunResult(null);
+      setSubmitResult(null);
+      setAttemptId(null);
+      setQuizAttemptId(null);
+      setQuizAnswers({});
       try {
-        const [payload, progressPayload] = await Promise.all([
-          getExerciseWorkspace(exerciseId),
-          getAllTaskProgress().catch(() => []) // gracefully handle errors
-        ]);
-        if (!disposed) {
-          setData(payload);
-          
-          const completedSet = new Set(
-            progressPayload
-              .filter(p => p.status === "completed")
-              .map(p => p.task_id)
-          );
-          setCompletedTasks(completedSet);
-
-          const langInfo = getLangInfo(payload.language_id);
-          const tasks = payload.tasks || [];
-          
-          // Determine the first uncompleted task
-          let initialIndex = 0;
-          for (let i = 0; i < tasks.length; i++) {
-            if (!completedSet.has(tasks[i].id)) {
-              initialIndex = i;
-              break;
-            }
-          }
-          setActiveTaskIndex(initialIndex);
-
-          const task = tasks[initialIndex];
-          const parsed = parseStarterCode(task, langInfo);
-          setFilename(parsed.filename);
-          setCode(parsed.content);
-        }
+        const payload = await getWorkspaceExercise(exerciseId);
+        if (disposed) return;
+        const nextFiles = filesFromPayload(payload);
+        setData(payload);
+        setFiles(nextFiles);
+        setActivePath((nextFiles.find((file) => file.is_entrypoint) || nextFiles[0])?.file_path || "");
+        setHints(payload.hints || []);
       } catch (err) {
         if (!disposed) setError(err.message || "Unable to load workspace.");
       } finally {
         if (!disposed) setLoading(false);
       }
     }
-    load();
-    return () => { disposed = true; };
+    if (exerciseId) {
+      load();
+    }
+    return () => {
+      disposed = true;
+    };
   }, [exerciseId]);
 
-  /* ── Change Level ── */
-  function handleTaskSelect(idx) {
-    if (!data || !data.tasks || idx < 0 || idx >= data.tasks.length) return;
-    setActiveTaskIndex(idx);
-    setShowEmptyWarning(false);
-    const langInfo = getLangInfo(data.language_id);
-    const task = data.tasks[idx];
-    const parsed = parseStarterCode(task, langInfo);
-    setFilename(parsed.filename);
-    setCode(parsed.content);
-    setOutput(null);
+  const mode = normalizeMode(data?.mode);
+  const activeIndex = useMemo(() => {
+    if (!data?.exercises_in_section) return 0;
+    return data.exercises_in_section.findIndex((exercise) => Number(exercise.id) === Number(data.id));
+  }, [data]);
+  const nextExercise = data?.exercises_in_section?.[activeIndex + 1] || null;
+  const previousExercise = data?.exercises_in_section?.[activeIndex - 1] || null;
+
+  const progressPercent = useMemo(() => {
+    const sections = data?.sections || [];
+    const exercises = sections.flatMap((section) => section.exercises || []);
+    if (!exercises.length) return 0;
+    const completed = exercises.filter((exercise) => exercise.status === "completed").length;
+    return Math.round((completed / exercises.length) * 100);
+  }, [data]);
+
+  function goToExercise(section, exercise) {
+    if (!exercise || exercise.status === "locked") return;
+    navigate(APP_ROUTES.frontendExerciseWorkspace(
+      trackSlug,
+      slugify(section?.slug || section?.title || sectionSlug),
+      slugify(exercise.slug || exercise.title || exerciseSlug),
+      exercise.id,
+    ));
   }
 
-  /* ── Derived values ── */
-  const langInfo = useMemo(() => data ? getLangInfo(data.language_id) : DEFAULT_LANG, [data]);
-  const activeTask = data?.tasks?.[activeTaskIndex];
-  
-  // Exercise-level navigation (siblings)
-  const currentExIndex = useMemo(() => {
-    if (!data) return 0;
-    const idx = data.exercises_in_section.findIndex(e => e.id === data.id);
-    return idx >= 0 ? idx : 0;
-  }, [data]);
-  const totalExercises = data?.total_exercises_in_section || 0;
-  const prevExercise = data?.exercises_in_section?.[currentExIndex - 1] || null;
-  const nextExercise = data?.exercises_in_section?.[currentExIndex + 1] || null;
-
-  // Track progress over tasks
-  const totalTasks = data?.tasks?.length || 1;
-  const progress = Math.round((completedTasks.size / totalTasks) * 100);
-
-  /* ── Code execution (Secure) ── */
-  async function runCode() {
-    if (running || !data || !activeTask) return;
-
-    const langId = detectJudgeLangId(filename, data.language_id);
-    
-    // Prevent empty or unmodified code submission
-    const parsedStarter = parseStarterCode(activeTask, langInfo);
-    if (!code.trim() || code.trim() === parsedStarter.content.trim()) {
-      setWarningMsg("You need to write some code before executing it.");
-      setShowEmptyWarning(true);
-      setTimeout(() => setShowEmptyWarning(false), 4500); // Change this number to adjust disappear time (in milliseconds)
-      return;
-    }
-
-    // Advanced heuristics to block pure garbage syntax ("kkk" etc.)
-    if (isLikelyGarbageCode(code, langId)) {
-      setWarningMsg("This doesn't look like valid logic. Please write proper syntax before running.");
-      setShowEmptyWarning(true);
-      setTimeout(() => setShowEmptyWarning(false), 4500); // Change this number to adjust disappear time (in milliseconds)
-      return;
-    }
-
+  async function handleRun() {
+    if (!data || running) return;
     setRunning(true);
-    setOutput(null);
-
+    setRunResult(null);
+    setSubmitResult(null);
     try {
-      // We use our protected backend evaluate proxy which checks against hidden test cases.
-      const res = await evaluateTask(data.id, activeTask.id, code, langId);
-      setOutput(res);
-
-      if (res.verdict === "Accepted") {
-        setWarningMsg("Well done! Let's solve the next level.");
-        setShowEmptyWarning(true);
+      const result = await runExercise(data.id, { files });
+      setRunResult(result);
+      setAttemptId(result.attempt_id);
+      if (result.passed && data.auto_submit_on_pass) {
+        await handleSubmit(result.attempt_id);
       }
     } catch (err) {
-      setOutput({ error: err.message, verdict: "Internal Error" });
+      setRunResult({ passed: false, verdict: "Internal Error", error: err.message, passed_cases: 0, total_cases: 0 });
     } finally {
       setRunning(false);
     }
   }
 
-  function handleSubmit() {
-    if (!data || !activeTask || verdict !== "Accepted") return;
-    
-    setShowEmptyWarning(false);
-    
-    setCompletedTasks(prev => {
-      const next = new Set(prev);
-      next.add(activeTask.id);
-      return next;
-    });
-
-    // Save progress to backend quietly
-    saveTaskProgress(activeTask.id).catch(console.error);
-
-    // Optionally auto-advance
-    if (activeTaskIndex < totalTasks - 1) {
-      handleTaskSelect(activeTaskIndex + 1);
+  async function handleSubmit(forcedAttemptId = attemptId) {
+    if (!data || submitting) return;
+    setSubmitting(true);
+    try {
+      const result = await submitExercise(data.id, { attempt_id: forcedAttemptId, files });
+      setSubmitResult(result);
+      setData((current) => current ? { ...current, status: "completed" } : current);
+    } catch (err) {
+      setRunResult((current) => ({ ...(current || {}), passed: false, verdict: "Submit Locked", error: err.message }));
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  /* ── Tab key in editor ── */
-  function handleTabKey(e) {
-    if (e.key !== "Tab") return;
-    e.preventDefault();
-    const { selectionStart: s, selectionEnd: en } = e.target;
-    const next = code.slice(0, s) + "  " + code.slice(en);
-    setCode(next);
-    requestAnimationFrame(() => {
-      e.target.selectionStart = e.target.selectionEnd = s + 2;
-    });
+  async function handleTheoryComplete() {
+    if (!data) return;
+    setSubmitting(true);
+    try {
+      const result = await completeTheoryExercise(data.id);
+      setSubmitResult(result);
+      setData((current) => current ? { ...current, status: "completed" } : current);
+    } catch (err) {
+      setError(err.message || "Unable to complete theory lesson.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  /* ── Navigation ── */
-  function goToExercise(ex) {
-    if (!ex || !ex.id) return;
-    navigate(APP_ROUTES.frontendExerciseWorkspace(trackSlug, sectionSlug, slugify(ex.title), ex.id));
+  async function handleUseHint(hintId) {
+    if (!data) return;
+    const result = await useExerciseHint(data.id, hintId);
+    setHints((current) => current.map((hint) => (
+      hint.id === hintId ? { ...result.hint, is_unlocked: true, has_used: true } : hint
+    )));
   }
 
-  /* ── Verdict display ── */
-  const verdict = output?.verdict;
-  const vm = VERDICT_META[verdict] ?? {};
-
-  /* ── Printing ── */
-  function handlePrint() {
-    if (verdict !== "Accepted") return;
-    
-    const printWindow = window.open('', '_blank');
-    const safeOutput = (output?.output || "Passed all hidden tests successfully!")
-      .replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const safeCode = code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    
-    const htmlContent = `
-      <html>
-        <head>
-          <title>Copy/Print - ${data?.title || 'Exercise'}</title>
-          <style>
-            body { font-family: sans-serif; padding: 30px; color: #333; line-height: 1.6; max-width: 900px; margin: auto; }
-            h1 { font-size: 24px; color: #111; margin-bottom: 5px; }
-            h2 { font-size: 18px; color: #555; margin-top: 0; font-weight: normal; margin-bottom: 30px; }
-            .theory { margin-bottom: 20px; font-size: 15px; }
-            .code-block, .output-block { background: #f8f9fa; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap; font-size: 13px; border: 1px solid #e9ecef; }
-            .section-title { margin-top: 30px; border-bottom: 2px solid #eee; padding-bottom: 8px; font-weight: bold; color: #222; margin-bottom: 15px; }
-            @media print { body { padding: 0; } }
-          </style>
-        </head>
-        <body>
-          <h1>${data?.track_title || 'Track'} &rsaquo; ${data?.section_title || 'Section'}</h1>
-          <h2>${data?.title || 'Exercise'} (Level ${activeTaskIndex + 1})</h2>
-          
-          <div class="section-title">Theory & Instructions</div>
-          <div class="theory">
-            ${activeTask?.instructions_md || data?.theory_content || "No instructions provided."}
-          </div>
-          
-          <div class="section-title">Executed Code</div>
-          <pre class="code-block">${safeCode}</pre>
-          
-          <div class="section-title">Execution Output</div>
-          <pre class="output-block">${safeOutput}</pre>
-          
-          <script>
-            window.onload = function() { window.print(); }
-          </script>
-        </body>
-      </html>
-    `;
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
+  async function handleOpenReference() {
+    if (!data) return;
+    const response = await recordReferenceAccess(data.id, data.reference_solution_url || data.docs_url);
+    if (response.reference_url) {
+      window.open(response.reference_url, "_blank", "noopener,noreferrer");
+    }
   }
 
-  /* ══ LOADING STATE ══ */
+  async function handleQuizStart() {
+    if (!data) return;
+    const result = await startQuiz(data.id);
+    setQuizAttemptId(result.attempt_id);
+    setData((current) => current ? { ...current, quiz_questions: result.questions } : current);
+  }
+
+  async function handleQuizAnswer(questionId, optionId) {
+    if (!data || !quizAttemptId) return;
+    await answerQuiz(data.id, { attempt_id: quizAttemptId, question_id: questionId, option_id: optionId });
+  }
+
+  async function handleQuizFinish() {
+    if (!data || !quizAttemptId) return;
+    setSubmitting(true);
+    try {
+      const result = await finishQuiz(data.id, { attempt_id: quizAttemptId, answers: quizAnswers });
+      setSubmitResult(result);
+      setRunResult({ passed: result.passed, verdict: result.passed ? "Accepted" : "Try Again", passed_cases: result.score, total_cases: result.total_questions });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="ws-root ws-loading-screen">
         <Loader2 size={32} className="ws-spin" />
-        <p>Loading workspace…</p>
+        <p>Loading workspace...</p>
       </div>
     );
   }
 
-  /* ══ ERROR STATE ══ */
   if (error || !data) {
     return (
       <div className="ws-root ws-error-screen">
@@ -386,307 +608,128 @@ export default function WorkspacePage() {
     );
   }
 
-  const fileExt = filename.split(".").pop() || langInfo.ext;
+  const canSubmit = mode === "theory" || mode === "quiz" || runResult?.passed || submitResult;
 
   return (
-    <div className="ws-root">
+    <div className="ws-root ws-learning-engine">
       <div className="ws-mobile-overlay">
-        Please rotate your device to horizontal to use the Code Workspace. Desktop experience is highly recommended.
+        Rotate your device to landscape to use the Workspace.
       </div>
-      
-      {/* ════ POPUP CODE WARNING / SUCCESS ════ */}
-      <div className={`ws-empty-warning-popup ${showEmptyWarning ? 'is-visible' : ''}`}>
-        <div className="ws-empty-warning-character">
-          <img 
-            src={verdict === "Accepted" ? successOptopus : settingOptopus} 
-            alt="Guide" 
-            draggable="false"
-            onContextMenu={(e) => e.preventDefault()}
-            onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '🤖'; }} 
-          />
-        </div>
-        <div className="ws-empty-warning-bubble">
-          <p><strong>{verdict === "Accepted" ? "Awesome!" : "Hey there!"}</strong> {warningMsg}</p>
-          {verdict === "Accepted" && (
-            <button 
-              className="btn btn-brand" 
-              onClick={handleSubmit}
-              style={{ marginTop: '10px', fontSize: '0.85rem', padding: '6px 12px' }}
-            >
-              <Check size={14} style={{ marginRight: '6px' }} /> 
-              Next Level
-            </button>
-          )}
-        </div>
-      </div>
-      {/* ═══════════ TOP HEADER BAR ═══════════ */}
       <header className="ws-header">
         <div className="ws-header-left">
           <Link to={APP_ROUTES.home} className="ws-brand-mark">
             <img src={ASSETS.brand.logo} alt="Campus404" />
           </Link>
           <div className="ws-header-breadcrumb">
-            <span className="ws-header-track">{data.track_title}</span>
-            <ChevronRight size={12} className="ws-header-sep" />
-            <span className="ws-header-section">{data.section_title}</span>
+            <span>{data.track_title}</span>
+            <ChevronRight size={12} />
+            <span>{data.section_title}</span>
           </div>
         </div>
-
         <div className="ws-header-center">
-          <div className="ws-runtime-status">
-            <span className="ws-status-dot"></span>
-            <span className="ws-runtime-text">Execution Engine: Ready</span>
-          </div>
+          <span className="ws-progress-text">{progressPercent}%</span>
           <div className="ws-progress-bar">
-            <div className="ws-progress-fill" style={{ width: `${progress}%` }} />
+            <div className="ws-progress-fill" style={{ width: `${progressPercent}%` }} />
           </div>
-          <span className="ws-progress-text">{progress}%</span>
+          <span className="ws-xp-chip"><Sparkles size={14} /> {data.user_xp || 0} XP</span>
+          <span className="ws-xp-chip">Streak {data.current_streak || 0}</span>
         </div>
-
         <div className="ws-header-right">
-          <div className="ws-tooltip-wrapper">
-            <button className="ws-icon-btn ws-bug-btn">
-              <AlertTriangle size={18} />
-            </button>
-            <span className="ws-custom-tooltip-text">Report an issue</span>
-          </div>
-          <span className="ws-header-exercise-badge">
-            Level {activeTaskIndex + 1}/{totalTasks}
-          </span>
-          <div className="ws-user-profile" title="User Profile">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-            ) : (
-              <User size={18} />
-            )}
+          <span className="ws-header-exercise-badge">Level {activeIndex + 1}</span>
+          <div className="ws-user-profile">
+            {avatarUrl ? <img src={avatarUrl} alt="" /> : <User size={18} />}
           </div>
         </div>
       </header>
 
-      {/* ═══════════ MAIN BODY ═══════════ */}
-      <div className="ws-body">
+      <div className="ws-engine-body">
+        <WorkspaceSidebar
+          sections={data.sections}
+          activeExerciseId={data.id}
+          viewAll={viewAll}
+          setViewAll={setViewAll}
+          search={search}
+          setSearch={setSearch}
+          goToExercise={goToExercise}
+        />
 
-        {/* ─── LEFT PANEL: Theory + Table of Contents ─── */}
-        <div className="ws-left-panel">
-          <div className="ws-left-scrollable">
-            {/* Exercise Label */}
-            <div className="ws-exercise-label">{data.title}</div>
+        <main className={`ws-engine-main ws-engine-main--${mode}`}>
+          <StatusBanner result={runResult} submitResult={submitResult} />
 
-            {/* Task/Level Title */}
-            <h1 className="ws-exercise-title">
-              Level {activeTaskIndex + 1}
-            </h1>
+          {["code", "multi_file_code", "project"].includes(mode) && (
+            <>
+              <CodeEditorPane files={files} setFiles={setFiles} activePath={activePath} setActivePath={setActivePath} mode={mode} />
+              <TerminalPane running={running} result={runResult} />
+            </>
+          )}
 
-            {/* Content: Prefer task instructions, fallback to exercise theory if missing */}
-            <div
-              className="ws-theory-content"
-              dangerouslySetInnerHTML={{ 
-                __html: DOMPurify.sanitize(activeTask?.instructions_md || data.theory_content || "") 
-              }}
+          {mode === "frontend_preview" && (
+            <div className="ws-preview-layout">
+              <CodeEditorPane files={files} setFiles={setFiles} activePath={activePath} setActivePath={setActivePath} mode={mode} />
+              <FrontendPreviewPane files={files} />
+            </div>
+          )}
+
+          {mode === "theory" && (
+            <TheoryMode data={data} onComplete={handleTheoryComplete} completing={submitting} />
+          )}
+
+          {mode === "quiz" && (
+            <QuizMode
+              data={data}
+              quizAttemptId={quizAttemptId}
+              answers={quizAnswers}
+              setAnswers={setQuizAnswers}
+              onStart={handleQuizStart}
+              onAnswer={handleQuizAnswer}
+              onFinish={handleQuizFinish}
+              finishing={submitting}
             />
-          </div>
+          )}
+        </main>
 
-          {/* Table of Contents Toggle (Levels) */}
-          <div className="ws-toc-section">
-            <button
-              className="ws-toc-toggle"
-              onClick={() => setTocOpen(v => !v)}
-            >
-              <List size={14} />
-              <span>Exercise Levels</span>
-              <ChevronRight size={14} className={`ws-toc-chevron ${tocOpen ? "is-open" : ""}`} />
-            </button>
-
-            {tocOpen && (
-              <div className="ws-toc-list">
-                {data.tasks.map((task, idx) => {
-                  const isCompleted = completedTasks.has(task.id);
-                  const isActive = idx === activeTaskIndex;
-                  // Unlock logic: 
-                  // The first task is always available (idx === 0). 
-                  // A task is unlocked if the immediate previous task is completed.
-                  const previousTaskCompleted = idx === 0 || completedTasks.has(data.tasks[idx - 1].id);
-                  const isLocked = !isCompleted && !previousTaskCompleted;
-
-                  return (
-                    <button
-                      key={task.id}
-                      className={`ws-toc-item ${isActive ? "is-active" : ""} ${isCompleted ? "is-completed" : ""} ${isLocked ? "is-locked" : ""}`}
-                      onClick={() => !isLocked && handleTaskSelect(idx)}
-                      disabled={isLocked}
-                      title={isLocked ? "Complete previous level to unlock" : ""}
-                    >
-                      <span className="ws-toc-num">
-                        {isCompleted ? <Check size={12} className="ws-check-icon" /> : 
-                         isLocked ? <Lock size={12} /> : String(idx + 1).padStart(2, "0")}
-                      </span>
-                      <span className="ws-toc-name">Level {idx + 1}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ─── RIGHT PANEL: Code Editor + Terminal ─── */}
-        <div className="ws-right-panel">
-          {/* File Tab */}
-          <div className="ws-file-tabs">
-            <div className="ws-file-tab is-active">
-              <FileIcon ext={fileExt} />
-              <span>{filename}</span>
-            </div>
-            <div className="ws-editor-actions">
-              <div className="ws-tooltip-wrapper">
-                <button className="ws-icon-btn" onClick={() => {
-                  navigator.clipboard.writeText(code);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}>
-                  {copied ? <Check size={16} color="var(--state-success)" /> : <Copy size={16} color="var(--text-secondary)" />}
-                </button>
-                <span className="ws-custom-tooltip-text" style={{ right: 0, left: 'auto' }}>
-                  {copied ? "Copied!" : "Copy Code to Clipboard"}
-                </span>
-              </div>
-              <div className="ws-tooltip-wrapper">
-                <button 
-                  className="ws-icon-btn" 
-                  onClick={handlePrint}
-                  disabled={verdict !== "Accepted"}
-                  style={{ opacity: verdict === "Accepted" ? 1 : 0.4 }}
-                >
-                  <Printer size={16} color={verdict === "Accepted" ? "var(--accent-primary)" : "var(--text-tertiary)"} />
-                </button>
-                <span className="ws-custom-tooltip-text" style={{ right: 0, left: 'auto' }}>
-                  {verdict === "Accepted" ? "Print Exercise Result & Code" : "Run code successfully to enable printing"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Code Editor */}
-          <div className="ws-editor-area">
-            <div className="ws-line-nums" aria-hidden="true">
-              {code.split("\n").map((_, i) => (
-                <span key={i}>{i + 1}</span>
-              ))}
-            </div>
-            <textarea
-              className="ws-editor"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              onKeyDown={handleTabKey}
-              spellCheck={false}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-            />
-          </div>
-
-          {/* Editor Toolbar */}
-          <div className="ws-editor-toolbar">
-            <div className="ws-toolbar-icons">
-              {/* Optional decorators */}
-            </div>
-            <div className="ws-toolbar-actions">
-              <button
-                className="btn ws-run-btn"
-                onClick={runCode}
-                disabled={running}
-              >
-                {running ? <Square size={13} /> : <Play size={13} />}
-                {running ? "Checking…" : "Run & Check"}
-              </button>
-            </div>
-          </div>
-
-          {/* Terminal */}
-          <div className="ws-terminal">
-            <div className="ws-terminal-header">
-              <Terminal size={13} />
-              <span>Terminal Output</span>
-              {verdict && vm.Icon && (
-                <span className="ws-terminal-verdict" style={{ color: vm.color }}>
-                  <vm.Icon size={12} /> {verdict}
-                </span>
-              )}
-            </div>
-            <div className="ws-terminal-body">
-              {!running && !output && (
-                <div className="ws-terminal-placeholder">
-                  <div className="ws-terminal-placeholder-icon">&gt;_</div>
-                  <p>Click <strong>Run & Check</strong> to evaluate against test cases.</p>
-                </div>
-              )}
-
-              {running && (
-                <div className="ws-terminal-running">
-                  <Loader2 size={18} className="ws-spin" />
-                  <p>Running code over all test cases…</p>
-                </div>
-              )}
-
-              {!running && output && (
-                <div className="ws-terminal-result">
-                  {verdict !== "Accepted" && verdict && (
-                    <div className="ws-terminal-verdict-large" style={{ color: vm.color, fontWeight: '700', fontSize: '1.2rem', marginBottom: '8px' }}>
-                      {verdict}
-                    </div>
-                  )}
-                  {verdict !== "Accepted" && output.passed_cases !== undefined && (
-                    <div className="ws-terminal-cases-meta">
-                      Passed {output.passed_cases} out of {output.total_cases} test cases.
-                    </div>
-                  )}
-
-                  {output.output && (
-                    <div className="ws-terminal-output-block">
-                      <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-tertiary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Console Output</div>
-                      <pre className="ws-terminal-stdout">{output.output}</pre>
-                    </div>
-                  )}
-                  {output.error && (
-                    <div className="ws-terminal-error-block">
-                      <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-tertiary)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Error</div>
-                      <pre className="ws-terminal-stderr">{output.error}</pre>
-                    </div>
-                  )}
-                  {!output.output && !output.error && !output.passed && (
-                     <pre className="ws-terminal-stderr">Check your logic. Output did not match expected hidden test case.</pre>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <InstructionPanel
+          data={data}
+          hints={hints}
+          onUseHint={handleUseHint}
+          onOpenReference={handleOpenReference}
+        />
       </div>
 
-      {/* ═══════════ BOTTOM FOOTER BAR (Exercise Navigation) ═══════════ */}
       <footer className="ws-footer">
         <div className="ws-footer-left">
-          <span className="ws-footer-level">{data.section_title}</span>
-          <span className="ws-footer-exercise-info">
-            Exercise {currentExIndex + 1} / {totalExercises}
-          </span>
-        </div>
-        <div className="ws-footer-right">
-          <button
-            className="btn btn-ghost ws-nav-back"
-            onClick={() => navigate(APP_ROUTES.frontendTrackOverview(trackSlug))}
-          >
+          <button type="button" className="btn btn-ghost" onClick={() => navigate(APP_ROUTES.frontendTrackOverview(trackSlug))}>
             <ChevronLeft size={14} />
             Back to Track
           </button>
-          
           <button
-            className="btn btn-brand ws-nav-next"
-            onClick={() => goToExercise(nextExercise)}
-            disabled={!nextExercise || progress < 100}
-            title={progress < 100 ? "Complete all levels to unlock" : ""}
+            type="button"
+            className="btn btn-ghost"
+            disabled={!previousExercise}
+            onClick={() => previousExercise && goToExercise({ title: data.section_title, slug: sectionSlug }, previousExercise)}
           >
-            {progress < 100 && <Lock size={12} style={{ marginRight: '6px' }} />}
+            Previous
+          </button>
+        </div>
+        <div className="ws-footer-right">
+          {["code", "multi_file_code", "frontend_preview", "project"].includes(mode) && (
+            <>
+              <button type="button" className="btn ws-run-btn" onClick={handleRun} disabled={running}>
+                {running ? <Loader2 size={14} className="ws-spin" /> : <Play size={14} />}
+                {mode === "frontend_preview" ? "Run Preview Checks" : "Run"}
+              </button>
+              <button type="button" className="btn btn-brand" onClick={() => handleSubmit()} disabled={!canSubmit || submitting}>
+                {submitting ? <Loader2 size={14} className="ws-spin" /> : <Send size={14} />}
+                Submit
+              </button>
+            </>
+          )}
+          <button
+            type="button"
+            className="btn btn-brand"
+            disabled={!nextExercise || (!submitResult && data.status !== "completed")}
+            onClick={() => nextExercise && goToExercise({ title: data.section_title, slug: sectionSlug }, nextExercise)}
+          >
             Next Exercise
             <ChevronRight size={14} />
           </button>

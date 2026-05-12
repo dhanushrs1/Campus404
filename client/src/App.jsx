@@ -141,7 +141,7 @@ export default function App() {
         />
         <Route
           path={APP_ROUTES.adminTracksLegacy}
-          element={<Navigate to={APP_ROUTES.adminDashboardTab("tracks")} replace />}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("curriculum")} replace />}
         />
         <Route
           path={APP_ROUTES.adminMediaLegacy}

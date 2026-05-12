@@ -102,6 +102,45 @@
   overflow: hidden;
 }
 
+.trackLeaderboardPage__filters,
+.trackLeaderboardPage__rankCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.trackLeaderboardPage__filters button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: #1d4ed8;
+  font-weight: 800;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.trackLeaderboardPage__filters button.is-active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.trackLeaderboardPage__rankCard {
+  justify-content: space-between;
+  padding: 14px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+  background: #eff6ff;
+  color: #123a62;
+}
+
+.trackLeaderboardPage__rankCard strong {
+  color: #1d4ed8;
+  font-size: 1.25rem;
+}
+
 .trackLeaderboardPage__board ol {
   display: grid;
   margin: 0;

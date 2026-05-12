@@ -1,74 +1,200 @@
 .frontendDashboardPage {
-  padding: 3rem 2rem;
+  width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  width: 100%;
+  padding: 36px 24px 56px;
+  color: #0f2747;
+}
+
+.frontendDashboardPage--state {
+  min-height: 48vh;
+  display: grid;
+  place-items: center;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.frontendDashboardPage__spin {
+  animation: spin 0.9s linear infinite;
 }
 
 .frontendDashboardPage__header {
-  margin-bottom: 3rem;
+  margin-bottom: 24px;
 }
 
 .frontendDashboardPage__eyebrow {
-  color: var(--accent-primary);
-  font-weight: 600;
+  margin: 0 0 8px;
+  color: #2563eb;
+  font-size: 0.82rem;
+  font-weight: 900;
   text-transform: uppercase;
-  font-size: var(--text-sm);
-  letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
 }
 
 .frontendDashboardPage__header h1 {
-  margin: 0 0 0.5rem;
-  font-size: var(--text-4xl);
-  font-weight: 800;
-  color: var(--text-primary);
+  margin: 0 0 8px;
+  color: #0f2747;
+  font-size: clamp(2.1rem, 4vw, 3.6rem);
+  line-height: 1;
 }
 
 .frontendDashboardPage__header p {
-  color: var(--text-secondary);
-  font-size: var(--text-lg);
-  max-width: 600px;
+  max-width: 720px;
+  margin: 0;
+  color: #64748b;
+  line-height: 1.65;
+}
+
+.frontendDashboardPage__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.frontendDashboardPage__stats article,
+.frontendDashboardPage__panel {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 39, 71, 0.06);
+}
+
+.frontendDashboardPage__stats article {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.frontendDashboardPage__stats svg {
+  color: #2563eb;
+}
+
+.frontendDashboardPage__stats span {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.frontendDashboardPage__stats strong {
+  color: #0f2747;
+  font-size: 1.65rem;
 }
 
 .frontendDashboardPage__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 
-.frontendDashboardPage__card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+.frontendDashboardPage__panel {
+  padding: 18px;
 }
 
-.frontendDashboardPage__card:hover {
-  border-color: var(--border-focus);
+.frontendDashboardPage__panel--wide {
+  grid-column: 1 / -1;
 }
 
-.frontendDashboardPage__cardHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+.frontendDashboardPage__panel h2 {
+  margin: 0 0 14px;
+  color: #0f2747;
 }
 
-.frontendDashboardPage__cardIcon {
-  color: var(--accent-primary);
-}
-
-.frontendDashboardPage__card h2 {
+.frontendDashboardPage__panel p {
   margin: 0;
-  font-size: var(--text-xl);
-  color: var(--text-primary);
+  color: #64748b;
 }
 
-.frontendDashboardPage__card p {
+.frontendDashboardPage__trackList,
+.frontendDashboardPage__eventList {
+  display: grid;
+  gap: 12px;
+}
+
+.frontendDashboardPage__trackList > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.frontendDashboardPage__trackList strong,
+.frontendDashboardPage__eventList span {
+  color: #123a62;
+}
+
+.frontendDashboardPage__trackList span,
+.frontendDashboardPage__trackList small {
+  color: #64748b;
+}
+
+.frontendDashboardPage__bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dbeafe;
+}
+
+.frontendDashboardPage__bar span {
+  display: block;
+  height: 100%;
+  background: #2563eb;
+}
+
+.frontendDashboardPage__badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.frontendDashboardPage__badgeGrid div {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 150px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fbff;
+  text-align: center;
+}
+
+.frontendDashboardPage__badgeGrid img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.frontendDashboardPage__badgeGrid span {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.frontendDashboardPage__eventList {
   margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.6;
+  padding: 0;
+  list-style: none;
+}
+
+.frontendDashboardPage__eventList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.frontendDashboardPage__eventList strong {
+  color: #2563eb;
+}
+
+@media (max-width: 820px) {
+  .frontendDashboardPage__stats,
+  .frontendDashboardPage__grid {
+    grid-template-columns: 1fr;
+  }
 }

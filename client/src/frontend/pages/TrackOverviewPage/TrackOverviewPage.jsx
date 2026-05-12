@@ -13,17 +13,14 @@ import {
   Flame,
   Play,
   RotateCcw,
-  ShieldCheck,
   Trophy,
   Users,
 } from "lucide-react";
 import { getAllTaskProgress, getTrackDetailTree, getTrackLeaderboard, getTrackTree } from "../../../shared/learningApi.js";
-import { getCompletedExerciseIds } from "../../../shared/learningProgress.js";
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { ASSETS } from "../../../shared/assets.js";
 import "./TrackOverviewPage.css";
 
-const DEFAULT_DIFFICULTY = "Beginner";
 const EXERCISE_XP = 20;
 const QUIZ_XP = 30;
 const PROJECT_XP = 150;
@@ -179,7 +176,7 @@ export default function TrackOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedSections, setExpandedSections] = useState({});
-  const [completedExerciseIds, setCompletedExerciseIds] = useState(() => getCompletedExerciseIds());
+  const [completedExerciseIds, setCompletedExerciseIds] = useState([]);
   const [completedTaskIds, setCompletedTaskIds] = useState([]);
   const [trackLeaderboard, setTrackLeaderboard] = useState([]);
 
@@ -210,6 +207,12 @@ export default function TrackOverviewPage() {
 
         setTracks(trackDetail ? [normalizeTrack(trackDetail)] : []);
         setCompletedTaskIds(taskProgressRes.map((progress) => progress.task_id));
+        setCompletedExerciseIds(
+          (trackDetail?.sections || [])
+            .flatMap((section) => section.exercises || [])
+            .filter((exercise) => exercise.status === "completed")
+            .map((exercise) => Number(exercise.id)),
+        );
       } catch (err) {
         if (!disposed) {
           setError(err.message || "Failed to load curriculum data.");
@@ -227,17 +230,6 @@ export default function TrackOverviewPage() {
       disposed = true;
     };
   }, [trackSlug]);
-
-  useEffect(() => {
-    function refreshProgress() {
-      setCompletedExerciseIds(getCompletedExerciseIds());
-    }
-
-    window.addEventListener("focus", refreshProgress);
-    return () => {
-      window.removeEventListener("focus", refreshProgress);
-    };
-  }, []);
 
   const track = useMemo(() => {
     if (!tracks.length) return null;
@@ -310,8 +302,9 @@ export default function TrackOverviewPage() {
         const taskIds = getTaskIds(exercise);
         const totalTasks = Number(exercise.total_tasks || taskIds.length || 1);
         const completedTasks = taskIds.filter((taskId) => completedTaskIds.includes(taskId)).length;
-        const isCompleted = completedExerciseIds.includes(Number(exercise.id));
-        const isLocked = lockFollowingExercises;
+        const backendStatus = exercise.status || null;
+        const isCompleted = backendStatus === "completed" || completedExerciseIds.includes(Number(exercise.id));
+        const isLocked = backendStatus ? backendStatus === "locked" : lockFollowingExercises;
         const isInProgress = !isCompleted && !isLocked && completedTasks > 0;
 
         totalLessons += totalTasks;
@@ -481,10 +474,6 @@ export default function TrackOverviewPage() {
             </p>
 
             <div className="trackOverviewPage__heroBadges" aria-label="Track summary">
-              <span className="trackOverviewPage__heroBadge trackOverviewPage__heroBadge--level">
-                <ShieldCheck size={15} />
-                {DEFAULT_DIFFICULTY}
-              </span>
               <span className="trackOverviewPage__heroBadge trackOverviewPage__heroBadge--lessons">
                 <BookOpenCheck size={15} />
                 {formatPlural(learningState.totalLessons, "Lesson")}

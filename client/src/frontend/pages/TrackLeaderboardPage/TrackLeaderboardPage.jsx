@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ChevronRight, Trophy, Users } from "lucide-react";
-import { getTrackLeaderboard, getTrackTree } from "../../../shared/learningApi.js";
+import { getTrackTree, getTrackXpLeaderboard } from "../../../shared/learningApi.js";
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { ASSETS } from "../../../shared/assets.js";
 import "./TrackLeaderboardPage.css";
@@ -32,6 +32,8 @@ export default function TrackLeaderboardPage() {
   const { trackSlug } = useParams();
   const [tracks, setTracks] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [currentUserRank, setCurrentUserRank] = useState(null);
+  const [timeRange, setTimeRange] = useState("all_time");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -75,10 +77,11 @@ export default function TrackLeaderboardPage() {
       };
     }
 
-    getTrackLeaderboard(track.id, 20)
+    getTrackXpLeaderboard(track.id, { timeRange, pageSize: 20 })
       .then((payload) => {
         if (!disposed) {
-          setLeaderboard(Array.isArray(payload) ? payload : []);
+          setLeaderboard(Array.isArray(payload?.entries) ? payload.entries : []);
+          setCurrentUserRank(payload?.current_user_rank || null);
         }
       })
       .catch((err) => {
@@ -90,7 +93,7 @@ export default function TrackLeaderboardPage() {
     return () => {
       disposed = true;
     };
-  }, [track?.id]);
+  }, [track?.id, timeRange]);
 
   if (loading) {
     return (
@@ -149,6 +152,27 @@ export default function TrackLeaderboardPage() {
           </div>
         </section>
 
+        <section className="trackLeaderboardPage__filters" aria-label="Leaderboard filters">
+          {["all_time", "weekly", "monthly"].map((range) => (
+            <button
+              type="button"
+              key={range}
+              className={timeRange === range ? "is-active" : ""}
+              onClick={() => setTimeRange(range)}
+            >
+              {range.replace("_", " ")}
+            </button>
+          ))}
+        </section>
+
+        {currentUserRank && (
+          <section className="trackLeaderboardPage__rankCard">
+            <span>Your rank</span>
+            <strong>#{currentUserRank.rank}</strong>
+            <p>{currentUserRank.track_xp ?? currentUserRank.total_xp} XP in this track</p>
+          </section>
+        )}
+
         <section className="trackLeaderboardPage__board" aria-label={`${track.title} leaderboard`}>
           {leaderboard.length > 0 ? (
             <ol>
@@ -156,18 +180,18 @@ export default function TrackLeaderboardPage() {
                 <li key={learner.user_id}>
                   <span className="trackLeaderboardPage__rank">#{learner.rank}</span>
                   <span className="trackLeaderboardPage__avatar">
-                    {learner.avatar ? (
-                      <img src={learner.avatar} alt="" draggable="false" />
+                    {learner.avatar_url ? (
+                      <img src={learner.avatar_url} alt="" draggable="false" />
                     ) : (
                       getAvatarInitial(learner.username)
                     )}
                   </span>
-                  <span className="trackLeaderboardPage__name">{learner.username}</span>
-                  <span>{learner.completed_tasks} tasks</span>
+                  <span className="trackLeaderboardPage__name">{learner.display_name || learner.username}</span>
+                  <span>{learner.badges_count} badges</span>
                   <span>{learner.completed_exercises} exercises</span>
                   <strong>
                     <img src={ASSETS.icons.xpStar} alt="" />
-                    {learner.xp} XP
+                    {learner.track_xp ?? learner.total_xp} XP
                   </strong>
                 </li>
               ))}

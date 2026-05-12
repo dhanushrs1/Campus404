@@ -1,0 +1,633 @@
+.cs-root {
+  min-height: calc(100vh - 92px);
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 18px;
+  color: #0f2747;
+}
+
+.cs-tree,
+.cs-editor,
+.cs-inspector-card,
+.cs-toolbar {
+  border: 1px solid #dbeafe;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(15, 39, 71, 0.06);
+}
+
+.cs-tree {
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.cs-panel-head,
+.cs-toolbar,
+.cs-list-head,
+.cs-inline-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cs-panel-head span,
+.cs-toolbar span {
+  display: block;
+  color: #2563eb;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cs-panel-head h2,
+.cs-toolbar h1,
+.cs-empty h2 {
+  margin: 2px 0 0;
+  color: #0f2747;
+  font-size: 1.1rem;
+  letter-spacing: 0;
+}
+
+.cs-toolbar p {
+  margin: 3px 0 0;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.cs-search,
+.cs-create-row {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 8px 10px;
+}
+
+.cs-search input,
+.cs-create-row input,
+.cs-create-row select,
+.cs-form-grid input,
+.cs-form-grid select,
+.cs-form-stack textarea,
+.cs-test-card input,
+.cs-test-card select,
+.cs-test-card textarea,
+.cs-question-card textarea,
+.cs-option-row input[type="text"],
+.cs-option-row input:not([type]) {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cfe3ff;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #0f2747;
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 9px 10px;
+}
+
+.cs-search input,
+.cs-create-row input,
+.cs-create-row select {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.cs-search input:focus,
+.cs-create-row input:focus,
+.cs-create-row select:focus,
+.cs-form-grid input:focus,
+.cs-form-grid select:focus,
+.cs-form-stack textarea:focus,
+.cs-test-card input:focus,
+.cs-test-card select:focus,
+.cs-test-card textarea:focus,
+.cs-question-card textarea:focus,
+.cs-option-row input:focus {
+  outline: 2px solid rgba(37, 99, 235, 0.18);
+  border-color: #60a5fa;
+}
+
+.cs-create-stack {
+  margin-bottom: 16px;
+}
+
+.cs-create-row button,
+.cs-btn {
+  min-height: 34px;
+  border-radius: 7px;
+  border: 1px solid #cfe3ff;
+  background: #ffffff;
+  color: #17446f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.cs-create-row button:hover,
+.cs-btn:hover {
+  border-color: #93c5fd;
+  background: #eef7ff;
+}
+
+.cs-btn--primary {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.cs-btn--primary:hover {
+  background: #1d4ed8;
+}
+
+.cs-btn--danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.cs-btn:disabled,
+.cs-create-row button:disabled,
+.cs-create-row input:disabled,
+.cs-create-row select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cs-tree-list {
+  display: grid;
+  gap: 12px;
+}
+
+.cs-track-node {
+  border: 1px solid #e0efff;
+  border-radius: 8px;
+  background: #f8fbff;
+  overflow: hidden;
+}
+
+.cs-track-node.is-selected {
+  border-color: #93c5fd;
+}
+
+.cs-track-title,
+.cs-section-node > button,
+.cs-exercise-list button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #0f2747;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.cs-track-title small,
+.cs-exercise-list small {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.cs-section-node {
+  border-top: 1px solid #e0efff;
+  background: #ffffff;
+}
+
+.cs-section-node > button {
+  color: #17446f;
+  font-size: 0.86rem;
+}
+
+.cs-exercise-list {
+  padding: 0 8px 8px 30px;
+  display: grid;
+  gap: 5px;
+}
+
+.cs-exercise-list button {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 8px;
+  font-size: 0.83rem;
+}
+
+.cs-exercise-list button.is-active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.cs-workbench {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+}
+
+.cs-toolbar {
+  border-radius: 8px;
+  padding: 16px 18px;
+}
+
+.cs-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cs-message {
+  border-radius: 8px;
+  padding: 11px 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 850;
+}
+
+.cs-message.is-error {
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+.cs-message.is-notice {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.cs-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  min-height: 0;
+}
+
+.cs-editor {
+  border-radius: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.cs-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px;
+  border-bottom: 1px solid #dbeafe;
+  background: #f8fbff;
+  overflow-x: auto;
+}
+
+.cs-tabs button {
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  font-weight: 850;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cs-tabs button.is-active {
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+  background: #ffffff;
+}
+
+.cs-form-grid,
+.cs-form-stack,
+.cs-files-layout {
+  padding: 16px;
+}
+
+.cs-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.cs-form-grid--compact {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 0;
+}
+
+.cs-form-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.cs-form-grid label,
+.cs-form-stack label,
+.cs-test-card label,
+.cs-question-card label {
+  display: grid;
+  gap: 6px;
+  color: #17446f;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.cs-toggle {
+  align-content: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  min-height: 38px;
+}
+
+.cs-toggle input {
+  width: auto;
+}
+
+.cs-files-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.cs-file-list {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.cs-file-list button {
+  min-height: 38px;
+  border: 1px solid #dbeafe;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #17446f;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 0 10px;
+  font-weight: 850;
+  text-align: left;
+}
+
+.cs-file-list button.is-active {
+  border-color: #60a5fa;
+  background: #eff6ff;
+}
+
+.cs-file-list small {
+  color: #2563eb;
+  text-transform: uppercase;
+  font-size: 0.65rem;
+}
+
+.cs-add-row {
+  justify-content: center;
+}
+
+.cs-file-editor,
+.cs-code-columns,
+.cs-option-list {
+  display: grid;
+  gap: 14px;
+}
+
+.cs-code-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cs-code-columns h3,
+.cs-list-head h3,
+.cs-inspector-card h3 {
+  margin: 0;
+  color: #0f2747;
+  font-size: 0.92rem;
+}
+
+.cs-preview-frame {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.cs-preview-frame iframe {
+  width: 100%;
+  min-height: 260px;
+  border: 0;
+  display: block;
+}
+
+.cs-test-card,
+.cs-question-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fbfdff;
+  padding: 14px;
+}
+
+.cs-option-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+}
+
+.cs-inspector {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.cs-inspector-card {
+  border-radius: 8px;
+  padding: 15px;
+  display: grid;
+  gap: 10px;
+}
+
+.cs-inspector-card p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.cs-status {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cs-status.is-ready {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.cs-status.is-review {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.cs-issue-list {
+  display: grid;
+  gap: 7px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cs-issue-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 7px;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.cs-issue-list li.is-warning {
+  color: #92400e;
+}
+
+.cs-validation {
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.cs-validation.is-pass {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.cs-validation.is-fail {
+  background: #fff1f2;
+  color: #b91c1c;
+}
+
+.cs-validation pre {
+  white-space: pre-wrap;
+  margin: 0;
+  font-size: 0.76rem;
+}
+
+.cs-summary {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cs-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cs-summary dt {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.cs-summary dd {
+  margin: 0;
+  color: #0f2747;
+  font-weight: 900;
+  text-align: right;
+}
+
+.cs-preview-link {
+  min-height: 34px;
+  border-radius: 7px;
+  background: #2563eb;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.cs-loading,
+.cs-empty {
+  min-height: 360px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  color: #64748b;
+  text-align: center;
+}
+
+.cs-empty p {
+  max-width: 440px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cs-spin {
+  animation: cs-spin 0.8s linear infinite;
+}
+
+@keyframes cs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1180px) {
+  .cs-root,
+  .cs-editor-grid,
+  .cs-code-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-tree {
+    max-height: 460px;
+  }
+
+  .cs-inspector {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .cs-form-grid,
+  .cs-form-grid--compact,
+  .cs-files-layout,
+  .cs-inspector {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

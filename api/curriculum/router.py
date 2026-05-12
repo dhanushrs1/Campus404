@@ -5,13 +5,13 @@ import httpx
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,6 +19,7 @@ from auth.database import get_db
 from auth.jwt_utils import _decode
 from auth.models import User
 from curriculum import models, schemas
+from curriculum.services import LeaderboardService, ProgressService, RewardService, SubmissionService
 from media.storage_provider import (
     build_cloud_public_id,
     ensure_cloudinary_config_ready,
@@ -197,6 +198,156 @@ def _normalize_track_image_url(value: str | None) -> str | None:
         return None
     cleaned = value.strip()
     return cleaned or None
+
+
+def _ordered(items: list[Any], key_name: str = "order") -> list[Any]:
+    return sorted(items or [], key=lambda item: int(getattr(item, key_name, 0) or 0))
+
+
+def _normalize_mode(value: str | None) -> str:
+    return "code" if value == "task" else (value or "code")
+
+
+async def _load_exercise_admin_context(
+    db: AsyncSession,
+    exercise_id: int,
+) -> tuple[models.Exercise, models.Section, models.Track]:
+    exercise = await db.scalar(
+        select(models.Exercise)
+        .options(
+            selectinload(models.Exercise.tasks),
+            selectinload(models.Exercise.files),
+            selectinload(models.Exercise.test_cases),
+            selectinload(models.Exercise.hints),
+            selectinload(models.Exercise.quiz_questions).selectinload(models.QuizQuestion.options),
+        )
+        .where(models.Exercise.id == exercise_id)
+    )
+    if not exercise:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+
+    section = await db.scalar(select(models.Section).where(models.Section.id == exercise.section_id))
+    if not section:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")
+
+    track = await db.scalar(select(models.Track).where(models.Track.id == section.track_id))
+    if not track:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
+
+    exercise.tasks = _ordered(list(exercise.tasks or []), "step_number")
+    exercise.files = _ordered(list(exercise.files or []))
+    exercise.test_cases = _ordered(list(exercise.test_cases or []))
+    exercise.hints = _ordered(list(exercise.hints or []))
+    exercise.quiz_questions = _ordered(list(exercise.quiz_questions or []))
+    for question in exercise.quiz_questions:
+        question.options = _ordered(list(question.options or []))
+    return exercise, section, track
+
+
+def _exercise_publish_issues(
+    exercise: models.Exercise,
+    *,
+    track_id: int | None = None,
+    section_id: int | None = None,
+) -> list[schemas.AdminPublishIssue]:
+    mode = _normalize_mode(exercise.mode)
+    issues: list[schemas.AdminPublishIssue] = []
+
+    def add(message: str, severity: str = "error") -> None:
+        issues.append(
+            schemas.AdminPublishIssue(
+                scope="exercise",
+                message=message,
+                severity=severity,
+                track_id=track_id,
+                section_id=section_id,
+                exercise_id=int(exercise.id),
+            )
+        )
+
+    if not str(exercise.title or "").strip():
+        add("Exercise title is required.")
+    if int(exercise.xp_reward or 0) < 0:
+        add("XP reward cannot be negative.")
+
+    has_instruction = bool(str(exercise.instructions_md or exercise.theory_content or "").strip())
+    if not has_instruction:
+        add("Add learner instructions or theory content.")
+
+    if mode in {"code", "multi_file_code", "frontend_preview", "project"}:
+        files = list(exercise.files or [])
+        if not files:
+            add("Add at least one workspace file.")
+        elif not any(file.is_entrypoint for file in files):
+            add("Choose an entrypoint file.")
+        if mode != "frontend_preview" and not list(exercise.test_cases or []):
+            add("Add at least one visible or hidden test case.")
+
+    if mode == "frontend_preview":
+        config = exercise.validation_config or {}
+        has_rules = any(config.get(key) for key in ["required_files", "required_text", "required_selectors", "css_contains", "js_contains"])
+        if not has_rules:
+            add("Add frontend preview acceptance rules.")
+
+    if mode == "quiz":
+        questions = list(exercise.quiz_questions or [])
+        if not questions:
+            add("Add quiz questions.")
+        for question in questions:
+            if not any(option.is_correct for option in question.options or []):
+                add(f"Question {question.order or question.id} needs a correct option.")
+
+    if mode == "theory" and not str(exercise.theory_content or exercise.instructions_md or "").strip():
+        add("Theory lessons need lesson content.")
+
+    if not exercise.is_published:
+        add("Exercise is still in draft.", "warning")
+
+    return issues
+
+
+async def _exercise_publish_check(
+    exercise: models.Exercise,
+    section: models.Section,
+    track: models.Track,
+) -> schemas.AdminPublishCheckResponse:
+    issues = _exercise_publish_issues(exercise, track_id=int(track.id), section_id=int(section.id))
+    return schemas.AdminPublishCheckResponse(
+        ready=not any(issue.severity == "error" for issue in issues),
+        issues=issues,
+        totals={
+            "sections": 1,
+            "exercises": 1,
+            "files": len(exercise.files or []),
+            "tests": len(exercise.test_cases or []),
+            "hints": len(exercise.hints or []),
+            "quiz_questions": len(exercise.quiz_questions or []),
+        },
+    )
+
+
+def _apply_exercise_patch(item: models.Exercise, payload: schemas.ExerciseUpdate) -> None:
+    for field in [
+        "title",
+        "slug",
+        "mode",
+        "theory_content",
+        "instructions_md",
+        "xp_reward",
+        "unlock_rule",
+        "reference_solution_url",
+        "docs_url",
+        "passing_score_pct",
+        "attempts_allowed",
+        "validation_config",
+        "auto_submit_on_pass",
+        "is_published",
+    ]:
+        value = getattr(payload, field)
+        if value is not None:
+            if field in {"reference_solution_url", "docs_url"} and isinstance(value, str):
+                value = value.strip() or None
+            setattr(item, field, value)
 
 
 # ADMIN: TRACKS
@@ -582,7 +733,19 @@ async def create_exercise(
         section_id=section_id,
         title=payload.title,
         slug=payload.slug if payload.slug is not None else _slugify_stem(payload.title),
-        order=order_value
+        order=order_value,
+        mode=payload.mode or "code",
+        theory_content=payload.theory_content,
+        instructions_md=payload.instructions_md,
+        xp_reward=payload.xp_reward,
+        unlock_rule=payload.unlock_rule,
+        reference_solution_url=payload.reference_solution_url,
+        docs_url=payload.docs_url,
+        passing_score_pct=payload.passing_score_pct,
+        attempts_allowed=payload.attempts_allowed,
+        validation_config=payload.validation_config,
+        auto_submit_on_pass=payload.auto_submit_on_pass,
+        is_published=payload.is_published,
     )
     db.add(item)
     await db.commit()
@@ -665,6 +828,30 @@ async def update_exercise(
         item.title = payload.title
     if payload.slug is not None:
         item.slug = payload.slug
+    if payload.mode is not None:
+        item.mode = payload.mode
+    if payload.theory_content is not None:
+        item.theory_content = payload.theory_content
+    if payload.instructions_md is not None:
+        item.instructions_md = payload.instructions_md
+    if payload.xp_reward is not None:
+        item.xp_reward = payload.xp_reward
+    if payload.unlock_rule is not None:
+        item.unlock_rule = payload.unlock_rule
+    if payload.reference_solution_url is not None:
+        item.reference_solution_url = payload.reference_solution_url.strip() or None
+    if payload.docs_url is not None:
+        item.docs_url = payload.docs_url.strip() or None
+    if payload.passing_score_pct is not None:
+        item.passing_score_pct = payload.passing_score_pct
+    if payload.attempts_allowed is not None:
+        item.attempts_allowed = payload.attempts_allowed
+    if payload.validation_config is not None:
+        item.validation_config = payload.validation_config
+    if payload.auto_submit_on_pass is not None:
+        item.auto_submit_on_pass = payload.auto_submit_on_pass
+    if payload.is_published is not None:
+        item.is_published = payload.is_published
 
     await db.commit()
     await db.refresh(item)
@@ -1014,14 +1201,25 @@ async def get_track_detail_tree(
     if not track:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
 
+    await ProgressService.ensure_track_unlocked(db, user_id=int(_user.id), track_id=int(track.id))
+    await db.flush()
+
     track.sections.sort(key=lambda section: int(section.order or 0))
+    progress_rows = await db.scalars(
+        select(models.UserExerciseProgress)
+        .where(models.UserExerciseProgress.user_id == _user.id)
+        .where(models.UserExerciseProgress.track_id == track.id)
+    )
+    progress_map = {int(row.exercise_id): row.status for row in progress_rows.all()}
     for section in track.sections:
         section.exercises.sort(key=lambda exercise: int(exercise.order or 0))
         for exercise in section.exercises:
             exercise.total_tasks = len(exercise.tasks) if exercise.tasks else 0
             exercise.task_ids = [task.id for task in exercise.tasks] if exercise.tasks else []
+            exercise.status = progress_map.get(int(exercise.id), "locked")
 
     track.learner_count = 0
+    await db.commit()
     return track
 
 @router.get("/api/tracks/{track_identifier}", response_model=schemas.TrackStudent)
@@ -1300,3 +1498,1397 @@ async def get_all_task_progress(
         .where(models.UserTaskProgress.user_id == user.id)
     )
     return result.scalars().all()
+
+
+# LEARNING ENGINE HELPERS
+
+async def _workspace_payload(
+    db: AsyncSession,
+    *,
+    user: User,
+    exercise_id: int,
+) -> schemas.ExerciseWorkspaceData:
+    try:
+        exercise, section, track = await SubmissionService.get_exercise_context(db, exercise_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    await ProgressService.ensure_track_unlocked(db, user_id=int(user.id), track_id=int(track.id))
+    await ProgressService.mark_exercise_started(db, user_id=int(user.id), exercise=exercise)
+    await db.flush()
+
+    progress = await ProgressService.get_exercise_progress(
+        db,
+        user_id=int(user.id),
+        exercise_id=int(exercise.id),
+    )
+    track_tree = await db.scalar(
+        select(models.Track)
+        .options(selectinload(models.Track.sections).selectinload(models.Section.exercises))
+        .where(models.Track.id == track.id)
+    )
+    progress_rows = await db.scalars(
+        select(models.UserExerciseProgress)
+        .where(models.UserExerciseProgress.user_id == user.id)
+        .where(models.UserExerciseProgress.track_id == track.id)
+    )
+    progress_map = {int(row.exercise_id): row for row in progress_rows.all()}
+
+    sections_payload: list[dict[str, Any]] = []
+    exercises_in_section: list[dict[str, Any]] = []
+    for item_section in sorted(track_tree.sections if track_tree else [], key=lambda item: int(item.order or 0)):
+        exercises_payload = []
+        completed = 0
+        for item_exercise in sorted(item_section.exercises or [], key=lambda item: int(item.order or 0)):
+            item_progress = progress_map.get(int(item_exercise.id))
+            item_status = item_progress.status if item_progress else "locked"
+            if item_status == "completed":
+                completed += 1
+            summary = {
+                "id": item_exercise.id,
+                "section_id": item_exercise.section_id,
+                "order": item_exercise.order,
+                "title": item_exercise.title,
+                "slug": item_exercise.slug,
+                "mode": "code" if item_exercise.mode == "task" else item_exercise.mode,
+                "total_tasks": len(item_exercise.tasks or []),
+                "xp_reward": item_exercise.xp_reward,
+                "status": item_status,
+            }
+            exercises_payload.append(summary)
+            if int(item_section.id) == int(section.id):
+                exercises_in_section.append(
+                    {
+                        "id": item_exercise.id,
+                        "title": item_exercise.title,
+                        "slug": item_exercise.slug,
+                        "order": item_exercise.order,
+                        "mode": "code" if item_exercise.mode == "task" else item_exercise.mode,
+                        "status": item_status,
+                    }
+                )
+        total = len(exercises_payload)
+        sections_payload.append(
+            {
+                "id": item_section.id,
+                "track_id": item_section.track_id,
+                "order": item_section.order,
+                "title": item_section.title,
+                "slug": item_section.slug,
+                "badge_url": item_section.badge_url,
+                "status": "completed" if total and completed >= total else ("in_progress" if completed else "unlocked"),
+                "progress_percent": round((completed / total) * 100) if total else 0,
+                "exercises": exercises_payload,
+            }
+        )
+
+    files = sorted(exercise.files or [], key=lambda item: int(item.order or 0))
+    file_payload = [
+        schemas.ExerciseFileStudent.model_validate(file)
+        for file in files
+    ]
+    if not file_payload and exercise.tasks:
+        first_task = sorted(exercise.tasks, key=lambda item: int(item.step_number or 0))[0]
+        file_payload = [
+            schemas.ExerciseFileStudent(
+                id=0,
+                exercise_id=int(exercise.id),
+                file_path="main.py",
+                language="python",
+                starter_code=first_task.starter_code or "",
+                is_entrypoint=True,
+                is_editable=True,
+                order=1,
+            )
+        ]
+
+    hint_payload = []
+    for hint in sorted(exercise.hints or [], key=lambda item: int(item.order or 0)):
+        unlocked = await SubmissionService._hint_is_unlocked(  # noqa: SLF001 - route-level projection helper.
+            db,
+            user_id=int(user.id),
+            exercise_id=int(exercise.id),
+            hint=hint,
+        )
+        usage = await db.scalar(
+            select(models.HintUsage)
+            .where(models.HintUsage.user_id == user.id)
+            .where(models.HintUsage.hint_id == hint.id)
+        )
+        hint_payload.append(
+            schemas.HintStudent(
+                id=hint.id,
+                exercise_id=hint.exercise_id,
+                order=hint.order,
+                unlock_rule=hint.unlock_rule,
+                penalty_xp=hint.penalty_xp,
+                is_unlocked=unlocked,
+                has_used=usage is not None,
+                content_md=hint.content_md if unlocked else None,
+            )
+        )
+
+    questions = []
+    for question in sorted(exercise.quiz_questions or [], key=lambda item: int(item.order or 0)):
+        question.options.sort(key=lambda option: int(option.order or 0))
+        questions.append(schemas.QuizQuestionStudent.model_validate(question))
+
+    user_xp = int(
+        (
+            await db.scalar(
+                select(func.coalesce(func.sum(models.XpEvent.points), 0))
+                .where(models.XpEvent.user_id == user.id)
+            )
+        )
+        or 0
+    )
+
+    return schemas.ExerciseWorkspaceData(
+        id=exercise.id,
+        title=exercise.title,
+        mode="code" if exercise.mode == "task" else exercise.mode,
+        theory_content=exercise.theory_content,
+        instructions_md=exercise.instructions_md,
+        order=exercise.order,
+        tasks=sorted(exercise.tasks or [], key=lambda item: int(item.step_number or 0)),
+        files=file_payload,
+        hints=hint_payload,
+        quiz_questions=questions,
+        reference_solution_url=exercise.reference_solution_url,
+        docs_url=exercise.docs_url,
+        xp_reward=exercise.xp_reward,
+        passing_score_pct=exercise.passing_score_pct,
+        attempts_allowed=exercise.attempts_allowed,
+        validation_config=exercise.validation_config,
+        auto_submit_on_pass=exercise.auto_submit_on_pass,
+        status=progress.status if progress else "unlocked",
+        best_score=progress.best_score if progress else 0,
+        attempts_count=progress.attempts_count if progress else 0,
+        section_id=section.id,
+        section_title=section.title,
+        track_id=track.id,
+        track_title=track.title,
+        language_id=track.language_id,
+        exercises_in_section=exercises_in_section,
+        sections=sections_payload,
+        total_exercises_in_section=len(exercises_in_section),
+        user_xp=user_xp,
+        current_streak=await ProgressService.current_streak(db, user_id=int(user.id)),
+    )
+
+
+# LEARNING ENGINE: STUDENT WORKSPACE
+
+@router.get("/api/workspace/exercises/{exercise_id}", response_model=schemas.ExerciseWorkspaceData)
+async def get_workspace_exercise(
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.ExerciseWorkspaceData:
+    payload = await _workspace_payload(db, user=user, exercise_id=exercise_id)
+    await db.commit()
+    return payload
+
+
+@router.post("/api/workspace/exercises/{exercise_id}/run", response_model=schemas.ExerciseRunResponse)
+async def run_workspace_exercise(
+    exercise_id: int,
+    payload: schemas.ExerciseRunRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.ExerciseRunResponse:
+    try:
+        result = await SubmissionService.run_exercise(
+            db,
+            user_id=int(user.id),
+            exercise_id=exercise_id,
+            payload=payload,
+        )
+        await db.commit()
+        return result
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/api/workspace/exercises/{exercise_id}/submit", response_model=schemas.ExerciseSubmitResponse)
+async def submit_workspace_exercise(
+    exercise_id: int,
+    payload: schemas.ExerciseSubmitRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.ExerciseSubmitResponse:
+    try:
+        result = await SubmissionService.submit_exercise(
+            db,
+            user_id=int(user.id),
+            exercise_id=exercise_id,
+            payload=payload,
+        )
+        await db.commit()
+        return result
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/api/workspace/exercises/{exercise_id}/hint/{hint_id}", response_model=schemas.HintUsageResponse)
+async def use_workspace_hint(
+    exercise_id: int,
+    hint_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.HintUsageResponse:
+    try:
+        hint, used_at = await SubmissionService.use_hint(
+            db,
+            user_id=int(user.id),
+            exercise_id=exercise_id,
+            hint_id=hint_id,
+        )
+        await db.commit()
+        return schemas.HintUsageResponse(
+            hint=schemas.HintStudent(
+                id=hint.id,
+                exercise_id=hint.exercise_id,
+                order=hint.order,
+                unlock_rule=hint.unlock_rule,
+                penalty_xp=hint.penalty_xp,
+                is_unlocked=True,
+                has_used=True,
+                content_md=hint.content_md,
+            ),
+            used_at=used_at,
+        )
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/api/workspace/exercises/{exercise_id}/reference-access", response_model=schemas.ReferenceAccessResponse)
+async def record_workspace_reference_access(
+    exercise_id: int,
+    payload: schemas.ReferenceAccessRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.ReferenceAccessResponse:
+    try:
+        access = await SubmissionService.record_reference_access(
+            db,
+            user_id=int(user.id),
+            exercise_id=exercise_id,
+            reference_url=payload.reference_url,
+        )
+        await db.commit()
+        return schemas.ReferenceAccessResponse(reference_url=access.reference_url, accessed_at=access.accessed_at)
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/api/workspace/exercises/{exercise_id}/complete-theory", response_model=schemas.ExerciseSubmitResponse)
+async def complete_workspace_theory(
+    exercise_id: int,
+    _payload: schemas.TheoryCompleteRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.ExerciseSubmitResponse:
+    try:
+        result = await SubmissionService.complete_theory(db, user_id=int(user.id), exercise_id=exercise_id)
+        await db.commit()
+        return result
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+# LEARNING ENGINE: QUIZZES
+
+@router.post("/api/workspace/quizzes/{exercise_id}/start", response_model=schemas.QuizStartResponse)
+async def start_workspace_quiz(
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.QuizStartResponse:
+    try:
+        attempt, questions, exercise = await SubmissionService.start_quiz(db, user_id=int(user.id), exercise_id=exercise_id)
+        await db.commit()
+        return schemas.QuizStartResponse(
+            attempt_id=attempt.id,
+            exercise_id=exercise_id,
+            questions=[schemas.QuizQuestionStudent.model_validate(question) for question in questions],
+            passing_score_pct=exercise.passing_score_pct,
+            attempts_allowed=exercise.attempts_allowed,
+        )
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/api/workspace/quizzes/{exercise_id}/answer")
+async def answer_workspace_quiz(
+    exercise_id: int,
+    payload: schemas.QuizAnswerRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    try:
+        await SubmissionService.answer_quiz(
+            db,
+            user_id=int(user.id),
+            attempt_id=payload.attempt_id,
+            question_id=payload.question_id,
+            option_id=payload.option_id,
+        )
+        await db.commit()
+        return {"message": "Answer saved"}
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post("/api/workspace/quizzes/{exercise_id}/finish", response_model=schemas.QuizFinishResponse)
+async def finish_workspace_quiz(
+    exercise_id: int,
+    payload: schemas.QuizFinishRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.QuizFinishResponse:
+    try:
+        result = await SubmissionService.finish_quiz(
+            db,
+            user_id=int(user.id),
+            attempt_id=payload.attempt_id,
+            answers=payload.answers,
+        )
+        await db.commit()
+        return result
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+# LEARNING ENGINE: PROGRESS, XP, BADGES, LEADERBOARDS
+
+@router.get("/api/tracks/{track_id}/progress")
+async def get_track_progress(
+    track_id: int,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict[str, Any]:
+    await ProgressService.ensure_track_unlocked(db, user_id=int(user.id), track_id=track_id)
+    snapshot = await ProgressService.recalculate_track(db, user_id=int(user.id), track_id=track_id)
+    await db.commit()
+    return snapshot
+
+
+@router.get("/api/leaderboard/global", response_model=schemas.LeaderboardResponse)
+async def get_global_leaderboard(
+    time_range: str = "all_time",
+    page: int = 1,
+    page_size: int = 20,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.LeaderboardResponse:
+    return await LeaderboardService.leaderboard(
+        db,
+        time_range=time_range,
+        page=page,
+        page_size=page_size,
+        current_user_id=int(user.id),
+    )
+
+
+@router.get("/api/leaderboard/tracks/{track_id}", response_model=schemas.LeaderboardResponse)
+async def get_track_xp_leaderboard(
+    track_id: int,
+    time_range: str = "all_time",
+    page: int = 1,
+    page_size: int = 20,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.LeaderboardResponse:
+    return await LeaderboardService.leaderboard(
+        db,
+        track_id=track_id,
+        time_range=time_range,
+        page=page,
+        page_size=page_size,
+        current_user_id=int(user.id),
+    )
+
+
+@router.get("/api/users/me/progress", response_model=schemas.UserProgressResponse)
+async def get_my_progress(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> schemas.UserProgressResponse:
+    total_xp = int(
+        (
+            await db.scalar(
+                select(func.coalesce(func.sum(models.XpEvent.points), 0))
+                .where(models.XpEvent.user_id == user.id)
+            )
+        )
+        or 0
+    )
+    completed_exercises = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.UserExerciseProgress)
+                .where(models.UserExerciseProgress.user_id == user.id)
+                .where(models.UserExerciseProgress.status == "completed")
+            )
+        )
+        or 0
+    )
+    completed_tracks = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.UserTrackProgress)
+                .where(models.UserTrackProgress.user_id == user.id)
+                .where(models.UserTrackProgress.status == "completed")
+            )
+        )
+        or 0
+    )
+    track_rows = await db.execute(
+        select(models.UserTrackProgress, models.Track)
+        .join(models.Track, models.Track.id == models.UserTrackProgress.track_id)
+        .where(models.UserTrackProgress.user_id == user.id)
+        .order_by(models.UserTrackProgress.updated_at.desc())
+    )
+    badges = await db.scalars(
+        select(models.UserBadge)
+        .options(selectinload(models.UserBadge.badge))
+        .where(models.UserBadge.user_id == user.id)
+        .order_by(models.UserBadge.awarded_at.desc())
+    )
+    return schemas.UserProgressResponse(
+        total_xp=total_xp,
+        completed_exercises=completed_exercises,
+        completed_tracks=completed_tracks,
+        current_streak=await ProgressService.current_streak(db, user_id=int(user.id)),
+        tracks=[
+            {
+                "track_id": progress.track_id,
+                "title": track.title,
+                "slug": track.slug,
+                "status": progress.status,
+                "completed_exercises": progress.completed_exercises,
+                "total_exercises": progress.total_exercises,
+                "total_xp": progress.total_xp,
+                "progress_percent": round((progress.completed_exercises / progress.total_exercises) * 100)
+                if progress.total_exercises
+                else 0,
+            }
+            for progress, track in track_rows.all()
+        ],
+        badges=list(badges.all()),
+    )
+
+
+@router.get("/api/users/me/xp-events", response_model=list[schemas.XpEventResponse])
+async def get_my_xp_events(
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[models.XpEvent]:
+    rows = await db.scalars(
+        select(models.XpEvent)
+        .where(models.XpEvent.user_id == user.id)
+        .order_by(models.XpEvent.created_at.desc())
+        .limit(max(1, min(int(limit or 50), 200)))
+    )
+    return list(rows.all())
+
+
+@router.get("/api/users/me/badges", response_model=list[schemas.UserBadgeResponse])
+async def get_my_badges(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[models.UserBadge]:
+    rows = await db.scalars(
+        select(models.UserBadge)
+        .options(selectinload(models.UserBadge.badge))
+        .where(models.UserBadge.user_id == user.id)
+        .order_by(models.UserBadge.awarded_at.desc())
+    )
+    return list(rows.all())
+
+
+# LEARNING ENGINE: ADMIN CONTENT STUDIO
+
+@router.get("/api/admin/curriculum/tree", response_model=schemas.AdminCurriculumTreeResponse)
+async def get_admin_curriculum_tree(
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminCurriculumTreeResponse:
+    rows = await db.scalars(
+        select(models.Track)
+        .options(selectinload(models.Track.sections).selectinload(models.Section.exercises))
+        .order_by(models.Track.order)
+    )
+    tracks = list(rows.all())
+    for track in tracks:
+        track.sections = _ordered(list(track.sections or []))
+        for section in track.sections:
+            section.exercises = _ordered(list(section.exercises or []))
+    return schemas.AdminCurriculumTreeResponse(tracks=tracks)
+
+
+@router.get("/api/admin/exercises/{exercise_id}/studio", response_model=schemas.AdminExerciseStudioData)
+async def get_admin_exercise_studio(
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminExerciseStudioData:
+    exercise, section, track = await _load_exercise_admin_context(db, exercise_id)
+    return schemas.AdminExerciseStudioData(
+        exercise=exercise,
+        section=section,
+        track=track,
+        publish_check=await _exercise_publish_check(exercise, section, track),
+    )
+
+
+@router.put("/api/admin/exercises/{exercise_id}/studio", response_model=schemas.AdminExerciseStudioData)
+async def save_admin_exercise_studio(
+    exercise_id: int,
+    payload: schemas.AdminExerciseStudioUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminExerciseStudioData:
+    exercise, section, track = await _load_exercise_admin_context(db, exercise_id)
+
+    if payload.exercise:
+        if payload.exercise.order is not None:
+            exercise.order = await _reposition_sequence(
+                db,
+                models.Exercise,
+                models.Exercise.order,
+                int(exercise.order),
+                int(payload.exercise.order),
+                [models.Exercise.section_id == exercise.section_id],
+            )
+        _apply_exercise_patch(exercise, payload.exercise)
+
+    if payload.files is not None:
+        await db.execute(delete(models.ExerciseFile).where(models.ExerciseFile.exercise_id == exercise_id))
+        entrypoint_seen = False
+        for index, file_payload in enumerate(payload.files, start=1):
+            is_entrypoint = bool(file_payload.is_entrypoint)
+            if is_entrypoint:
+                entrypoint_seen = True
+            db.add(
+                models.ExerciseFile(
+                    exercise_id=exercise_id,
+                    file_path=file_payload.file_path,
+                    language=file_payload.language,
+                    starter_code=file_payload.starter_code,
+                    solution_code=file_payload.solution_code,
+                    is_entrypoint=is_entrypoint,
+                    is_editable=file_payload.is_editable,
+                    order=file_payload.order or index,
+                )
+            )
+        if payload.files and not entrypoint_seen:
+            await db.flush()
+            first_file = await db.scalar(
+                select(models.ExerciseFile)
+                .where(models.ExerciseFile.exercise_id == exercise_id)
+                .order_by(models.ExerciseFile.order)
+            )
+            if first_file:
+                first_file.is_entrypoint = True
+
+    if payload.test_cases is not None:
+        await db.execute(delete(models.ExerciseTestCase).where(models.ExerciseTestCase.exercise_id == exercise_id))
+        for index, case_payload in enumerate(payload.test_cases, start=1):
+            db.add(
+                models.ExerciseTestCase(
+                    exercise_id=exercise_id,
+                    label=case_payload.label,
+                    stdin=case_payload.stdin,
+                    expected_stdout=case_payload.expected_stdout,
+                    expected_outputs=case_payload.expected_outputs,
+                    match_mode=case_payload.match_mode,
+                    is_hidden=case_payload.is_hidden,
+                    timeout_ms=case_payload.timeout_ms,
+                    memory_limit_mb=case_payload.memory_limit_mb,
+                    custom_judge_options=case_payload.custom_judge_options,
+                    order=case_payload.order or index,
+                )
+            )
+
+    if payload.hints is not None:
+        await db.execute(delete(models.Hint).where(models.Hint.exercise_id == exercise_id))
+        for index, hint_payload in enumerate(payload.hints, start=1):
+            db.add(
+                models.Hint(
+                    exercise_id=exercise_id,
+                    content_md=hint_payload.content_md,
+                    order=hint_payload.order or index,
+                    unlock_rule=hint_payload.unlock_rule,
+                    penalty_xp=hint_payload.penalty_xp,
+                )
+            )
+
+    if payload.quiz is not None:
+        await db.execute(
+            delete(models.QuizOption).where(
+                models.QuizOption.question_id.in_(
+                    select(models.QuizQuestion.id).where(models.QuizQuestion.exercise_id == exercise_id)
+                )
+            ).execution_options(synchronize_session=False)
+        )
+        await db.execute(delete(models.QuizQuestion).where(models.QuizQuestion.exercise_id == exercise_id))
+        exercise.passing_score_pct = payload.quiz.passing_score_pct
+        exercise.attempts_allowed = payload.quiz.attempts_allowed
+        for question_index, question_payload in enumerate(payload.quiz.questions, start=1):
+            question = models.QuizQuestion(
+                exercise_id=exercise_id,
+                question_text=question_payload.question_text,
+                question_type=question_payload.question_type,
+                code_snippet=question_payload.code_snippet,
+                explanation_md=question_payload.explanation_md,
+                order=question_payload.order or question_index,
+            )
+            db.add(question)
+            await db.flush()
+            for option_index, option_payload in enumerate(question_payload.options, start=1):
+                db.add(
+                    models.QuizOption(
+                        question_id=question.id,
+                        option_text=option_payload.option_text,
+                        is_correct=option_payload.is_correct,
+                        explanation_md=option_payload.explanation_md,
+                        order=option_payload.order or option_index,
+                    )
+                )
+
+    await db.commit()
+    fresh_exercise, fresh_section, fresh_track = await _load_exercise_admin_context(db, exercise_id)
+    return schemas.AdminExerciseStudioData(
+        exercise=fresh_exercise,
+        section=fresh_section,
+        track=fresh_track,
+        publish_check=await _exercise_publish_check(fresh_exercise, fresh_section, fresh_track),
+    )
+
+
+@router.post("/api/admin/exercises/{exercise_id}/validate", response_model=schemas.AdminExerciseValidationResponse)
+async def validate_admin_exercise(
+    exercise_id: int,
+    payload: schemas.AdminExerciseValidateRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminExerciseValidationResponse:
+    exercise, _section, track = await _load_exercise_admin_context(db, exercise_id)
+    mode = _normalize_mode(exercise.mode)
+
+    if payload.files is not None:
+        files = [
+            schemas.SubmittedFile(
+                file_path=item.file_path,
+                content=item.content,
+                language=item.language,
+                is_entrypoint=item.is_entrypoint,
+            )
+            for item in payload.files
+        ]
+    else:
+        files = [
+            schemas.SubmittedFile(
+                file_path=file.file_path,
+                content=(file.solution_code if payload.use_solution else file.starter_code) or file.starter_code or "",
+                language=file.language,
+                is_entrypoint=bool(file.is_entrypoint),
+            )
+            for file in _ordered(list(exercise.files or []))
+        ]
+        if not files and exercise.tasks:
+            task = _ordered(list(exercise.tasks or []), "step_number")[0]
+            files = [
+                schemas.SubmittedFile(
+                    file_path=SubmissionService._default_file_name(int(track.language_id)),  # noqa: SLF001
+                    content=(task.solution_code if payload.use_solution else task.starter_code) or task.starter_code or "",
+                    is_entrypoint=True,
+                )
+            ]
+
+    test_cases = SubmissionService._test_cases(exercise)  # noqa: SLF001
+    if not payload.include_hidden:
+        test_cases = [case for case in test_cases if not bool(case.get("is_hidden", True))]
+    if mode == "frontend_preview":
+        test_cases = [
+            {
+                "label": "Preview validation",
+                "stdin": "",
+                "expected_outputs": [],
+                "match_mode": "normalize",
+                "is_hidden": False,
+                "validation_config": exercise.validation_config or {},
+                "validation_kind": "frontend_preview",
+            }
+        ]
+
+    passed_count = 0
+    visible_results: list[dict[str, Any]] = []
+    judge_results: list[dict[str, Any]] = []
+    first_error: str | None = None
+    first_verdict: str | None = None
+
+    for index, test_case in enumerate(test_cases):
+        result = await SubmissionService._judge_submission(  # noqa: SLF001
+            files=files,
+            language_id=SubmissionService._language_id_for_files(files, int(track.language_id)),  # noqa: SLF001
+            test_case=test_case,
+            mode=mode,
+        )
+        judge_results.append(result)
+        verdict = result.get("verdict") or "Internal Error"
+        case_passed = verdict == "Accepted" and not result.get("error")
+        if case_passed:
+            passed_count += 1
+        elif first_verdict is None:
+            first_verdict = verdict
+            first_error = result.get("error") or result.get("output") or "Validation failed."
+        visible_results.append(
+            {
+                "label": test_case.get("label") or f"Check {index + 1}",
+                "passed": case_passed,
+                "verdict": verdict,
+                "hidden": bool(test_case.get("is_hidden", False)),
+                "output": result.get("output"),
+                "error": result.get("error"),
+            }
+        )
+
+    total_cases = len(test_cases)
+    passed = total_cases == 0 or passed_count == total_cases
+    return schemas.AdminExerciseValidationResponse(
+        passed=passed,
+        verdict="Accepted" if passed else (first_verdict or "Wrong Answer"),
+        passed_cases=passed_count,
+        total_cases=total_cases,
+        visible_results=visible_results,
+        judge_result={"results": judge_results},
+        error=first_error,
+    )
+
+
+@router.post("/api/admin/exercises/{exercise_id}/preview")
+async def preview_admin_exercise(
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> dict[str, Any]:
+    exercise, section, track = await _load_exercise_admin_context(db, exercise_id)
+    return {
+        "learner_preview_url": f"/{track.slug or track.id}/{section.slug or section.id}/{exercise.slug or exercise.id}/{exercise.id}",
+        "mode": _normalize_mode(exercise.mode),
+        "title": exercise.title,
+        "instructions_md": exercise.instructions_md,
+        "theory_content": exercise.theory_content,
+        "files": [schemas.ExerciseFileInDB.model_validate(file).model_dump() for file in exercise.files or []],
+        "validation_config": exercise.validation_config or {},
+    }
+
+
+@router.post("/api/admin/tracks/{track_id}/publish-check", response_model=schemas.AdminPublishCheckResponse)
+async def check_track_publish_ready(
+    track_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminPublishCheckResponse:
+    track = await db.scalar(
+        select(models.Track)
+        .options(
+            selectinload(models.Track.sections)
+            .selectinload(models.Section.exercises)
+            .selectinload(models.Exercise.files),
+            selectinload(models.Track.sections)
+            .selectinload(models.Section.exercises)
+            .selectinload(models.Exercise.test_cases),
+            selectinload(models.Track.sections)
+            .selectinload(models.Section.exercises)
+            .selectinload(models.Exercise.hints),
+            selectinload(models.Track.sections)
+            .selectinload(models.Section.exercises)
+            .selectinload(models.Exercise.quiz_questions)
+            .selectinload(models.QuizQuestion.options),
+        )
+        .where(models.Track.id == track_id)
+    )
+    if not track:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
+
+    issues: list[schemas.AdminPublishIssue] = []
+    if not str(track.title or "").strip():
+        issues.append(schemas.AdminPublishIssue(scope="track", track_id=track_id, message="Track title is required."))
+    if not str(track.slug or "").strip():
+        issues.append(schemas.AdminPublishIssue(scope="track", track_id=track_id, message="Track slug is required."))
+    if not track.sections:
+        issues.append(schemas.AdminPublishIssue(scope="track", track_id=track_id, message="Add at least one section."))
+
+    section_count = 0
+    exercise_count = 0
+    file_count = 0
+    test_count = 0
+    for section in _ordered(list(track.sections or [])):
+        section_count += 1
+        if not str(section.title or "").strip():
+            issues.append(
+                schemas.AdminPublishIssue(scope="section", track_id=track_id, section_id=int(section.id), message="Section title is required.")
+            )
+        if not section.exercises:
+            issues.append(
+                schemas.AdminPublishIssue(scope="section", track_id=track_id, section_id=int(section.id), message="Add at least one exercise.")
+            )
+        for exercise in _ordered(list(section.exercises or [])):
+            exercise_count += 1
+            file_count += len(exercise.files or [])
+            test_count += len(exercise.test_cases or [])
+            issues.extend(_exercise_publish_issues(exercise, track_id=track_id, section_id=int(section.id)))
+
+    return schemas.AdminPublishCheckResponse(
+        ready=not any(issue.severity == "error" for issue in issues),
+        issues=issues,
+        totals={
+            "sections": section_count,
+            "exercises": exercise_count,
+            "files": file_count,
+            "tests": test_count,
+        },
+    )
+
+
+@router.get("/api/admin/exercises/{exercise_id}/files", response_model=list[schemas.ExerciseFileInDB])
+async def list_exercise_files(
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> list[models.ExerciseFile]:
+    rows = await db.scalars(
+        select(models.ExerciseFile)
+        .where(models.ExerciseFile.exercise_id == exercise_id)
+        .order_by(models.ExerciseFile.order)
+    )
+    return list(rows.all())
+
+
+@router.post("/api/admin/exercises/{exercise_id}/files", response_model=schemas.ExerciseFileInDB, status_code=status.HTTP_201_CREATED)
+async def create_exercise_file(
+    exercise_id: int,
+    payload: schemas.ExerciseFileCreate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.ExerciseFile:
+    exercise = await db.scalar(select(models.Exercise).where(models.Exercise.id == exercise_id))
+    if not exercise:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+    if payload.is_entrypoint:
+        await db.execute(
+            update(models.ExerciseFile)
+            .where(models.ExerciseFile.exercise_id == exercise_id)
+            .values(is_entrypoint=False)
+        )
+    order_value = await _resolve_insert_position(
+        db,
+        models.ExerciseFile,
+        models.ExerciseFile.order,
+        payload.order,
+        [models.ExerciseFile.exercise_id == exercise_id],
+    )
+    item = models.ExerciseFile(
+        exercise_id=exercise_id,
+        file_path=payload.file_path,
+        language=payload.language,
+        starter_code=payload.starter_code,
+        solution_code=payload.solution_code,
+        is_entrypoint=payload.is_entrypoint,
+        is_editable=payload.is_editable,
+        order=order_value,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+@router.put("/api/admin/exercise-files/{file_id}", response_model=schemas.ExerciseFileInDB)
+async def update_exercise_file(
+    file_id: int,
+    payload: schemas.ExerciseFileUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.ExerciseFile:
+    item = await db.scalar(select(models.ExerciseFile).where(models.ExerciseFile.id == file_id))
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    if payload.is_entrypoint is True:
+        await db.execute(
+            update(models.ExerciseFile)
+            .where(models.ExerciseFile.exercise_id == item.exercise_id)
+            .where(models.ExerciseFile.id != item.id)
+            .values(is_entrypoint=False)
+        )
+    for field in [
+        "file_path",
+        "language",
+        "starter_code",
+        "solution_code",
+        "is_entrypoint",
+        "is_editable",
+        "order",
+    ]:
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(item, field, value)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+@router.delete("/api/admin/exercise-files/{file_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+async def delete_exercise_file(
+    file_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> Response:
+    item = await db.scalar(select(models.ExerciseFile).where(models.ExerciseFile.id == file_id))
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
+    await db.delete(item)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/api/admin/exercises/{exercise_id}/hints", response_model=list[schemas.HintInDB])
+async def list_exercise_hints(
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> list[models.Hint]:
+    rows = await db.scalars(select(models.Hint).where(models.Hint.exercise_id == exercise_id).order_by(models.Hint.order))
+    return list(rows.all())
+
+
+@router.post("/api/admin/exercises/{exercise_id}/hints", response_model=schemas.HintInDB, status_code=status.HTTP_201_CREATED)
+async def create_exercise_hint(
+    exercise_id: int,
+    payload: schemas.HintCreate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.Hint:
+    exercise = await db.scalar(select(models.Exercise).where(models.Exercise.id == exercise_id))
+    if not exercise:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+    order_value = await _resolve_insert_position(
+        db,
+        models.Hint,
+        models.Hint.order,
+        payload.order,
+        [models.Hint.exercise_id == exercise_id],
+    )
+    item = models.Hint(
+        exercise_id=exercise_id,
+        content_md=payload.content_md,
+        order=order_value,
+        unlock_rule=payload.unlock_rule,
+        penalty_xp=payload.penalty_xp,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+@router.put("/api/admin/hints/{hint_id}", response_model=schemas.HintInDB)
+async def update_exercise_hint(
+    hint_id: int,
+    payload: schemas.HintUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.Hint:
+    item = await db.scalar(select(models.Hint).where(models.Hint.id == hint_id))
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hint not found")
+    for field in ["content_md", "order", "unlock_rule", "penalty_xp"]:
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(item, field, value)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+@router.delete("/api/admin/hints/{hint_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+async def delete_exercise_hint(
+    hint_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> Response:
+    item = await db.scalar(select(models.Hint).where(models.Hint.id == hint_id))
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hint not found")
+    await db.delete(item)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/api/admin/exercises/{exercise_id}/test-cases", response_model=list[schemas.ExerciseTestCaseInDB])
+async def list_exercise_test_cases(
+    exercise_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> list[models.ExerciseTestCase]:
+    rows = await db.scalars(
+        select(models.ExerciseTestCase)
+        .where(models.ExerciseTestCase.exercise_id == exercise_id)
+        .order_by(models.ExerciseTestCase.order)
+    )
+    return list(rows.all())
+
+
+@router.post("/api/admin/exercises/{exercise_id}/test-cases", response_model=schemas.ExerciseTestCaseInDB, status_code=status.HTTP_201_CREATED)
+async def create_exercise_test_case(
+    exercise_id: int,
+    payload: schemas.ExerciseTestCaseCreate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.ExerciseTestCase:
+    exercise = await db.scalar(select(models.Exercise).where(models.Exercise.id == exercise_id))
+    if not exercise:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+    order_value = await _resolve_insert_position(
+        db,
+        models.ExerciseTestCase,
+        models.ExerciseTestCase.order,
+        payload.order,
+        [models.ExerciseTestCase.exercise_id == exercise_id],
+    )
+    item = models.ExerciseTestCase(
+        exercise_id=exercise_id,
+        label=payload.label,
+        stdin=payload.stdin,
+        expected_stdout=payload.expected_stdout,
+        expected_outputs=payload.expected_outputs,
+        match_mode=payload.match_mode,
+        is_hidden=payload.is_hidden,
+        timeout_ms=payload.timeout_ms,
+        memory_limit_mb=payload.memory_limit_mb,
+        custom_judge_options=payload.custom_judge_options,
+        order=order_value,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+@router.put("/api/admin/test-cases/{case_id}", response_model=schemas.ExerciseTestCaseInDB)
+async def update_exercise_test_case(
+    case_id: int,
+    payload: schemas.ExerciseTestCaseUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.ExerciseTestCase:
+    item = await db.scalar(select(models.ExerciseTestCase).where(models.ExerciseTestCase.id == case_id))
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test case not found")
+    for field in [
+        "label",
+        "stdin",
+        "expected_stdout",
+        "expected_outputs",
+        "match_mode",
+        "is_hidden",
+        "timeout_ms",
+        "memory_limit_mb",
+        "custom_judge_options",
+        "order",
+    ]:
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(item, field, value)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+@router.delete("/api/admin/test-cases/{case_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+async def delete_exercise_test_case(
+    case_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> Response:
+    item = await db.scalar(select(models.ExerciseTestCase).where(models.ExerciseTestCase.id == case_id))
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test case not found")
+    await db.delete(item)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/api/admin/exercises/{exercise_id}/quiz", response_model=schemas.ExerciseAdmin)
+async def save_exercise_quiz(
+    exercise_id: int,
+    payload: schemas.QuizPayload,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.Exercise:
+    exercise = await db.scalar(
+        select(models.Exercise)
+        .options(selectinload(models.Exercise.quiz_questions).selectinload(models.QuizQuestion.options))
+        .where(models.Exercise.id == exercise_id)
+    )
+    if not exercise:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+    for question in list(exercise.quiz_questions or []):
+        await db.delete(question)
+    exercise.mode = "quiz"
+    exercise.passing_score_pct = payload.passing_score_pct
+    exercise.attempts_allowed = payload.attempts_allowed
+    for question_index, question_payload in enumerate(payload.questions, start=1):
+        question = models.QuizQuestion(
+            exercise_id=exercise_id,
+            question_text=question_payload.question_text,
+            question_type=question_payload.question_type,
+            code_snippet=question_payload.code_snippet,
+            explanation_md=question_payload.explanation_md,
+            order=question_payload.order or question_index,
+        )
+        db.add(question)
+        await db.flush()
+        for option_index, option_payload in enumerate(question_payload.options, start=1):
+            db.add(
+                models.QuizOption(
+                    question_id=question.id,
+                    option_text=option_payload.option_text,
+                    is_correct=option_payload.is_correct,
+                    explanation_md=option_payload.explanation_md,
+                    order=option_payload.order or option_index,
+                )
+            )
+    await db.commit()
+    fresh = await db.scalar(
+        select(models.Exercise)
+        .options(
+            selectinload(models.Exercise.tasks),
+            selectinload(models.Exercise.files),
+            selectinload(models.Exercise.hints),
+            selectinload(models.Exercise.test_cases),
+            selectinload(models.Exercise.quiz_questions).selectinload(models.QuizQuestion.options),
+        )
+        .where(models.Exercise.id == exercise_id)
+    )
+    return fresh
+
+
+@router.get("/api/admin/badges", response_model=list[schemas.BadgeResponse])
+async def list_admin_badges(
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> list[models.Badge]:
+    rows = await db.scalars(select(models.Badge).order_by(models.Badge.title))
+    return list(rows.all())
+
+
+@router.post("/api/admin/badges", response_model=schemas.BadgeResponse, status_code=status.HTTP_201_CREATED)
+async def create_badge(
+    payload: schemas.BadgeCreate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.Badge:
+    badge = models.Badge(**payload.model_dump())
+    db.add(badge)
+    await db.commit()
+    await db.refresh(badge)
+    return badge
+
+
+@router.put("/api/admin/badges/{badge_id}", response_model=schemas.BadgeResponse)
+async def update_badge(
+    badge_id: int,
+    payload: schemas.BadgeUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> models.Badge:
+    badge = await db.scalar(select(models.Badge).where(models.Badge.id == badge_id))
+    if not badge:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Badge not found")
+    for field in [
+        "badge_key",
+        "title",
+        "description",
+        "icon_url",
+        "scope",
+        "rule_type",
+        "rule_config",
+        "xp_bonus",
+        "is_active",
+    ]:
+        value = getattr(payload, field)
+        if value is not None:
+            setattr(badge, field, value)
+    await db.commit()
+    await db.refresh(badge)
+    return badge
+
+
+@router.delete("/api/admin/badges/{badge_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+async def delete_badge(
+    badge_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> Response:
+    badge = await db.scalar(select(models.Badge).where(models.Badge.id == badge_id))
+    if not badge:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Badge not found")
+    await db.delete(badge)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/api/admin/dashboard/stats", response_model=schemas.AdminDashboardStats)
+async def get_admin_dashboard_stats(
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminDashboardStats:
+    total_users = int((await db.scalar(select(func.count()).select_from(User))) or 0)
+    active_learners = int(
+        (
+            await db.scalar(
+                select(func.count(func.distinct(models.XpEvent.user_id)))
+                .where(models.XpEvent.created_at >= datetime.utcnow() - timedelta(days=7))
+            )
+        )
+        or 0
+    )
+    exercises_solved = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.UserExerciseProgress)
+                .where(models.UserExerciseProgress.status == "completed")
+            )
+        )
+        or 0
+    )
+    quiz_completions = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.QuizAttempt)
+                .where(models.QuizAttempt.completed_at.is_not(None))
+            )
+        )
+        or 0
+    )
+    pending_content = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.Exercise)
+                .join(models.Section, models.Section.id == models.Exercise.section_id)
+                .join(models.Track, models.Track.id == models.Section.track_id)
+                .where(models.Track.is_published == False)
+            )
+        )
+        or 0
+    )
+    judge_health = "unknown"
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            response = await client.get(f"{JUDGE_URL}/health")
+            judge_health = "healthy" if response.status_code == 200 else "degraded"
+    except Exception:
+        judge_health = "unreachable"
+    return schemas.AdminDashboardStats(
+        total_users=total_users,
+        active_learners=active_learners,
+        exercises_solved=exercises_solved,
+        quiz_completions=quiz_completions,
+        pending_content=pending_content,
+        leaderboard_health="ready",
+        judge_health=judge_health,
+    )
+
+
+@router.get("/api/admin/learning-engine/health", response_model=schemas.AdminEngineHealthResponse)
+async def get_admin_learning_engine_health(
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminEngineHealthResponse:
+    draft_exercises = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.Exercise)
+                .where(models.Exercise.is_published == False)
+            )
+        )
+        or 0
+    )
+    exercises_without_files = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.Exercise)
+                .outerjoin(models.ExerciseFile, models.ExerciseFile.exercise_id == models.Exercise.id)
+                .where(models.Exercise.mode.in_(["code", "multi_file_code", "frontend_preview", "project"]))
+                .where(models.ExerciseFile.id.is_(None))
+            )
+        )
+        or 0
+    )
+    content_health = "ready" if draft_exercises == 0 and exercises_without_files == 0 else "needs_review"
+
+    judge_health = "unknown"
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            response = await client.get(f"{JUDGE_URL}/health")
+            judge_health = "healthy" if response.status_code == 200 else "degraded"
+    except Exception:
+        judge_health = "unreachable"
+
+    attempts = await db.execute(
+        select(
+            models.ExerciseAttempt.id,
+            models.ExerciseAttempt.status,
+            models.ExerciseAttempt.mode,
+            models.ExerciseAttempt.tests_passed,
+            models.ExerciseAttempt.tests_total,
+            models.ExerciseAttempt.created_at,
+            models.Exercise.title,
+            User.username,
+        )
+        .join(models.Exercise, models.Exercise.id == models.ExerciseAttempt.exercise_id)
+        .join(User, User.id == models.ExerciseAttempt.user_id)
+        .order_by(models.ExerciseAttempt.created_at.desc())
+        .limit(12)
+    )
+    recent_attempts = [
+        {
+            "id": row.id,
+            "status": row.status,
+            "mode": row.mode,
+            "tests_passed": row.tests_passed,
+            "tests_total": row.tests_total,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "exercise_title": row.title,
+            "username": row.username,
+        }
+        for row in attempts.all()
+    ]
+
+    return schemas.AdminEngineHealthResponse(
+        content_health=content_health,
+        judge_health=judge_health,
+        leaderboard_health="ready",
+        recent_attempts=recent_attempts,
+    )

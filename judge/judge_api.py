@@ -51,6 +51,13 @@ def create_submission(payload: CodeSubmission) -> dict:
         "expected_output": payload.expected_output,           # legacy
         "expected_outputs": payload.expected_outputs or [],   # new multi-value
         "match_mode": payload.match_mode or "normalize",
+        "files": [item.model_dump() for item in (payload.files or [])],
+        "entrypoint": payload.entrypoint,
+        "validation_kind": payload.validation_kind or "code",
+        "validation_config": payload.validation_config or {},
+        "timeout_ms": payload.timeout_ms,
+        "memory_limit_mb": payload.memory_limit_mb,
+        "custom_judge_options": payload.custom_judge_options or {},
     })
     _redis.lpush(QUEUE_KEY, job_payload)
 
