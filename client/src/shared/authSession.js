@@ -86,6 +86,33 @@ export function clearAuthSession() {
   AUTH_STORAGE_KEYS.forEach((key) => storage.removeItem(key));
 }
 
+function normalizeReturnTo(value) {
+  const raw = String(value || "").trim();
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
+    return "";
+  }
+  if (raw.startsWith("/auth/callback")) {
+    return "";
+  }
+  return raw;
+}
+
+export function saveAuthReturnTo(value) {
+  const storage = getStorage();
+  const safeValue = normalizeReturnTo(value);
+  if (!storage || !safeValue) return;
+  storage.setItem("campus404_auth_return_to", safeValue);
+}
+
+export function consumeAuthReturnTo(fallback = "/dashboard") {
+  const storage = getStorage();
+  if (!storage) return fallback;
+
+  const stored = normalizeReturnTo(storage.getItem("campus404_auth_return_to"));
+  storage.removeItem("campus404_auth_return_to");
+  return stored || fallback;
+}
+
 export function syncAuthSession(user) {
   const storage = getStorage();
   if (!storage || !user) return;

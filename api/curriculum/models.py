@@ -1,6 +1,7 @@
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Index,
@@ -359,3 +360,22 @@ class ReferenceAccess(Base):
     exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False, index=True)
     reference_url = Column(String(1024), nullable=False)
     accessed_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class SiteVisit(Base):
+    __tablename__ = "site_visits"
+    __table_args__ = (
+        UniqueConstraint("visit_date", "ip_hash", name="uq_site_visits_date_ip"),
+        Index("ix_site_visits_date", "visit_date"),
+        Index("ix_site_visits_first_seen", "first_seen_at"),
+        Index("ix_site_visits_first_path", "first_path"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    visit_date = Column(Date, nullable=False)
+    ip_hash = Column(String(128), nullable=False)
+    user_agent_hash = Column(String(128), nullable=True)
+    first_path = Column(String(512), nullable=True)
+    referrer = Column(String(1024), nullable=True)
+    first_seen_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_seen_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

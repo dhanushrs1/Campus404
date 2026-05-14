@@ -5,6 +5,7 @@ client/.vite/
 
 # Backend Python artifacts
 api/__pycache__/
+__pycache__/
 api/.pytest_cache/
 api/.mypy_cache/
 api/.ruff_cache/

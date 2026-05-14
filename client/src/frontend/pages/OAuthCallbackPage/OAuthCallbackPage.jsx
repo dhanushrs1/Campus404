@@ -17,6 +17,7 @@ import {
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { apiUrl } from "../../../shared/api.js";
 import { ASSETS } from "../../../shared/assets.js";
+import { consumeAuthReturnTo } from "../../../shared/authSession.js";
 import "./OAuthCallbackPage.css";
 
 const CAMPUS_AVATARS = [
@@ -203,7 +204,7 @@ export default function OAuthCallbackPage() {
     } else {
       localStorage.removeItem("campus404_avatar_url");
     }
-    navigate(APP_ROUTES.frontendDashboard, { replace: true });
+    navigate(consumeAuthReturnTo(APP_ROUTES.frontendDashboard), { replace: true });
   }, [avatarUrl, navigate, role, status, token, username]);
 
   const setupTokenPayload = useMemo(() => (setupToken ? decodeJwt(setupToken) : {}), [setupToken]);
@@ -463,7 +464,7 @@ export default function OAuthCallbackPage() {
       } else {
         localStorage.removeItem("campus404_avatar_url");
       }
-      navigate(APP_ROUTES.frontendDashboard, { replace: true });
+      navigate(consumeAuthReturnTo(APP_ROUTES.frontendDashboard), { replace: true });
     } catch {
       setErrMsg("Network error. Please try again.");
     } finally {

@@ -57,6 +57,7 @@ export const ASSETS = Object.freeze({
     certificateTrophy: publicAsset("rewards/certificate-trophy.png"),
   },
   tracks: {
+    adminCommandCenter: publicAsset("tracks/admin-command-center.webp"),
     lessonChecklist: publicAsset("tracks/lesson-checklist.png"),
     projectLaptop: publicAsset("tracks/project-laptop.png"),
     pythonCampusHero: publicAsset("tracks/python-campus-hero.png"),

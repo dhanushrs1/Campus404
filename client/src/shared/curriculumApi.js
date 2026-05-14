@@ -14,18 +14,23 @@ async function request(endpoint, options = {}) {
     headers: { ...getAuthHeaders(), ...options.headers },
   });
   if (!res.ok) {
-    let message = "An error occurred";
+    let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();
       if (data.detail) {
         if (Array.isArray(data.detail)) {
-          message = data.detail.map((err) => err.msg).join(", ");
+          message = data.detail.map((err) => err.msg || err.message || String(err)).join(", ");
         } else {
           message = data.detail;
         }
+      } else if (data.message) {
+        message = data.message;
       }
     } catch {}
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = res.status;
+    error.endpoint = endpoint;
+    throw error;
   }
   if (res.status !== 204) {
     return res.json();

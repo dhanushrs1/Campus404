@@ -722,6 +722,15 @@ class UserProgressResponse(BaseModel):
     badges: List[UserBadgeResponse] = Field(default_factory=list)
 
 
+class SiteVisitRequest(BaseModel):
+    path: Optional[str] = Field(default="/", max_length=512)
+    referrer: Optional[str] = Field(default=None, max_length=1024)
+
+
+class SiteVisitResponse(BaseModel):
+    ok: bool = True
+
+
 class AdminDashboardStats(BaseModel):
     total_users: int = 0
     active_learners: int = 0
@@ -730,3 +739,31 @@ class AdminDashboardStats(BaseModel):
     pending_content: int = 0
     leaderboard_health: str = "ready"
     judge_health: str = "unknown"
+    api_health: str = "healthy"
+    database_health: str = "healthy"
+    total_tracks: int = 0
+    published_tracks: int = 0
+    total_sections: int = 0
+    total_exercises: int = 0
+    published_exercises: int = 0
+    draft_exercises: int = 0
+    total_xp: int = 0
+    xp_last_7_days: int = 0
+    xp_awarded_24h: int = 0
+    attempts_last_24h: int = 0
+    passed_attempts_last_24h: int = 0
+    failed_attempts_last_24h: int = 0
+    visits_last_24h: int = 0
+    unique_visits_24h: int = 0
+    active_users_24h: int = 0
+    new_users_24h: int = 0
+    badges_awarded: int = 0
+    completion_rate: int = 0
+    quiz_pass_rate: int = 0
+    activity_by_day: List[Dict[str, Any]] = Field(default_factory=list)
+    visit_activity_by_day: List[Dict[str, Any]] = Field(default_factory=list)
+    top_entry_paths: List[Dict[str, Any]] = Field(default_factory=list)
+    top_learners: List[Dict[str, Any]] = Field(default_factory=list)
+    recent_users: List[Dict[str, Any]] = Field(default_factory=list)
+    track_performance: List[Dict[str, Any]] = Field(default_factory=list)
+    mode_breakdown: List[Dict[str, Any]] = Field(default_factory=list)

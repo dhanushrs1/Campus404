@@ -425,7 +425,16 @@ export default function TracksPage() {
 
   function openTrackWorkspace(track) {
     if (!track.title) return;
-    navigate(APP_ROUTES.frontendTrackOverview(slugify(track.title)));
+    const targetPath = APP_ROUTES.frontendTrackOverview(track.slug || slugify(track.title));
+    if (!isAuthenticated) {
+      window.dispatchEvent(
+        new CustomEvent("campus404:open-auth-modal", {
+          detail: { returnTo: targetPath, reason: "track-start" },
+        }),
+      );
+      return;
+    }
+    navigate(targetPath);
   }
 
   function handleTrackCardKeyDown(event, track) {

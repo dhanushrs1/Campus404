@@ -49,16 +49,22 @@ export function RequireAuth({ children }) {
   }, [session.isAuthenticated, session.token]);
 
   if (!session.isAuthenticated) {
-    return (
-      <Navigate
-        to={APP_ROUTES.home}
-        replace
-        state={redirectState(location)}
-      />
-    );
+    return <AuthRequiredScreen location={location} />;
   }
 
   return children;
+}
+
+function AuthRequiredScreen({ location }) {
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("campus404:open-auth-modal", {
+        detail: { returnTo: getReturnTo(location), reason: "auth-required" },
+      }),
+    );
+  }, [location]);
+
+  return <AccessCheckScreen label="Sign in to continue..." />;
 }
 
 export function RequireAdmin({ children }) {

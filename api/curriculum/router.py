@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import httpx
 import json
 import os
@@ -12,12 +13,13 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
 from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from auth.database import get_db
 from auth.jwt_utils import _decode
-from auth.models import User
+from auth.models import User, UserSession
 from curriculum import models, schemas
 from curriculum.services import LeaderboardService, ProgressService, RewardService, SubmissionService
 from media.storage_provider import (
@@ -40,6 +42,8 @@ ALLOWED_TRACK_IMAGE_CONTENT_TYPES = {
     "image/gif",
 }
 ALLOWED_TRACK_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".jfif"}
+ANALYTICS_HASH_SALT = os.getenv("ANALYTICS_HASH_SALT") or os.getenv("JWT_SECRET", "campus404-analytics")
+UNTRACKED_VISIT_PREFIXES = ("/admin", "/auth", "/api")
 
 
 def _token_session_version(payload: dict[str, Any]) -> int:
@@ -49,6 +53,43 @@ def _token_session_version(payload: dict[str, Any]) -> int:
     except (TypeError, ValueError):
         value = 1
     return value if value > 0 else 1
+
+
+def _extract_client_ip(request: Request) -> str | None:
+    for header_name in ("x-real-ip", "cf-connecting-ip", "x-client-ip"):
+        value = request.headers.get(header_name)
+        if value:
+            return value.strip()[:64]
+
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip()[:64]
+
+    if request.client:
+        return request.client.host[:64]
+
+    return None
+
+
+def _analytics_hash(value: str | None) -> str | None:
+    normalized = (value or "").strip()
+    if not normalized:
+        return None
+    payload = f"{ANALYTICS_HASH_SALT}:{normalized}".encode("utf-8", errors="ignore")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _normalize_visit_path(value: str | None) -> str:
+    raw = (value or "/").strip()
+    if not raw.startswith("/"):
+        return "/"
+    path_only = raw.split("#", 1)[0].split("?", 1)[0].strip()
+    return (path_only or "/")[:512]
+
+
+def _is_trackable_visit_path(path: str) -> bool:
+    normalized = path.lower()
+    return not any(normalized == prefix or normalized.startswith(f"{prefix}/") for prefix in UNTRACKED_VISIT_PREFIXES)
 
 
 async def get_current_user(
@@ -80,6 +121,55 @@ async def get_current_user(
         )
 
     return user
+
+
+@router.post("/api/analytics/visit", response_model=schemas.SiteVisitResponse)
+async def record_site_visit(
+    payload: schemas.SiteVisitRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> schemas.SiteVisitResponse:
+    path = _normalize_visit_path(payload.path)
+    if not _is_trackable_visit_path(path):
+        return schemas.SiteVisitResponse(ok=True)
+
+    ip_hash = _analytics_hash(_extract_client_ip(request))
+    if not ip_hash:
+        return schemas.SiteVisitResponse(ok=True)
+
+    now = datetime.utcnow()
+    visit_date = now.date()
+    user_agent_hash = _analytics_hash((request.headers.get("user-agent") or "")[:512])
+    referrer = (payload.referrer or "").strip()[:1024] or None
+
+    existing_visit = await db.scalar(
+        select(models.SiteVisit)
+        .where(models.SiteVisit.visit_date == visit_date)
+        .where(models.SiteVisit.ip_hash == ip_hash)
+    )
+    if existing_visit:
+        existing_visit.last_seen_at = now
+        await db.commit()
+        return schemas.SiteVisitResponse(ok=True)
+
+    db.add(
+        models.SiteVisit(
+            visit_date=visit_date,
+            ip_hash=ip_hash,
+            user_agent_hash=user_agent_hash,
+            first_path=path,
+            referrer=referrer,
+            first_seen_at=now,
+            last_seen_at=now,
+        )
+    )
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+
+    return schemas.SiteVisitResponse(ok=True)
+
 
 async def get_current_admin(
     request: Request,
@@ -1524,7 +1614,11 @@ async def _workspace_payload(
     )
     track_tree = await db.scalar(
         select(models.Track)
-        .options(selectinload(models.Track.sections).selectinload(models.Section.exercises))
+        .options(
+            selectinload(models.Track.sections)
+            .selectinload(models.Section.exercises)
+            .selectinload(models.Exercise.tasks)
+        )
         .where(models.Track.id == track.id)
     )
     progress_rows = await db.scalars(
@@ -2759,6 +2853,11 @@ async def get_admin_dashboard_stats(
     db: AsyncSession = Depends(get_db),
     _admin: User = Depends(get_current_admin),
 ) -> schemas.AdminDashboardStats:
+    now = datetime.utcnow()
+    start_24h = now - timedelta(days=1)
+    start_7d = now - timedelta(days=7)
+    start_30d = now - timedelta(days=30)
+
     total_users = int((await db.scalar(select(func.count()).select_from(User))) or 0)
     active_learners = int(
         (
@@ -2769,12 +2868,46 @@ async def get_admin_dashboard_stats(
         )
         or 0
     )
+    total_tracks = int((await db.scalar(select(func.count()).select_from(models.Track))) or 0)
+    published_tracks = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.Track)
+                .where(models.Track.is_published == True)
+            )
+        )
+        or 0
+    )
+    draft_tracks = max(total_tracks - published_tracks, 0)
+    total_sections = int((await db.scalar(select(func.count()).select_from(models.Section))) or 0)
+    total_exercises = int((await db.scalar(select(func.count()).select_from(models.Exercise))) or 0)
+    published_exercises = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.Exercise)
+                .where(models.Exercise.is_published == True)
+            )
+        )
+        or 0
+    )
+    draft_exercises = max(total_exercises - published_exercises, 0)
     exercises_solved = int(
         (
             await db.scalar(
                 select(func.count())
                 .select_from(models.UserExerciseProgress)
                 .where(models.UserExerciseProgress.status == "completed")
+            )
+        )
+        or 0
+    )
+    total_progress_records = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.UserExerciseProgress)
             )
         )
         or 0
@@ -2789,18 +2922,323 @@ async def get_admin_dashboard_stats(
         )
         or 0
     )
-    pending_content = int(
+    quiz_passes = int(
         (
             await db.scalar(
                 select(func.count())
-                .select_from(models.Exercise)
-                .join(models.Section, models.Section.id == models.Exercise.section_id)
-                .join(models.Track, models.Track.id == models.Section.track_id)
-                .where(models.Track.is_published == False)
+                .select_from(models.QuizAttempt)
+                .where(models.QuizAttempt.completed_at.is_not(None))
+                .where(models.QuizAttempt.passed == True)
             )
         )
         or 0
     )
+    pending_content = draft_tracks + draft_exercises
+    total_xp = int((await db.scalar(select(func.coalesce(func.sum(models.XpEvent.points), 0)))) or 0)
+    xp_last_7_days = int(
+        (
+            await db.scalar(
+                select(func.coalesce(func.sum(models.XpEvent.points), 0))
+                .where(models.XpEvent.created_at >= start_7d)
+            )
+        )
+        or 0
+    )
+    xp_awarded_24h = int(
+        (
+            await db.scalar(
+                select(func.coalesce(func.sum(models.XpEvent.points), 0))
+                .where(models.XpEvent.created_at >= start_24h)
+            )
+        )
+        or 0
+    )
+    attempts_last_24h = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.ExerciseAttempt)
+                .where(models.ExerciseAttempt.created_at >= start_24h)
+            )
+        )
+        or 0
+    )
+    passed_attempts_last_24h = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.ExerciseAttempt)
+                .where(models.ExerciseAttempt.created_at >= start_24h)
+                .where(models.ExerciseAttempt.status.in_(["passed", "submitted"]))
+            )
+        )
+        or 0
+    )
+    failed_attempts_last_24h = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.ExerciseAttempt)
+                .where(models.ExerciseAttempt.created_at >= start_24h)
+                .where(models.ExerciseAttempt.status == "failed")
+            )
+        )
+        or 0
+    )
+    unique_visits_24h = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(models.SiteVisit)
+                .where(models.SiteVisit.first_seen_at >= start_24h)
+            )
+        )
+        or 0
+    )
+    visits_last_24h = unique_visits_24h
+    active_users_24h = int(
+        (
+            await db.scalar(
+                select(func.count(func.distinct(UserSession.user_id)))
+                .select_from(UserSession)
+                .where(UserSession.login_time >= start_24h)
+            )
+        )
+        or 0
+    )
+    new_users_24h = int(
+        (
+            await db.scalar(
+                select(func.count())
+                .select_from(User)
+                .where(User.created_at >= start_24h)
+            )
+        )
+        or 0
+    )
+    badges_awarded = int((await db.scalar(select(func.count()).select_from(models.UserBadge))) or 0)
+
+    completion_rate = int(round((exercises_solved / total_progress_records) * 100)) if total_progress_records else 0
+    quiz_pass_rate = int(round((quiz_passes / quiz_completions) * 100)) if quiz_completions else 0
+
+    day_dates = [(now - timedelta(days=offset)).date() for offset in range(6, -1, -1)]
+    day_keys = [day.isoformat() for day in day_dates]
+    activity_by_day = {
+        key: {"date": key, "exercise_attempts": 0, "passed_attempts": 0, "quiz_completions": 0, "xp": 0, "sessions": 0, "unique_visits": 0, "active_users": 0, "new_users": 0}
+        for key in day_keys
+    }
+
+    attempt_activity = await db.execute(
+        select(models.ExerciseAttempt.created_at, models.ExerciseAttempt.status)
+        .where(models.ExerciseAttempt.created_at >= start_7d)
+    )
+    for row in attempt_activity.all():
+        if not row.created_at:
+            continue
+        key = row.created_at.date().isoformat()
+        if key in activity_by_day:
+            activity_by_day[key]["exercise_attempts"] += 1
+            if row.status in {"passed", "submitted"}:
+                activity_by_day[key]["passed_attempts"] += 1
+
+    quiz_activity = await db.execute(
+        select(models.QuizAttempt.completed_at)
+        .where(models.QuizAttempt.completed_at.is_not(None))
+        .where(models.QuizAttempt.completed_at >= start_7d)
+    )
+    for row in quiz_activity.all():
+        key = row.completed_at.date().isoformat()
+        if key in activity_by_day:
+            activity_by_day[key]["quiz_completions"] += 1
+
+    xp_activity = await db.execute(
+        select(models.XpEvent.created_at, models.XpEvent.points)
+        .where(models.XpEvent.created_at >= start_7d)
+    )
+    for row in xp_activity.all():
+        key = row.created_at.date().isoformat()
+        if key in activity_by_day:
+            activity_by_day[key]["xp"] += int(row.points or 0)
+
+    visit_activity = await db.execute(
+        select(models.SiteVisit.visit_date, func.count().label("visit_count"))
+        .where(models.SiteVisit.visit_date.in_(day_dates))
+        .group_by(models.SiteVisit.visit_date)
+    )
+    for row in visit_activity.all():
+        if not row.visit_date:
+            continue
+        key = row.visit_date.isoformat()
+        if key in activity_by_day:
+            activity_by_day[key]["sessions"] = int(row.visit_count or 0)
+            activity_by_day[key]["unique_visits"] = int(row.visit_count or 0)
+
+    login_activity = await db.execute(
+        select(func.date(UserSession.login_time).label("login_date"), func.count(func.distinct(UserSession.user_id)).label("user_count"))
+        .where(UserSession.login_time >= start_7d)
+        .group_by(func.date(UserSession.login_time))
+    )
+    for row in login_activity.all():
+        if not row.login_date:
+            continue
+        key = row.login_date.isoformat() if hasattr(row.login_date, "isoformat") else str(row.login_date)
+        if key in activity_by_day:
+            activity_by_day[key]["active_users"] = int(row.user_count or 0)
+
+    user_activity = await db.execute(
+        select(User.created_at)
+        .where(User.created_at >= start_7d)
+    )
+    for row in user_activity.all():
+        if not row.created_at:
+            continue
+        key = row.created_at.date().isoformat()
+        if key in activity_by_day:
+            activity_by_day[key]["new_users"] += 1
+
+    xp_total_label = func.coalesce(func.sum(models.XpEvent.points), 0).label("total_xp")
+    top_rows = await db.execute(
+        select(User.id, User.username, User.first_name, User.last_name, User.avatar, xp_total_label)
+        .join(models.XpEvent, models.XpEvent.user_id == User.id)
+        .group_by(User.id, User.username, User.first_name, User.last_name, User.avatar)
+        .order_by(xp_total_label.desc(), User.id.asc())
+        .limit(5)
+    )
+    top_learners = []
+    for row in top_rows.all():
+        completed_count = int(
+            (
+                await db.scalar(
+                    select(func.count())
+                    .select_from(models.UserExerciseProgress)
+                    .where(models.UserExerciseProgress.user_id == row.id)
+                    .where(models.UserExerciseProgress.status == "completed")
+                )
+            )
+            or 0
+        )
+        display_name = " ".join(part for part in [row.first_name, row.last_name] if part).strip() or row.username
+        top_learners.append(
+            {
+                "user_id": row.id,
+                "username": row.username,
+                "display_name": display_name,
+                "avatar_url": row.avatar,
+                "total_xp": int(row.total_xp or 0),
+                "completed_exercises": completed_count,
+            }
+        )
+
+    recent_users_rows = (
+        await db.scalars(
+            select(User)
+            .order_by(User.created_at.desc())
+            .limit(5)
+        )
+    ).all()
+    recent_users = [
+        {
+            "user_id": user.id,
+            "username": user.username,
+            "display_name": " ".join(part for part in [user.first_name, user.last_name] if part).strip() or user.username,
+            "avatar_url": user.avatar,
+            "role": user.role,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        }
+        for user in recent_users_rows
+    ]
+
+    track_rows = (
+        await db.scalars(
+            select(models.Track)
+            .options(selectinload(models.Track.sections).selectinload(models.Section.exercises))
+            .order_by(models.Track.order)
+            .limit(6)
+        )
+    ).all()
+    track_performance = []
+    for track in track_rows:
+        track_total_exercises = sum(len(section.exercises or []) for section in track.sections or [])
+        enrolled = int(
+            (
+                await db.scalar(
+                    select(func.count(func.distinct(models.UserTrackProgress.user_id)))
+                    .where(models.UserTrackProgress.track_id == track.id)
+                )
+            )
+            or 0
+        )
+        completed_tracks = int(
+            (
+                await db.scalar(
+                    select(func.count())
+                    .select_from(models.UserTrackProgress)
+                    .where(models.UserTrackProgress.track_id == track.id)
+                    .where(models.UserTrackProgress.status == "completed")
+                )
+            )
+            or 0
+        )
+        completed_exercise_progress = int(
+            (
+                await db.scalar(
+                    select(func.count())
+                    .select_from(models.UserExerciseProgress)
+                    .where(models.UserExerciseProgress.track_id == track.id)
+                    .where(models.UserExerciseProgress.status == "completed")
+                )
+            )
+            or 0
+        )
+        possible_completions = enrolled * track_total_exercises
+        progress_rate = int(round((completed_exercise_progress / possible_completions) * 100)) if possible_completions else 0
+        track_performance.append(
+            {
+                "track_id": track.id,
+                "title": track.title,
+                "is_published": bool(track.is_published),
+                "enrolled": enrolled,
+                "completed_tracks": completed_tracks,
+                "completed_exercises": completed_exercise_progress,
+                "total_exercises": track_total_exercises,
+                "progress_rate": progress_rate,
+            }
+        )
+
+    mode_rows = await db.execute(
+        select(models.ExerciseAttempt.mode, func.count().label("item_count"))
+        .where(models.ExerciseAttempt.created_at >= start_30d)
+        .group_by(models.ExerciseAttempt.mode)
+        .order_by(func.count().desc())
+    )
+    mode_breakdown = [
+        {"mode": row.mode or "unknown", "count": int(row.item_count or 0), "source": "attempts_30d"}
+        for row in mode_rows.all()
+    ]
+    if not mode_breakdown:
+        content_mode_rows = await db.execute(
+            select(models.Exercise.mode, func.count().label("item_count"))
+            .group_by(models.Exercise.mode)
+            .order_by(func.count().desc())
+        )
+        mode_breakdown = [
+            {"mode": row.mode or "unknown", "count": int(row.item_count or 0), "source": "content"}
+            for row in content_mode_rows.all()
+        ]
+
+    top_entry_rows = await db.execute(
+        select(models.SiteVisit.first_path, func.count().label("visit_count"))
+        .where(models.SiteVisit.visit_date.in_(day_dates))
+        .where(models.SiteVisit.first_path.is_not(None))
+        .group_by(models.SiteVisit.first_path)
+        .order_by(func.count().desc(), models.SiteVisit.first_path.asc())
+        .limit(5)
+    )
+    top_entry_paths = [
+        {"path": row.first_path or "/", "visits": int(row.visit_count or 0)}
+        for row in top_entry_rows.all()
+    ]
+
     judge_health = "unknown"
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
@@ -2816,6 +3254,37 @@ async def get_admin_dashboard_stats(
         pending_content=pending_content,
         leaderboard_health="ready",
         judge_health=judge_health,
+        api_health="healthy",
+        database_health="healthy",
+        total_tracks=total_tracks,
+        published_tracks=published_tracks,
+        total_sections=total_sections,
+        total_exercises=total_exercises,
+        published_exercises=published_exercises,
+        draft_exercises=draft_exercises,
+        total_xp=total_xp,
+        xp_last_7_days=xp_last_7_days,
+        xp_awarded_24h=xp_awarded_24h,
+        attempts_last_24h=attempts_last_24h,
+        passed_attempts_last_24h=passed_attempts_last_24h,
+        failed_attempts_last_24h=failed_attempts_last_24h,
+        visits_last_24h=visits_last_24h,
+        unique_visits_24h=unique_visits_24h,
+        active_users_24h=active_users_24h,
+        new_users_24h=new_users_24h,
+        badges_awarded=badges_awarded,
+        completion_rate=completion_rate,
+        quiz_pass_rate=quiz_pass_rate,
+        activity_by_day=list(activity_by_day.values()),
+        visit_activity_by_day=[
+            {"date": item["date"], "unique_visits": item["unique_visits"], "visits": item["unique_visits"]}
+            for item in activity_by_day.values()
+        ],
+        top_entry_paths=top_entry_paths,
+        top_learners=top_learners,
+        recent_users=recent_users,
+        track_performance=track_performance,
+        mode_breakdown=mode_breakdown,
     )
 
 

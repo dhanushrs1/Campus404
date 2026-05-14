@@ -14,7 +14,7 @@ services:
       sh -c "pip install -r requirements.txt --quiet &&
              python -c \"import asyncio; from auth.database import init_db; asyncio.run(init_db())\" &&
              alembic upgrade head &&
-             uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+             uvicorn main:app --host 0.0.0.0 --port 8000"
     environment:
       DATABASE_URL: "mysql+aiomysql://${MYSQL_USER}:${MYSQL_PASSWORD}@campus404-mysql:3306/${MYSQL_DATABASE}"
       CORS_ORIGINS: "${CORS_ORIGINS}"
@@ -50,7 +50,7 @@ services:
       - ./client:/app
     expose:
       - "5173"
-    command: sh -c "npm install && npm run dev -- --host"
+    command: sh -c "npm install && npm run build && npm run preview -- --host 0.0.0.0 --port 5173"
     environment:
       CHOKIDAR_USEPOLLING: "true"
     networks:
