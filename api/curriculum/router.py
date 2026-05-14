@@ -6,12 +6,13 @@ import httpx
 import json
 import os
 import re
-from datetime import datetime, timedelta
+from collections import defaultdict
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -90,6 +91,38 @@ def _normalize_visit_path(value: str | None) -> str:
 def _is_trackable_visit_path(path: str) -> bool:
     normalized = path.lower()
     return not any(normalized == prefix or normalized.startswith(f"{prefix}/") for prefix in UNTRACKED_VISIT_PREFIXES)
+
+
+def _parse_analytics_date(value: str | None, fallback: date) -> date:
+    if not value:
+        return fallback
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid date: {value}")
+
+
+def _analytics_date_range(start_date: str | None, end_date: str | None) -> tuple[date, date, list[date]]:
+    today = datetime.utcnow().date()
+    end = _parse_analytics_date(end_date, today)
+    start = _parse_analytics_date(start_date, end - timedelta(days=29))
+    if start > end:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="start_date must be before end_date.")
+
+    range_days = (end - start).days + 1
+    if range_days > 366:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Analytics range cannot exceed 366 days.")
+
+    days = [start + timedelta(days=offset) for offset in range(range_days)]
+    return start, end, days
+
+
+def _range_start_datetime(value: date) -> datetime:
+    return datetime(value.year, value.month, value.day)
+
+
+def _range_end_datetime(value: date) -> datetime:
+    return _range_start_datetime(value) + timedelta(days=1)
 
 
 async def get_current_user(
@@ -2846,6 +2879,172 @@ async def delete_badge(
     await db.delete(badge)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/api/admin/analytics", response_model=schemas.AdminAnalyticsRangeResponse)
+async def get_admin_analytics(
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminAnalyticsRangeResponse:
+    start, end, day_dates = _analytics_date_range(start_date, end_date)
+    start_dt = _range_start_datetime(start)
+    end_dt = _range_end_datetime(end)
+    day_keys = [day.isoformat() for day in day_dates]
+
+    visit_by_day = {key: 0 for key in day_keys}
+    visit_rows = await db.execute(
+        select(models.SiteVisit.visit_date, func.count().label("visit_count"))
+        .where(models.SiteVisit.visit_date >= start)
+        .where(models.SiteVisit.visit_date <= end)
+        .group_by(models.SiteVisit.visit_date)
+    )
+    for row in visit_rows.all():
+        if row.visit_date:
+            visit_by_day[row.visit_date.isoformat()] = int(row.visit_count or 0)
+
+    entry_rows = await db.execute(
+        select(models.SiteVisit.first_path, func.count().label("visit_count"))
+        .where(models.SiteVisit.visit_date >= start)
+        .where(models.SiteVisit.visit_date <= end)
+        .where(models.SiteVisit.first_path.is_not(None))
+        .group_by(models.SiteVisit.first_path)
+        .order_by(func.count().desc(), models.SiteVisit.first_path.asc())
+        .limit(8)
+    )
+    top_entry_paths = [
+        {"path": row.first_path or "/", "visits": int(row.visit_count or 0)}
+        for row in entry_rows.all()
+    ]
+
+    track_rows = (await db.execute(select(models.Track.id, models.Track.title).order_by(models.Track.order, models.Track.id))).all()
+    track_titles = {int(row.id): row.title for row in track_rows}
+
+    day_track_users: dict[str, dict[int, set[int]]] = {
+        key: defaultdict(set)
+        for key in day_keys
+    }
+    day_events = {key: 0 for key in day_keys}
+    track_users: dict[int, set[int]] = defaultdict(set)
+    track_events: dict[int, int] = defaultdict(int)
+    track_completions: dict[int, int] = defaultdict(int)
+
+    exercise_rows = await db.execute(
+        select(models.ExerciseAttempt.track_id, models.ExerciseAttempt.user_id, models.ExerciseAttempt.created_at)
+        .where(models.ExerciseAttempt.created_at >= start_dt)
+        .where(models.ExerciseAttempt.created_at < end_dt)
+    )
+    for row in exercise_rows.all():
+        if not row.created_at:
+            continue
+        key = row.created_at.date().isoformat()
+        if key not in day_track_users:
+            continue
+        track_id = int(row.track_id or 0)
+        user_id = int(row.user_id or 0)
+        if not track_id or not user_id:
+            continue
+        day_track_users[key][track_id].add(user_id)
+        track_users[track_id].add(user_id)
+        day_events[key] += 1
+        track_events[track_id] += 1
+
+    quiz_rows = await db.execute(
+        select(models.QuizAttempt.track_id, models.QuizAttempt.user_id, models.QuizAttempt.started_at)
+        .where(models.QuizAttempt.started_at >= start_dt)
+        .where(models.QuizAttempt.started_at < end_dt)
+    )
+    for row in quiz_rows.all():
+        if not row.started_at:
+            continue
+        key = row.started_at.date().isoformat()
+        if key not in day_track_users:
+            continue
+        track_id = int(row.track_id or 0)
+        user_id = int(row.user_id or 0)
+        if not track_id or not user_id:
+            continue
+        day_track_users[key][track_id].add(user_id)
+        track_users[track_id].add(user_id)
+        day_events[key] += 1
+        track_events[track_id] += 1
+
+    progress_rows = await db.execute(
+        select(models.UserTrackProgress.track_id, models.UserTrackProgress.user_id, models.UserTrackProgress.updated_at, models.UserTrackProgress.status)
+        .where(models.UserTrackProgress.updated_at >= start_dt)
+        .where(models.UserTrackProgress.updated_at < end_dt)
+    )
+    for row in progress_rows.all():
+        if not row.updated_at:
+            continue
+        key = row.updated_at.date().isoformat()
+        if key not in day_track_users:
+            continue
+        track_id = int(row.track_id or 0)
+        user_id = int(row.user_id or 0)
+        if not track_id or not user_id:
+            continue
+        day_track_users[key][track_id].add(user_id)
+        track_users[track_id].add(user_id)
+        if row.status == "completed":
+            track_completions[track_id] += 1
+
+    track_breakdown = []
+    for track_id, users in track_users.items():
+        track_breakdown.append(
+            {
+                "track_id": track_id,
+                "title": track_titles.get(track_id, f"Track {track_id}"),
+                "users": len(users),
+                "events": int(track_events.get(track_id, 0)),
+                "completions": int(track_completions.get(track_id, 0)),
+            }
+        )
+    track_breakdown.sort(key=lambda item: (item["users"], item["events"], item["title"]), reverse=True)
+
+    all_track_users = set()
+    track_series = []
+    calendar_days = []
+    visit_series = []
+    for key in day_keys:
+        users_for_day = set()
+        track_counts = {}
+        for track_id, users in day_track_users[key].items():
+            users_for_day.update(users)
+            all_track_users.update(users)
+            track_counts[str(track_id)] = len(users)
+
+        day_payload = {
+            "date": key,
+            "visits": int(visit_by_day.get(key, 0)),
+            "track_users": len(users_for_day),
+            "events": int(day_events.get(key, 0)),
+        }
+        visit_series.append({"date": key, "visits": day_payload["visits"]})
+        track_series.append({**day_payload, "tracks": track_counts})
+        calendar_days.append(day_payload)
+
+    totals = {
+        "visits": sum(visit_by_day.values()),
+        "track_users": len(all_track_users),
+        "learning_events": sum(day_events.values()),
+        "active_tracks": len(track_breakdown),
+        "average_daily_visits": round(sum(visit_by_day.values()) / max(len(day_keys), 1)),
+        "average_daily_track_users": round(sum(day["track_users"] for day in calendar_days) / max(len(day_keys), 1)),
+    }
+
+    return schemas.AdminAnalyticsRangeResponse(
+        start_date=start.isoformat(),
+        end_date=end.isoformat(),
+        range_days=len(day_keys),
+        totals=totals,
+        visit_series=visit_series,
+        track_series=track_series,
+        calendar_days=calendar_days,
+        track_breakdown=track_breakdown[:12],
+        top_entry_paths=top_entry_paths,
+    )
 
 
 @router.get("/api/admin/dashboard/stats", response_model=schemas.AdminDashboardStats)

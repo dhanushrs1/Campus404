@@ -731,6 +731,18 @@ class SiteVisitResponse(BaseModel):
     ok: bool = True
 
 
+class AdminAnalyticsRangeResponse(BaseModel):
+    start_date: str
+    end_date: str
+    range_days: int
+    totals: Dict[str, Any] = Field(default_factory=dict)
+    visit_series: List[Dict[str, Any]] = Field(default_factory=list)
+    track_series: List[Dict[str, Any]] = Field(default_factory=list)
+    calendar_days: List[Dict[str, Any]] = Field(default_factory=list)
+    track_breakdown: List[Dict[str, Any]] = Field(default_factory=list)
+    top_entry_paths: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 class AdminDashboardStats(BaseModel):
     total_users: int = 0
     active_learners: int = 0

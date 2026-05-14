@@ -1,144 +1,463 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
   BarChart3,
   CalendarDays,
-  CheckCircle2,
-  Code2,
-  Database,
-  FolderTree,
   Globe2,
-  Radio,
-  Trophy,
+  MousePointerClick,
+  Route,
   Users,
 } from "lucide-react";
-import { apiUrl } from "../../../shared/api.js";
-import { EmptyState, IconBubble, TrendPill, UsageChart } from "../../shared/AdminWidgets.jsx";
 import {
-  addDays,
-  buildActivitySeries,
-  clampNumber,
-  formatNumber,
-  formatRelativeTime,
-  formatShortDate,
-  isoDate,
-  percentChange,
-  percentOf,
-  prettyStatus,
-  startOfMonth,
-  statusTone,
-  sumActivity,
-  toNumber,
-} from "../adminUtils.js";
+  Area,
+  AreaChart,
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { apiUrl } from "../../../shared/api.js";
+import { EmptyState } from "../../shared/AdminWidgets.jsx";
+import { addDays, formatNumber, formatShortDate, isoDate, percentOf, toNumber } from "../adminUtils.js";
 
-function MonthCalendar({ activity, selectedDate, onSelectDate }) {
-  const selected = new Date(selectedDate);
-  const safeSelected = Number.isNaN(selected.getTime()) ? new Date() : selected;
-  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(safeSelected));
+function monthStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1, 12);
+}
 
-  useEffect(() => {
-    setVisibleMonth(startOfMonth(safeSelected));
-  }, [selectedDate]);
+function monthEnd(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 12);
+}
 
-  const monthStart = startOfMonth(visibleMonth);
-  const firstDay = monthStart.getDay();
-  const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
-  const cells = [
-    ...Array.from({ length: firstDay }, (_, index) => ({ key: `blank-${index}`, blank: true })),
-    ...Array.from({ length: daysInMonth }, (_, index) => {
-      const date = new Date(monthStart.getFullYear(), monthStart.getMonth(), index + 1, 12);
-      return { key: isoDate(date), date };
-    }),
-  ];
-  const activityMap = new Map((activity || []).map((item) => [item.date, item]));
-  const maxVolume = Math.max(...(activity || []).map((item) => toNumber(item.sessions) + toNumber(item.exercise_attempts)), 1);
-  const monthLabel = monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+function asSafeDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
 
+function getRangePreset(preset) {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  if (preset === "today") return { start: isoDate(today), end: isoDate(today) };
+  if (preset === "yesterday") {
+    const day = addDays(today, -1);
+    return { start: isoDate(day), end: isoDate(day) };
+  }
+  if (preset === "7d") return { start: isoDate(addDays(today, -6)), end: isoDate(today) };
+  if (preset === "30d") return { start: isoDate(addDays(today, -29)), end: isoDate(today) };
+  if (preset === "month") return { start: isoDate(monthStart(today)), end: isoDate(monthEnd(today)) };
+  return { start: isoDate(addDays(today, -29)), end: isoDate(today) };
+}
+
+function buildDateKeys(startDate, endDate) {
+  const start = asSafeDate(startDate);
+  const end = asSafeDate(endDate);
+  start.setHours(12, 0, 0, 0);
+  end.setHours(12, 0, 0, 0);
+
+  const first = start <= end ? start : end;
+  const last = start <= end ? end : start;
+  const days = [];
+  for (let day = new Date(first); day <= last && days.length < 370; day = addDays(day, 1)) {
+    days.push(isoDate(day));
+  }
+  return days.length ? days : [isoDate(new Date())];
+}
+
+function createEmptyAnalytics(startDate, endDate) {
+  const days = buildDateKeys(startDate, endDate);
+  const emptyDays = days.map((date) => ({
+    date,
+    visits: 0,
+    track_users: 0,
+    events: 0,
+    tracks: {},
+  }));
+
+  return {
+    start_date: days[0],
+    end_date: days[days.length - 1],
+    range_days: days.length,
+    totals: {
+      visits: 0,
+      track_users: 0,
+      learning_events: 0,
+      active_tracks: 0,
+      average_daily_visits: 0,
+      average_daily_track_users: 0,
+    },
+    visit_series: emptyDays.map(({ date, visits }) => ({ date, visits })),
+    track_series: emptyDays,
+    calendar_days: emptyDays,
+    track_breakdown: [],
+    top_entry_paths: [],
+  };
+}
+
+function normalizeAnalyticsPayload(payload, startDate, endDate) {
+  const empty = createEmptyAnalytics(startDate, endDate);
+  if (!payload || typeof payload !== "object") return empty;
+
+  return {
+    ...empty,
+    ...payload,
+    totals: {
+      ...empty.totals,
+      ...(payload.totals || {}),
+    },
+    visit_series: Array.isArray(payload.visit_series) ? payload.visit_series : empty.visit_series,
+    track_series: Array.isArray(payload.track_series) ? payload.track_series : empty.track_series,
+    calendar_days: Array.isArray(payload.calendar_days) ? payload.calendar_days : empty.calendar_days,
+    track_breakdown: Array.isArray(payload.track_breakdown) ? payload.track_breakdown : [],
+    top_entry_paths: Array.isArray(payload.top_entry_paths) ? payload.top_entry_paths : [],
+  };
+}
+
+function adaptDashboardStats(payload, startDate, endDate) {
+  const empty = createEmptyAnalytics(startDate, endDate);
+  if (!payload || typeof payload !== "object") return empty;
+
+  const days = buildDateKeys(startDate, endDate);
+  const activityByDay = new Map((payload.activity_by_day || []).map((day) => [day.date, day]));
+  const visitsByDay = new Map((payload.visit_activity_by_day || []).map((day) => [day.date, day]));
+  const trackSeries = days.map((date) => {
+    const activity = activityByDay.get(date) || {};
+    return {
+      date,
+      visits: toNumber(visitsByDay.get(date)?.unique_visits ?? visitsByDay.get(date)?.visits),
+      track_users: toNumber(activity.active_users),
+      events: toNumber(activity.exercise_attempts) + toNumber(activity.quiz_completions),
+      tracks: {},
+    };
+  });
+  const visitSeries = trackSeries.map(({ date, visits }) => ({ date, visits }));
+  const trackBreakdown = (payload.track_performance || []).map((track) => ({
+    track_id: track.track_id,
+    title: track.title || `Track ${track.track_id}`,
+    users: toNumber(track.enrolled),
+    events: toNumber(track.completed_exercises),
+    completions: toNumber(track.completed_tracks),
+  }));
+  const totalVisits = visitSeries.reduce((sum, day) => sum + toNumber(day.visits), 0);
+  const totalTrackUsers = trackSeries.reduce((sum, day) => sum + toNumber(day.track_users), 0);
+  const totalEvents = trackSeries.reduce((sum, day) => sum + toNumber(day.events), 0);
+
+  return normalizeAnalyticsPayload(
+    {
+      start_date: days[0],
+      end_date: days[days.length - 1],
+      range_days: days.length,
+      totals: {
+        visits: totalVisits,
+        track_users: totalTrackUsers,
+        learning_events: totalEvents,
+        active_tracks: trackBreakdown.filter((track) => toNumber(track.users) > 0 || toNumber(track.events) > 0).length,
+        average_daily_visits: Math.round(totalVisits / Math.max(days.length, 1)),
+        average_daily_track_users: Math.round(totalTrackUsers / Math.max(days.length, 1)),
+      },
+      visit_series: visitSeries,
+      track_series: trackSeries,
+      calendar_days: trackSeries,
+      track_breakdown: trackBreakdown,
+      top_entry_paths: payload.top_entry_paths || [],
+    },
+    startDate,
+    endDate,
+  );
+}
+
+async function readJsonResponse(response) {
+  return response.json().catch(() => null);
+}
+
+function ChartTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
   return (
-    <div className="aa-calendar">
-      <header>
-        <button type="button" onClick={() => setVisibleMonth(startOfMonth(new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)))} aria-label="Previous month">
-          {"<"}
-        </button>
-        <strong>{monthLabel}</strong>
-        <button type="button" onClick={() => setVisibleMonth(startOfMonth(new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1)))} aria-label="Next month">
-          {">"}
-        </button>
-      </header>
-      <div className="aa-calendar__weekdays" aria-hidden="true">
-        {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}
-      </div>
-      <div className="aa-calendar__grid">
-        {cells.map((cell) => {
-          if (cell.blank) return <span key={cell.key} />;
-          const key = isoDate(cell.date);
-          const day = activityMap.get(key) || {};
-          const volume = toNumber(day.sessions) + toNumber(day.exercise_attempts);
-          const intensity = volume <= 0 ? 0 : Math.max(1, Math.ceil((volume / maxVolume) * 4));
-          const isSelected = key === isoDate(safeSelected);
-
-          return (
-            <button
-              type="button"
-              key={key}
-              className={`${isSelected ? "is-selected" : ""} is-heat-${intensity}`}
-              onClick={() => onSelectDate(key)}
-              aria-label={`${key}: ${formatNumber(volume)} activity events`}
-            >
-              <span>{cell.date.getDate()}</span>
-              <small>{volume ? formatNumber(volume) : ""}</small>
-            </button>
-          );
-        })}
-      </div>
+    <div className="ax-tooltip">
+      <strong>{label}</strong>
+      {payload.map((item) => (
+        <span key={item.dataKey} style={{ "--dot": item.color }}>
+          <i />
+          {item.name}: <b>{formatNumber(item.value)}</b>
+        </span>
+      ))}
     </div>
   );
 }
 
+function RangeControls({ activePreset, startDate, endDate, onPreset, onCustom }) {
+  const presets = [
+    { key: "today", label: "Today" },
+    { key: "yesterday", label: "Yesterday" },
+    { key: "7d", label: "7 days" },
+    { key: "30d", label: "30 days" },
+    { key: "month", label: "This month" },
+  ];
+
+  return (
+    <section className="ax-toolbar" aria-label="Analytics filters">
+      <div className="ax-toolbar__title">
+        <span><BarChart3 size={17} /> Analytics</span>
+        <h2>Visits and track usage</h2>
+      </div>
+      <div className="ax-toolbar__controls">
+        <div className="ax-range-tabs" role="group" aria-label="Quick date ranges">
+          {presets.map((preset) => (
+            <button
+              type="button"
+              key={preset.key}
+              className={activePreset === preset.key ? "is-active" : ""}
+              onClick={() => onPreset(preset.key)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <label className="ax-date-field">
+          <CalendarDays size={15} />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(event) => onCustom(event.target.value || startDate, endDate)}
+            aria-label="Start date"
+          />
+        </label>
+        <label className="ax-date-field">
+          <CalendarDays size={15} />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(event) => onCustom(startDate, event.target.value || endDate)}
+            aria-label="End date"
+          />
+        </label>
+      </div>
+    </section>
+  );
+}
+
+function MetricStrip({ analytics }) {
+  const totals = analytics?.totals || {};
+  const metrics = [
+    { label: "Unique visits", value: totals.visits, icon: Globe2, tone: "blue" },
+    { label: "Track learners", value: totals.track_users, icon: Users, tone: "green" },
+    { label: "Learning events", value: totals.learning_events, icon: MousePointerClick, tone: "violet" },
+    { label: "Active tracks", value: totals.active_tracks, icon: Route, tone: "amber" },
+  ];
+
+  return (
+    <section className="ax-metrics" aria-label="Analytics summary">
+      {metrics.map(({ label, value, icon: Icon, tone }) => (
+        <article className={`ax-metric ax-metric--${tone}`} key={label}>
+          <Icon size={22} />
+          <span>{label}</span>
+          <strong>{formatNumber(value || 0)}</strong>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function VisitsPanel({ data, entryPaths }) {
+  const hasData = data.some((item) => toNumber(item.visits) > 0);
+  const peak = data.reduce((best, item) => (toNumber(item.visits) > toNumber(best.visits) ? item : best), { visits: 0 });
+  const total = data.reduce((sum, item) => sum + toNumber(item.visits), 0);
+  const average = Math.round(total / Math.max(data.length, 1));
+
+  return (
+    <article className="ax-panel ax-panel--wide ax-panel--visits">
+      <header className="ax-panel__header">
+        <div>
+          <h3><Globe2 size={18} /> Visit analytics</h3>
+          <p>Unique public-site visits, one counted visit per IP per day.</p>
+        </div>
+        <div className="ax-panel__chips">
+          <span>{formatNumber(total)} visits</span>
+          <span>{formatNumber(average)} avg/day</span>
+          <span>Peak {formatNumber(peak.visits || 0)}</span>
+        </div>
+      </header>
+
+      <div className="ax-panel__body">
+        {hasData ? (
+          <div className="ax-chart ax-chart--large">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={data} margin={{ top: 18, right: 24, left: -4, bottom: 6 }}>
+                <defs>
+                  <linearGradient id="axVisits" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#1f62ff" stopOpacity={0.34} />
+                    <stop offset="58%" stopColor="#1f62ff" stopOpacity={0.1} />
+                    <stop offset="100%" stopColor="#1f62ff" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#e4edf8" strokeDasharray="4 7" vertical={false} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#607294", fontSize: 12, fontWeight: 800 }} />
+                <YAxis axisLine={false} tickLine={false} allowDecimals={false} tick={{ fill: "#607294", fontSize: 12, fontWeight: 800 }} />
+                <Tooltip content={<ChartTooltip />} />
+                <Area type="monotone" dataKey="visits" name="Visits" stroke="#1f62ff" strokeWidth={4} fill="url(#axVisits)" dot={false} activeDot={{ r: 6 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="ax-empty-chart ax-empty-chart--large">
+            <EmptyState icon={Globe2} title="No visits for this range">Visit data appears after public pages receive traffic.</EmptyState>
+          </div>
+        )}
+
+        <aside className="ax-side-card">
+          <h4>Top entry paths</h4>
+          <div className="ax-entry-list">
+            {entryPaths.slice(0, 6).map((entry) => (
+              <div key={entry.path}>
+                <span>{entry.path || "/"}</span>
+                <strong>{formatNumber(entry.visits)} visits</strong>
+              </div>
+            ))}
+            {entryPaths.length === 0 && <small>No entry path data for this range.</small>}
+          </div>
+        </aside>
+      </div>
+    </article>
+  );
+}
+
+function TrackUsagePanel({ data, tracks, selectedTrackId, onSelectTrack }) {
+  const hasData = data.some((item) => toNumber(item.track_users) > 0 || toNumber(item.events) > 0);
+  const selectedTrack = tracks.find((track) => String(track.track_id) === String(selectedTrackId));
+  const totalEvents = data.reduce((sum, day) => sum + toNumber(day.events), 0);
+  const totalTrackUsers = data.reduce((sum, day) => sum + toNumber(day.track_users), 0);
+  const peakUsers = data.reduce((best, day) => Math.max(best, toNumber(day.track_users)), 0);
+  const chartData = data.map((day) => ({
+    ...day,
+    selected_users: selectedTrack ? toNumber(day.tracks?.[String(selectedTrack.track_id)]) : 0,
+  }));
+
+  return (
+    <article className="ax-panel ax-panel--wide ax-panel--tracks">
+      <header className="ax-panel__header">
+        <div>
+          <h3><Route size={18} /> Track usage analytics</h3>
+          <p>Daily learners and activity events across tracks.</p>
+        </div>
+        <div className="ax-panel__actions">
+          <div className="ax-panel__chips">
+            <span>{formatNumber(totalTrackUsers)} learners</span>
+            <span>{formatNumber(totalEvents)} events</span>
+            <span>Peak {formatNumber(peakUsers)}</span>
+          </div>
+          <label className="ax-select">
+            <span>Track</span>
+            <select value={selectedTrackId} onChange={(event) => onSelectTrack(event.target.value)}>
+              <option value="all">All tracks</option>
+              {tracks.map((track) => (
+                <option key={track.track_id} value={track.track_id}>{track.title}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <div className="ax-panel__body">
+        {hasData ? (
+          <div className="ax-chart ax-chart--large">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={chartData} margin={{ top: 18, right: 24, left: -4, bottom: 6 }}>
+                <CartesianGrid stroke="#e4edf8" strokeDasharray="4 7" vertical={false} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#607294", fontSize: 12, fontWeight: 800 }} />
+                <YAxis axisLine={false} tickLine={false} allowDecimals={false} tick={{ fill: "#607294", fontSize: 12, fontWeight: 800 }} />
+                <Tooltip content={<ChartTooltip />} />
+                <Bar dataKey="events" name="Events" fill="#d9e7ff" radius={[8, 8, 0, 0]} />
+                <Line type="monotone" dataKey="track_users" name="All track learners" stroke="#18a96f" strokeWidth={4} dot={false} activeDot={{ r: 6 }} />
+                {selectedTrack && (
+                  <Line type="monotone" dataKey="selected_users" name={selectedTrack.title} stroke="#7c5cff" strokeWidth={4} dot={false} activeDot={{ r: 6 }} />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="ax-empty-chart ax-empty-chart--large">
+            <EmptyState icon={Route} title="No track usage for this range">Track usage appears after learners open exercises or quizzes.</EmptyState>
+          </div>
+        )}
+
+        <aside className="ax-side-card ax-side-card--rank">
+          <h4>Top tracks</h4>
+          <div className="ax-track-rank">
+            {tracks.slice(0, 7).map((track) => {
+              const maxUsers = Math.max(...tracks.map((item) => toNumber(item.users)), 1);
+              return (
+                <button type="button" key={track.track_id} onClick={() => onSelectTrack(String(track.track_id))}>
+                  <span>
+                    <strong>{track.title}</strong>
+                    <small>{formatNumber(track.events)} events</small>
+                  </span>
+                  <div><i style={{ width: `${percentOf(track.users, maxUsers)}%` }} /></div>
+                  <em>{formatNumber(track.users)}</em>
+                </button>
+              );
+            })}
+            {tracks.length === 0 && <small>No track activity for this range.</small>}
+          </div>
+        </aside>
+      </div>
+    </article>
+  );
+}
+
 export default function AnalyticsPage({ onSessionExpired }) {
-  const [stats, setStats] = useState(null);
-  const [health, setHealth] = useState(null);
-  const [error, setError] = useState("");
-  const [rangeDays, setRangeDays] = useState(30);
-  const [selectedDate, setSelectedDate] = useState(() => isoDate(new Date()));
+  const initialRange = useMemo(() => getRangePreset("30d"), []);
+  const [startDate, setStartDate] = useState(initialRange.start);
+  const [endDate, setEndDate] = useState(initialRange.end);
+  const [activePreset, setActivePreset] = useState("30d");
+  const [selectedTrackId, setSelectedTrackId] = useState("all");
+  const [analytics, setAnalytics] = useState(null);
 
   useEffect(() => {
     let disposed = false;
 
-    async function requestJson(path) {
-      const token = localStorage.getItem("campus404_token");
-      const response = await fetch(apiUrl(path), {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-
-      if (response.status === 401) {
-        onSessionExpired?.();
-        throw new Error("Session expired.");
-      }
-
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.detail || `Unable to load ${path} (${response.status}).`);
-      }
-      return payload;
-    }
-
     async function loadAnalytics() {
-      setError("");
-      const [statsResult, healthResult] = await Promise.allSettled([
-        requestJson("/api/admin/dashboard/stats"),
-        requestJson("/api/admin/learning-engine/health"),
-      ]);
+      const token = localStorage.getItem("campus404_token");
+      const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+      try {
+        const response = await fetch(apiUrl(`/api/admin/analytics?${params.toString()}`), {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
 
-      if (disposed) return;
-      if (statsResult.status === "fulfilled") setStats(statsResult.value);
-      if (healthResult.status === "fulfilled") setHealth(healthResult.value);
+        if (response.status === 401) {
+          onSessionExpired?.();
+          throw new Error("Session expired.");
+        }
 
-      const failures = [statsResult, healthResult].filter((result) => result.status === "rejected");
-      if (failures.length === 2) {
-        setError(failures[0].reason?.message || "Unable to load analytics.");
+        const payload = await readJsonResponse(response);
+        if (response.status === 404) {
+          const fallbackResponse = await fetch(apiUrl("/api/admin/dashboard/stats"), {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
+          if (fallbackResponse.status === 401) {
+            onSessionExpired?.();
+            throw new Error("Session expired.");
+          }
+          if (fallbackResponse.ok) {
+            const fallbackPayload = await readJsonResponse(fallbackResponse);
+            if (!disposed) setAnalytics(adaptDashboardStats(fallbackPayload, startDate, endDate));
+            return;
+          }
+          if (!disposed) setAnalytics(createEmptyAnalytics(startDate, endDate));
+          return;
+        }
+        if (!response.ok) {
+          throw new Error(payload?.detail || `Unable to load analytics (${response.status}).`);
+        }
+        if (!disposed) setAnalytics(normalizeAnalyticsPayload(payload, startDate, endDate));
+      } catch {
+        if (!disposed) {
+          setAnalytics((current) => current || createEmptyAnalytics(startDate, endDate));
+        }
       }
     }
 
@@ -146,274 +465,66 @@ export default function AnalyticsPage({ onSessionExpired }) {
     return () => {
       disposed = true;
     };
-  }, [onSessionExpired]);
+  }, [endDate, onSessionExpired, startDate]);
 
-  const dashboardStats = stats || {};
-  const dashboardHealth = health || {};
-  const activity = useMemo(
-    () => buildActivitySeries(dashboardStats?.activity_by_day || [], rangeDays, selectedDate),
-    [dashboardStats?.activity_by_day, rangeDays, selectedDate],
+  const visitData = useMemo(
+    () => (analytics?.visit_series || []).map((day) => ({
+      ...day,
+      label: formatShortDate(day.date),
+      visits: toNumber(day.visits),
+    })),
+    [analytics?.visit_series],
   );
-  const previousActivity = useMemo(
-    () => buildActivitySeries(dashboardStats?.activity_by_day || [], rangeDays, addDays(new Date(selectedDate), -rangeDays)),
-    [dashboardStats?.activity_by_day, rangeDays, selectedDate],
+  const trackData = useMemo(
+    () => (analytics?.track_series || []).map((day) => ({
+      ...day,
+      label: formatShortDate(day.date),
+      track_users: toNumber(day.track_users),
+      events: toNumber(day.events),
+    })),
+    [analytics?.track_series],
   );
-  const attempts = dashboardHealth?.recent_attempts || [];
-  const trackPerformance = dashboardStats?.track_performance || [];
-  const topLearners = dashboardStats?.top_learners || [];
-  const topEntryPaths = Array.isArray(dashboardStats?.top_entry_paths) ? dashboardStats.top_entry_paths : [];
-  const totals = {
-    visits: sumActivity(activity, "sessions"),
-    activeUsers: sumActivity(activity, "active_users"),
-    runs: sumActivity(activity, "exercise_attempts"),
-    passed: sumActivity(activity, "passed_attempts"),
-    quizzes: sumActivity(activity, "quiz_completions"),
-    xp: sumActivity(activity, "xp"),
-    newUsers: sumActivity(activity, "new_users"),
+  const trackBreakdown = analytics?.track_breakdown || [];
+
+  useEffect(() => {
+    if (selectedTrackId !== "all" && !trackBreakdown.some((track) => String(track.track_id) === String(selectedTrackId))) {
+      setSelectedTrackId("all");
+    }
+  }, [selectedTrackId, trackBreakdown]);
+
+  const applyPreset = (preset) => {
+    const range = getRangePreset(preset);
+    setActivePreset(preset);
+    setStartDate(range.start);
+    setEndDate(range.end);
   };
-  const previousTotals = {
-    visits: sumActivity(previousActivity, "sessions"),
-    activeUsers: sumActivity(previousActivity, "active_users"),
-    runs: sumActivity(previousActivity, "exercise_attempts"),
-    passed: sumActivity(previousActivity, "passed_attempts"),
-    quizzes: sumActivity(previousActivity, "quiz_completions"),
-    xp: sumActivity(previousActivity, "xp"),
-    newUsers: sumActivity(previousActivity, "new_users"),
+
+  const applyCustomRange = (nextStart, nextEnd) => {
+    setActivePreset("custom");
+    setStartDate(nextStart);
+    setEndDate(nextEnd);
   };
-  const passRate = percentOf(totals.passed, totals.runs);
-  const contentReadiness = percentOf(dashboardStats?.published_exercises, dashboardStats?.total_exercises);
-  const engagementRate = percentOf(dashboardStats?.active_users_24h, dashboardStats?.total_users);
-  const maxTrack = Math.max(...trackPerformance.map((track) => toNumber(track.enrolled)), 1);
-  const channelRows = topEntryPaths.map((entry, index) => ({
-    label: entry.path || "/",
-    value: toNumber(entry.visits),
-    tone: ["blue", "green", "violet", "amber"][index % 4],
-  }));
-  const maxChannel = Math.max(...channelRows.map((row) => row.value), 1);
-  const funnelRows = [
-    { label: "Visited platform", value: totals.visits, percent: 100 },
-    { label: "Opened workspace", value: totals.runs, percent: percentOf(totals.runs, totals.visits) },
-    { label: "Passed checks", value: totals.passed, percent: passRate },
-    { label: "Completed quiz", value: totals.quizzes, percent: percentOf(totals.quizzes, totals.runs) },
-  ];
-  const analyticsCards = [
-    { label: "Users", value: totals.visits, detail: `${formatNumber(totals.newUsers)} new users`, trend: percentChange(totals.visits, previousTotals.visits), icon: Users, tone: "blue" },
-    { label: "Active Learners", value: totals.activeUsers, detail: `${engagementRate}% active today`, trend: percentChange(totals.activeUsers, previousTotals.activeUsers), icon: Activity, tone: "green" },
-    { label: "Learning Events", value: totals.runs + totals.quizzes, detail: `${formatNumber(totals.quizzes)} quiz events`, trend: percentChange(totals.runs + totals.quizzes, previousTotals.runs + previousTotals.quizzes), icon: Code2, tone: "violet" },
-    { label: "XP Velocity", value: totals.xp, detail: `${formatNumber(Math.round(totals.xp / Math.max(rangeDays, 1)))} XP/day`, trend: percentChange(totals.xp, previousTotals.xp), icon: Trophy, tone: "amber" },
-  ];
 
   return (
-    <div className="aa-page">
-      <section className="aa-hero">
-        <div>
-          <span><BarChart3 size={16} /> Advanced Analytics</span>
-          <h2>Learning intelligence dashboard</h2>
-          <p>Measure acquisition, engagement, learning conversion, content readiness, and judge reliability across custom reporting windows.</p>
-        </div>
-        <div className="aa-controls">
-          <div className="aa-range-tabs" role="group" aria-label="Analytics date range">
-            {[7, 20, 30, 90].map((days) => (
-              <button type="button" key={days} className={rangeDays === days ? "is-active" : ""} onClick={() => setRangeDays(days)}>
-                {days} days
-              </button>
-            ))}
-          </div>
-          <label className="aa-date-input">
-            <CalendarDays size={16} />
-            <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value || isoDate(new Date()))} />
-          </label>
-        </div>
-      </section>
+    <div className="ax-page">
+      <RangeControls
+        activePreset={activePreset}
+        startDate={startDate}
+        endDate={endDate}
+        onPreset={applyPreset}
+        onCustom={applyCustomRange}
+      />
 
-      {error && <div className="ap-inline-error">{error}</div>}
+      <MetricStrip analytics={analytics} />
 
-      <section className="aa-metric-grid">
-        {analyticsCards.map(({ label, value, detail, trend, icon: Icon, tone }) => (
-          <article className={`aa-metric aa-metric--${tone}`} key={label}>
-            <IconBubble icon={Icon} tone={tone} />
-            <span>{label}</span>
-            <strong>{formatNumber(value)}</strong>
-            <p>{detail}</p>
-            <TrendPill value={trend} />
-          </article>
-        ))}
-      </section>
-
-      <section className="aa-grid">
-        <article className="aa-panel aa-panel--chart">
-          <header>
-            <div>
-              <h3>{rangeDays}-day event exploration</h3>
-              <p>{formatShortDate(activity[0]?.date)} to {formatShortDate(activity[activity.length - 1]?.date)}</p>
-            </div>
-            <div className="aa-chart-summary">
-              <span>{formatNumber(totals.visits)} visits</span>
-              <span>{formatNumber(totals.runs)} code runs</span>
-              <span>{formatNumber(totals.quizzes)} quizzes</span>
-            </div>
-          </header>
-          <div className="ao-legend ao-legend--reference">
-            <span><i className="is-blue" /> Visits</span>
-            <span><i className="is-green" /> Active Learners</span>
-            <span><i className="is-violet" /> Code Runs</span>
-            <span><i className="is-amber" /> Quiz Completions</span>
-            <span><i className="is-cyan" /> Submissions</span>
-          </div>
-          <UsageChart activity={activity} maxDays={rangeDays} />
-        </article>
-
-        <article className="aa-panel aa-panel--calendar">
-          <header>
-            <div>
-              <h3>Monthly timetable</h3>
-              <p>Select a day to rebuild the analytics window.</p>
-            </div>
-          </header>
-          <MonthCalendar activity={activity} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-        </article>
-
-        <article className="aa-panel">
-          <header>
-            <div>
-              <h3>Entry paths</h3>
-              <p>First public page seen by unique visitors.</p>
-            </div>
-          </header>
-          <div className="aa-bar-list">
-            {channelRows.map((row) => (
-              <div key={row.label}>
-                <header>
-                  <span>{row.label}</span>
-                  <strong>{formatNumber(row.value)}</strong>
-                </header>
-                <div><i className={`is-${row.tone}`} style={{ width: `${percentOf(row.value, maxChannel)}%` }} /></div>
-              </div>
-            ))}
-            {channelRows.length === 0 && (
-              <EmptyState icon={Globe2} title="No entry paths yet">
-                Entry paths appear after public traffic is recorded.
-              </EmptyState>
-            )}
-          </div>
-        </article>
-
-        <article className="aa-panel">
-          <header>
-            <div>
-              <h3>Conversion funnel</h3>
-              <p>From visit to completed learning action.</p>
-            </div>
-          </header>
-          <div className="aa-funnel">
-            {funnelRows.map((row) => (
-              <div key={row.label}>
-                <span>{row.label}</span>
-                <strong>{formatNumber(row.value)}</strong>
-                <div><i style={{ width: `${clampNumber(row.percent)}%` }} /></div>
-                <em>{row.percent}%</em>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="aa-panel">
-          <header>
-            <div>
-              <h3>Track engagement</h3>
-              <p>Enrollment and completion pressure by track.</p>
-            </div>
-          </header>
-          <div className="aa-track-table">
-            {trackPerformance.slice(0, 6).map((track) => (
-              <div key={track.track_id}>
-                <span>
-                  <strong>{track.title}</strong>
-                  <small>{track.is_published ? "Published" : "Draft"}</small>
-                </span>
-                <div><i style={{ width: `${percentOf(track.enrolled, maxTrack)}%` }} /></div>
-                <em>{formatNumber(track.enrolled)} learners</em>
-                <b>{track.progress_rate || 0}%</b>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="aa-panel">
-          <header>
-            <div>
-              <h3>Reliability monitor</h3>
-              <p>Judge and platform health signals.</p>
-            </div>
-          </header>
-          <div className="aa-reliability">
-            <div>
-              <IconBubble icon={Radio} tone={statusTone(dashboardStats?.judge_health || dashboardHealth?.judge_health)} />
-              <span>Judge</span>
-              <strong className={`is-${statusTone(dashboardStats?.judge_health || dashboardHealth?.judge_health)}`}>{prettyStatus(dashboardStats?.judge_health || dashboardHealth?.judge_health || "unknown")}</strong>
-            </div>
-            <div>
-              <IconBubble icon={Database} tone={statusTone(dashboardStats?.database_health || "healthy")} />
-              <span>Database</span>
-              <strong className={`is-${statusTone(dashboardStats?.database_health || "healthy")}`}>{prettyStatus(dashboardStats?.database_health || "healthy")}</strong>
-            </div>
-            <div>
-              <IconBubble icon={FolderTree} tone={contentReadiness >= 75 ? "green" : "amber"} />
-              <span>Content readiness</span>
-              <strong>{contentReadiness}%</strong>
-            </div>
-            <div>
-              <IconBubble icon={Users} tone={engagementRate >= 30 ? "green" : "amber"} />
-              <span>Engagement</span>
-              <strong>{engagementRate}%</strong>
-            </div>
-          </div>
-        </article>
-
-        <article className="aa-panel aa-panel--wide">
-          <header>
-            <div>
-              <h3>Recent high-signal events</h3>
-              <p>Latest submissions and learner movement in the selected context.</p>
-            </div>
-          </header>
-          <div className="aa-event-table">
-            {attempts.slice(0, 6).map((attempt) => (
-              <div key={attempt.id}>
-                <IconBubble icon={attempt.status === "failed" ? Activity : CheckCircle2} tone={attempt.status === "failed" ? "red" : "green"} />
-                <span>
-                  <strong>{attempt.exercise_title || "Exercise"}</strong>
-                  <small>{attempt.username || "learner"} - {prettyStatus(attempt.mode || "code")}</small>
-                </span>
-                <em>{prettyStatus(attempt.status || "submitted")}</em>
-                <b>{formatRelativeTime(attempt.created_at)}</b>
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="aa-panel aa-panel--wide">
-          <header>
-            <div>
-              <h3>Top learner contribution</h3>
-              <p>XP distribution across the current leaders.</p>
-            </div>
-          </header>
-          <div className="aa-learner-strip">
-            {topLearners.slice(0, 5).map((learner, index) => {
-              const name = learner.display_name || learner.username;
-              const maxXp = Math.max(...topLearners.map((item) => toNumber(item.total_xp)), 1);
-              return (
-                <div key={learner.user_id}>
-                  <b>#{index + 1}</b>
-                  <span>{name}</span>
-                  <strong>{formatNumber(learner.total_xp)} XP</strong>
-                  <div><i style={{ width: `${percentOf(learner.total_xp, maxXp)}%` }} /></div>
-                </div>
-              );
-            })}
-          </div>
-        </article>
+      <section className="ax-section-stack">
+        <VisitsPanel data={visitData} entryPaths={analytics?.top_entry_paths || []} />
+        <TrackUsagePanel
+          data={trackData}
+          tracks={trackBreakdown}
+          selectedTrackId={selectedTrackId}
+          onSelectTrack={setSelectedTrackId}
+        />
       </section>
     </div>
   );
