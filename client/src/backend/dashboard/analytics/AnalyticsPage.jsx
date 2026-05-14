@@ -259,7 +259,7 @@ function MetricStrip({ analytics }) {
   );
 }
 
-function VisitsPanel({ data, entryPaths }) {
+function VisitsPanel({ data }) {
   const hasData = data.some((item) => toNumber(item.visits) > 0);
   const peak = data.reduce((best, item) => (toNumber(item.visits) > toNumber(best.visits) ? item : best), { visits: 0 });
   const total = data.reduce((sum, item) => sum + toNumber(item.visits), 0);
@@ -305,18 +305,6 @@ function VisitsPanel({ data, entryPaths }) {
           </div>
         )}
 
-        <aside className="ax-side-card">
-          <h4>Top entry paths</h4>
-          <div className="ax-entry-list">
-            {entryPaths.slice(0, 6).map((entry) => (
-              <div key={entry.path}>
-                <span>{entry.path || "/"}</span>
-                <strong>{formatNumber(entry.visits)} visits</strong>
-              </div>
-            ))}
-            {entryPaths.length === 0 && <small>No entry path data for this range.</small>}
-          </div>
-        </aside>
       </div>
     </article>
   );
@@ -381,26 +369,27 @@ function TrackUsagePanel({ data, tracks, selectedTrackId, onSelectTrack }) {
           </div>
         )}
 
-        <aside className="ax-side-card ax-side-card--rank">
-          <h4>Top tracks</h4>
-          <div className="ax-track-rank">
-            {tracks.slice(0, 7).map((track) => {
-              const maxUsers = Math.max(...tracks.map((item) => toNumber(item.users)), 1);
-              return (
-                <button type="button" key={track.track_id} onClick={() => onSelectTrack(String(track.track_id))}>
-                  <span>
-                    <strong>{track.title}</strong>
-                    <small>{formatNumber(track.events)} events</small>
-                  </span>
-                  <div><i style={{ width: `${percentOf(track.users, maxUsers)}%` }} /></div>
-                  <em>{formatNumber(track.users)}</em>
-                </button>
-              );
-            })}
-            {tracks.length === 0 && <small>No track activity for this range.</small>}
-          </div>
-        </aside>
       </div>
+
+      <section className="ax-bottom-card ax-bottom-card--rank">
+        <h4>Top tracks</h4>
+        <div className="ax-track-rank ax-track-rank--bottom">
+          {tracks.slice(0, 7).map((track) => {
+            const maxUsers = Math.max(...tracks.map((item) => toNumber(item.users)), 1);
+            return (
+              <button type="button" key={track.track_id} onClick={() => onSelectTrack(String(track.track_id))}>
+                <span>
+                  <strong>{track.title}</strong>
+                  <small>{formatNumber(track.events)} events</small>
+                </span>
+                <div><i style={{ width: `${percentOf(track.users, maxUsers)}%` }} /></div>
+                <em>{formatNumber(track.users)}</em>
+              </button>
+            );
+          })}
+          {tracks.length === 0 && <small>No track activity for this range.</small>}
+        </div>
+      </section>
     </article>
   );
 }
@@ -518,7 +507,7 @@ export default function AnalyticsPage({ onSessionExpired }) {
       <MetricStrip analytics={analytics} />
 
       <section className="ax-section-stack">
-        <VisitsPanel data={visitData} entryPaths={analytics?.top_entry_paths || []} />
+        <VisitsPanel data={visitData} />
         <TrackUsagePanel
           data={trackData}
           tracks={trackBreakdown}

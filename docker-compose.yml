@@ -5,16 +5,13 @@ services:
 
   # Main FastAPI — auth + judge proxy only
   api:
-    image: python:3.11-slim
+    build:
+      context: ./api
     container_name: campus404-api
-    working_dir: /app
     volumes:
-      - ./api:/app
-    command: >
-      sh -c "pip install -r requirements.txt --quiet &&
-             python -c \"import asyncio; from auth.database import init_db; asyncio.run(init_db())\" &&
-             alembic upgrade head &&
-             uvicorn main:app --host 0.0.0.0 --port 8000"
+      - ./api/uploads:/app/uploads
+    expose:
+      - "8000"
     environment:
       DATABASE_URL: "mysql+aiomysql://${MYSQL_USER}:${MYSQL_PASSWORD}@campus404-mysql:3306/${MYSQL_DATABASE}"
       CORS_ORIGINS: "${CORS_ORIGINS}"
@@ -39,20 +36,27 @@ services:
         condition: service_healthy
       campus404-judge:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
-  # Frontend Dev Server (React/Vite)
+  # Frontend static server (React/Vite build output)
   client:
-    image: node:20-alpine
+    build:
+      context: ./client
     container_name: campus404-client
-    working_dir: /app
-    volumes:
-      - ./client:/app
     expose:
-      - "5173"
-    command: sh -c "npm install && npm run build && npm run preview -- --host 0.0.0.0 --port 5173"
-    environment:
-      CHOKIDAR_USEPOLLING: "true"
+      - "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     networks:
       - campus404_net
     restart: unless-stopped
@@ -66,8 +70,10 @@ services:
     volumes:
       - ./infra/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - api
-      - client
+      api:
+        condition: service_healthy
+      client:
+        condition: service_healthy
     networks:
       - campus404_net
     restart: unless-stopped
