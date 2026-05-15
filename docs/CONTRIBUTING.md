@@ -23,6 +23,7 @@ Please keep changes isolated to the correct directory.
 ### 4. Gateway (infra)
 - Mount built frontend assets to NGINX static root.
 - Load `nginx.conf` and route requests through gateway.
+- For Docker or real-domain deployments, rebuild/restart the `client` service after frontend changes. `client/nginx.conf` intentionally serves SPA HTML with `no-cache, no-store, must-revalidate` and hashed `/assets/*` files with long immutable caching, so browsers can cache JS/CSS safely without keeping an old app shell.
 
 ## Contribution Rules
 

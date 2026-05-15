@@ -28,6 +28,7 @@ This layout is intentionally strict to avoid concern leakage between services.
 - Calls backend via `/api/*` routes exposed by gateway.
 - Ships as static assets (HTML, CSS, JS bundle).
 - Should not contain secrets.
+- Production caching rule: `index.html` and SPA fallback routes must be served with no-cache headers, while hashed `/assets/*` files may be cached immutably. This prevents stale admin UI shells after deploys on localhost, Docker, or a real domain.
 
 ### api
 - Stateless application layer.

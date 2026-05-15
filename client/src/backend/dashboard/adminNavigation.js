@@ -19,7 +19,7 @@ export const NAV_SECTIONS = [
     items: [
       { key: "overview", label: "Overview", icon: Home },
       { key: "analytics", label: "Analytics", icon: TrendingUp },
-      { key: "curriculum", label: "Curriculum Studio", icon: FolderTree },
+      { key: "curriculum", label: "Curriculum Builder", icon: FolderTree },
     ],
   },
   {

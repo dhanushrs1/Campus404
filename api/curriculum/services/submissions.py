@@ -115,7 +115,7 @@ class SubmissionService:
                 )
 
         total_cases = len(test_cases)
-        passed = total_cases == 0 or passed_count >= total_cases
+        passed = total_cases > 0 and passed_count >= total_cases
         status = "passed" if passed else "failed"
         verdict = "Accepted" if passed else (first_verdict or "Wrong Answer")
 
@@ -550,7 +550,7 @@ class SubmissionService:
             except json.JSONDecodeError:
                 raw = []
         if not isinstance(raw, list) or not raw:
-            return [{"stdin": "", "expected_outputs": [], "match_mode": "normalize", "is_hidden": False}]
+            return []
 
         normalized = []
         for index, case in enumerate(raw):

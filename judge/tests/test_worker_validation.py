@@ -35,3 +35,15 @@ def test_frontend_validation_reports_missing_requirement():
 
     assert result["verdict"] == "Wrong Answer"
     assert "Missing required selector" in result["output"]
+
+
+def test_frontend_validation_rejects_empty_rule_config():
+    result = execute_frontend_validation(
+        {
+            "files": [{"file_path": "index.html", "content": "<main>Campus404</main>"}],
+            "validation_config": {},
+        }
+    )
+
+    assert result["verdict"] == "Wrong Answer"
+    assert "No frontend validation rules" in result["output"]

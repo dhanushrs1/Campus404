@@ -442,7 +442,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
                 <em>{track.progress_rate || 0}%</em>
               </button>
             ))}
-            {trackPerformance.length === 0 && <EmptyState icon={FolderTree} title="No tracks yet">Create tracks in Curriculum Studio to see health here.</EmptyState>}
+            {trackPerformance.length === 0 && <EmptyState icon={FolderTree} title="No tracks yet">Create tracks in Curriculum Builder to see health here.</EmptyState>}
           </div>
         </article>
 

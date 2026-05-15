@@ -29,6 +29,13 @@ def execute_frontend_validation(job: dict) -> dict:
     config = job.get("validation_config") or {}
 
     failures: list[str] = []
+    has_rules = any(
+        isinstance(config.get(key), list) and any(str(item or "").strip() for item in config.get(key, []))
+        for key in ["required_files", "required_text", "required_selectors", "css_contains", "js_contains"]
+    )
+    if not has_rules:
+        failures.append("No frontend validation rules configured.")
+
     for path in config.get("required_files", []):
         if str(path).lower() not in file_map:
             failures.append(f"Missing required file: {path}")

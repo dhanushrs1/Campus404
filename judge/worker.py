@@ -113,7 +113,7 @@ def _check_output(actual: str, job: dict) -> bool:
 
     if not candidates:
         # No expected output defined → just run, don't grade
-        return True
+        return False
 
     def _matches_one(actual_s: str, expected_s: str) -> bool:
         if mode == "exact":

@@ -272,7 +272,7 @@ export default function AdminDashboardPage() {
               onUnreadCountChange={setContactUnreadCount}
             />
           )}
-          {activeKey === "curriculum" && <CurriculumStudioPage />}
+          {activeKey === "curriculum" && <CurriculumStudioPage role={role} />}
           {activeKey === "media" && <MediaLibraryPage />}
           {activeKey === "rewards" && <BadgeLibraryPage />}
           {activeKey === "submissions" && <LearningOpsPage variant="submissions" onSessionExpired={handleSessionExpired} />}

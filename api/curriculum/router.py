@@ -219,6 +219,18 @@ async def get_current_admin(
     return user
 
 
+def _is_platform_admin(user: User) -> bool:
+    return (user.role or "").strip().upper() == "ADMIN"
+
+
+def _require_platform_admin(user: User) -> None:
+    if not _is_platform_admin(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only administrators can publish or delete curriculum content.",
+        )
+
+
 def _apply_conditions(statement: Any, conditions: list[Any]) -> Any:
     for condition in conditions:
         statement = statement.where(condition)
@@ -331,6 +343,54 @@ def _normalize_mode(value: str | None) -> str:
     return "code" if value == "task" else (value or "code")
 
 
+def _non_empty_expected_outputs(test_case: Any) -> list[str]:
+    raw_outputs: Any = None
+    raw_stdout: Any = None
+    if isinstance(test_case, models.ExerciseTestCase):
+        raw_outputs = test_case.expected_outputs
+        raw_stdout = test_case.expected_stdout
+    elif isinstance(test_case, dict):
+        raw_outputs = test_case.get("expected_outputs")
+        raw_stdout = test_case.get("expected_stdout", test_case.get("expected_output"))
+
+    outputs = raw_outputs if isinstance(raw_outputs, list) else []
+    if not outputs and raw_stdout is not None:
+        outputs = [raw_stdout]
+    return [str(item) for item in outputs if str(item or "").strip()]
+
+
+def _has_meaningful_test_cases(exercise: models.Exercise) -> bool:
+    explicit_cases = list(exercise.test_cases or [])
+    if explicit_cases:
+        return any(_non_empty_expected_outputs(case) for case in explicit_cases)
+
+    legacy_task = _ordered(list(exercise.tasks or []), "step_number")[0] if exercise.tasks else None
+    raw_cases = legacy_task.test_cases if legacy_task else None
+    if isinstance(raw_cases, str):
+        try:
+            raw_cases = json.loads(raw_cases)
+        except json.JSONDecodeError:
+            raw_cases = []
+    if not isinstance(raw_cases, list):
+        return False
+    return any(_non_empty_expected_outputs(case) for case in raw_cases)
+
+
+def _has_frontend_acceptance_rules(config: dict[str, Any] | None) -> bool:
+    if not isinstance(config, dict):
+        return False
+    for key in ["required_files", "required_text", "required_selectors", "css_contains", "js_contains"]:
+        values = config.get(key)
+        if isinstance(values, list) and any(str(item or "").strip() for item in values):
+            return True
+    return False
+
+
+def _entry_file_from_exercise(exercise: models.Exercise) -> models.ExerciseFile | None:
+    files = _ordered(list(exercise.files or []))
+    return next((file for file in files if file.is_entrypoint), files[0] if files else None)
+
+
 async def _load_exercise_admin_context(
     db: AsyncSession,
     exercise_id: int,
@@ -399,17 +459,22 @@ def _exercise_publish_issues(
 
     if mode in {"code", "multi_file_code", "frontend_preview", "project"}:
         files = list(exercise.files or [])
+        entry_file = _entry_file_from_exercise(exercise)
         if not files:
             add("Add at least one workspace file.")
         elif not any(file.is_entrypoint for file in files):
             add("Choose an entrypoint file.")
-        if mode != "frontend_preview" and not list(exercise.test_cases or []):
-            add("Add at least one visible or hidden test case.")
+        if mode != "frontend_preview":
+            if not str(entry_file.starter_code if entry_file else "").strip():
+                add("Add starter or broken code for the entry file.")
+            if not str(entry_file.solution_code if entry_file else "").strip():
+                add("Add solution code for validation.")
+            if not _has_meaningful_test_cases(exercise):
+                add("Add at least one test case with a non-empty accepted output.")
 
     if mode == "frontend_preview":
         config = exercise.validation_config or {}
-        has_rules = any(config.get(key) for key in ["required_files", "required_text", "required_selectors", "css_contains", "js_contains"])
-        if not has_rules:
+        if not _has_frontend_acceptance_rules(config):
             add("Add frontend preview acceptance rules.")
 
     if mode == "quiz":
@@ -417,7 +482,14 @@ def _exercise_publish_issues(
         if not questions:
             add("Add quiz questions.")
         for question in questions:
-            if not any(option.is_correct for option in question.options or []):
+            options = list(question.options or [])
+            if not str(question.question_text or "").strip():
+                add(f"Question {question.order or question.id} needs question text.")
+            if len(options) < 2:
+                add(f"Question {question.order or question.id} needs at least two options.")
+            if any(not str(option.option_text or "").strip() for option in options):
+                add(f"Question {question.order or question.id} has an empty option.")
+            if sum(1 for option in options if option.is_correct) != 1:
                 add(f"Question {question.order or question.id} needs a correct option.")
 
     if mode == "theory" and not str(exercise.theory_content or exercise.instructions_md or "").strip():
@@ -488,8 +560,10 @@ async def list_tracks(
 async def create_track(
     payload: schemas.TrackCreate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> models.Track:
+    if payload.is_published:
+        _require_platform_admin(admin)
     order_value = await _resolve_insert_position(
         db,
         models.Track,
@@ -544,7 +618,7 @@ async def update_track(
     track_id: int,
     payload: schemas.TrackUpdate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> models.Track:
     item = await db.scalar(select(models.Track).where(models.Track.id == track_id))
     if not item:
@@ -571,6 +645,8 @@ async def update_track(
     if payload.language_id is not None:
         item.language_id = payload.language_id
     if payload.is_published is not None:
+        if bool(payload.is_published) != bool(item.is_published):
+            _require_platform_admin(admin)
         item.is_published = payload.is_published
 
     await db.commit()
@@ -586,8 +662,9 @@ async def update_track(
 async def delete_track(
     track_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> Response:
+    _require_platform_admin(admin)
     item = await db.scalar(select(models.Track).where(models.Track.id == track_id))
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
@@ -796,8 +873,9 @@ async def update_section(
 async def delete_section(
     section_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> Response:
+    _require_platform_admin(admin)
     item = await db.scalar(select(models.Section).where(models.Section.id == section_id))
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")
@@ -837,8 +915,10 @@ async def create_exercise(
     section_id: int,
     payload: schemas.ExerciseCreate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> models.Exercise:
+    if payload.is_published:
+        _require_platform_admin(admin)
     section = await db.scalar(select(models.Section).where(models.Section.id == section_id))
     if not section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")
@@ -930,7 +1010,7 @@ async def update_exercise(
     exercise_id: int,
     payload: schemas.ExerciseUpdate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> models.Exercise:
     item = await db.scalar(select(models.Exercise).where(models.Exercise.id == exercise_id))
     if not item:
@@ -974,6 +1054,8 @@ async def update_exercise(
     if payload.auto_submit_on_pass is not None:
         item.auto_submit_on_pass = payload.auto_submit_on_pass
     if payload.is_published is not None:
+        if bool(payload.is_published) != bool(item.is_published):
+            _require_platform_admin(admin)
         item.is_published = payload.is_published
 
     await db.commit()
@@ -989,8 +1071,9 @@ async def update_exercise(
 async def delete_exercise(
     exercise_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> Response:
+    _require_platform_admin(admin)
     item = await db.scalar(select(models.Exercise).where(models.Exercise.id == exercise_id))
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
@@ -1152,8 +1235,9 @@ async def update_task(
 async def delete_task(
     task_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> Response:
+    _require_platform_admin(admin)
     item = await db.scalar(select(models.Task).where(models.Task.id == task_id))
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
@@ -1490,7 +1574,11 @@ async def evaluate_task(
                     json={
                         "source_code": payload.source_code,
                         "language_id": payload.language_id,
-                        "stdin": tc.get("input", ""),
+                        "stdin": tc.get("input", tc.get("stdin", "")),
+                        "expected_outputs": tc.get("expected_outputs") or (
+                            [tc.get("expected_output")] if tc.get("expected_output") is not None else []
+                        ),
+                        "match_mode": tc.get("match_mode", "normalize"),
                     },
                 )
                 resp.raise_for_status()
@@ -2186,11 +2274,16 @@ async def save_admin_exercise_studio(
     exercise_id: int,
     payload: schemas.AdminExerciseStudioUpdate,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> schemas.AdminExerciseStudioData:
     exercise, section, track = await _load_exercise_admin_context(db, exercise_id)
 
     if payload.exercise:
+        if (
+            payload.exercise.is_published is not None
+            and bool(payload.exercise.is_published) != bool(exercise.is_published)
+        ):
+            _require_platform_admin(admin)
         if payload.exercise.order is not None:
             exercise.order = await _reposition_sequence(
                 db,
@@ -2316,6 +2409,30 @@ async def validate_admin_exercise(
     exercise, _section, track = await _load_exercise_admin_context(db, exercise_id)
     mode = _normalize_mode(exercise.mode)
 
+    def configuration_error(message: str) -> schemas.AdminExerciseValidationResponse:
+        return schemas.AdminExerciseValidationResponse(
+            passed=False,
+            verdict="Configuration Error",
+            passed_cases=0,
+            total_cases=0,
+            visible_results=[],
+            judge_result={"results": []},
+            error=message,
+        )
+
+    if mode not in {"code", "multi_file_code", "frontend_preview", "project"}:
+        return configuration_error("This exercise type does not use code validation.")
+
+    if mode == "frontend_preview" and not _has_frontend_acceptance_rules(exercise.validation_config or {}):
+        return configuration_error("Add at least one frontend acceptance rule before validation.")
+
+    if mode in {"code", "multi_file_code", "project"} and not _has_meaningful_test_cases(exercise):
+        return configuration_error("Add at least one test case with a non-empty accepted output before validation.")
+
+    entry_file = _entry_file_from_exercise(exercise)
+    if mode in {"code", "multi_file_code", "project"} and not str(entry_file.solution_code if entry_file else "").strip():
+        return configuration_error("Add solution code for the entry file before validation.")
+
     if payload.files is not None:
         files = [
             schemas.SubmittedFile(
@@ -2346,7 +2463,14 @@ async def validate_admin_exercise(
                 )
             ]
 
+    if not files:
+        return configuration_error("Add at least one workspace file before validation.")
+    if not any(file.is_entrypoint for file in files):
+        files[0].is_entrypoint = True
+
     test_cases = SubmissionService._test_cases(exercise)  # noqa: SLF001
+    if mode in {"code", "multi_file_code", "project"}:
+        test_cases = [case for case in test_cases if _non_empty_expected_outputs(case)]
     if not payload.include_hidden:
         test_cases = [case for case in test_cases if not bool(case.get("is_hidden", True))]
     if mode == "frontend_preview":
@@ -2361,6 +2485,9 @@ async def validate_admin_exercise(
                 "validation_kind": "frontend_preview",
             }
         ]
+
+    if not test_cases:
+        return configuration_error("Add at least one validation check before validation.")
 
     passed_count = 0
     visible_results: list[dict[str, Any]] = []
@@ -2395,7 +2522,7 @@ async def validate_admin_exercise(
         )
 
     total_cases = len(test_cases)
-    passed = total_cases == 0 or passed_count == total_cases
+    passed = total_cases > 0 and passed_count == total_cases
     return schemas.AdminExerciseValidationResponse(
         passed=passed,
         verdict="Accepted" if passed else (first_verdict or "Wrong Answer"),
@@ -2584,8 +2711,9 @@ async def update_exercise_file(
 async def delete_exercise_file(
     file_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> Response:
+    _require_platform_admin(admin)
     item = await db.scalar(select(models.ExerciseFile).where(models.ExerciseFile.id == file_id))
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
@@ -2657,8 +2785,9 @@ async def update_exercise_hint(
 async def delete_exercise_hint(
     hint_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> Response:
+    _require_platform_admin(admin)
     item = await db.scalar(select(models.Hint).where(models.Hint.id == hint_id))
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hint not found")
@@ -2751,8 +2880,9 @@ async def update_exercise_test_case(
 async def delete_exercise_test_case(
     case_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> Response:
+    _require_platform_admin(admin)
     item = await db.scalar(select(models.ExerciseTestCase).where(models.ExerciseTestCase.id == case_id))
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test case not found")
@@ -2871,8 +3001,9 @@ async def update_badge(
 async def delete_badge(
     badge_id: int,
     db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(get_current_admin),
+    admin: User = Depends(get_current_admin),
 ) -> Response:
+    _require_platform_admin(admin)
     badge = await db.scalar(select(models.Badge).where(models.Badge.id == badge_id))
     if not badge:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Badge not found")
