@@ -12,6 +12,7 @@ import {
   FileCode2,
   FilePlus2,
   FlaskConical,
+  HelpCircle,
   Image,
   Layers3,
   Lightbulb,
@@ -51,12 +52,12 @@ import MediaPickerModal from "../media/components/MediaPickerModal.jsx";
 import "./CurriculumStudioPage.css";
 
 const MODE_OPTIONS = [
-  { value: "code", label: "Code", description: "Single-file coding challenge" },
-  { value: "multi_file_code", label: "Multi-file", description: "Code with helper files" },
-  { value: "frontend_preview", label: "Frontend", description: "HTML/CSS/JS with visual acceptance checks" },
-  { value: "theory", label: "Theory", description: "Read, try, and complete" },
-  { value: "quiz", label: "Quiz", description: "Multiple-choice assessment" },
-  { value: "project", label: "Project", description: "Larger deliverable with validation" },
+  { value: "code", label: "Code", description: "Single-file coding challenge", icon: Code2 },
+  { value: "multi_file_code", label: "Multi-file", description: "Code with helper files", icon: FileCode2 },
+  { value: "frontend_preview", label: "Frontend", description: "HTML/CSS/JS with visual acceptance checks", icon: PanelRight },
+  { value: "theory", label: "Theory", description: "Read, try, and complete", icon: BookOpen },
+  { value: "quiz", label: "Quiz", description: "Multiple-choice assessment", icon: ListChecks },
+  { value: "project", label: "Project", description: "Larger deliverable with validation", icon: Layers3 },
 ];
 
 const LANGUAGE_OPTIONS = [
@@ -83,7 +84,7 @@ const FRONTEND_RULES = [
 
 const MODE_TABS = {
   code: [
-    { key: "overview", label: "Setup", icon: Layers3 },
+    { key: "overview", label: "Basics", icon: Layers3 },
     { key: "lesson", label: "Teach", icon: BookOpen },
     { key: "workspace", label: "Broken Code", icon: Code2 },
     { key: "validation", label: "Output Checks", icon: FlaskConical },
@@ -91,7 +92,7 @@ const MODE_TABS = {
     { key: "publish", label: "Release", icon: CheckCircle2 },
   ],
   multi_file_code: [
-    { key: "overview", label: "Setup", icon: Layers3 },
+    { key: "overview", label: "Basics", icon: Layers3 },
     { key: "lesson", label: "Teach", icon: BookOpen },
     { key: "workspace", label: "File System", icon: FileCode2 },
     { key: "validation", label: "Test Matrix", icon: FlaskConical },
@@ -99,7 +100,7 @@ const MODE_TABS = {
     { key: "publish", label: "Release", icon: CheckCircle2 },
   ],
   frontend_preview: [
-    { key: "overview", label: "Setup", icon: Layers3 },
+    { key: "overview", label: "Basics", icon: Layers3 },
     { key: "lesson", label: "Brief", icon: BookOpen },
     { key: "workspace", label: "Website Files", icon: FileCode2 },
     { key: "validation", label: "Frontend Rules", icon: FlaskConical },
@@ -107,17 +108,17 @@ const MODE_TABS = {
     { key: "publish", label: "Release", icon: CheckCircle2 },
   ],
   quiz: [
-    { key: "overview", label: "Setup", icon: Layers3 },
+    { key: "overview", label: "Basics", icon: Layers3 },
     { key: "quiz", label: "Quiz Builder", icon: ListChecks },
     { key: "publish", label: "Release", icon: CheckCircle2 },
   ],
   theory: [
-    { key: "overview", label: "Setup", icon: Layers3 },
+    { key: "overview", label: "Basics", icon: Layers3 },
     { key: "lesson", label: "Lesson Content", icon: BookOpen },
     { key: "publish", label: "Release", icon: CheckCircle2 },
   ],
   project: [
-    { key: "overview", label: "Setup", icon: Layers3 },
+    { key: "overview", label: "Basics", icon: Layers3 },
     { key: "lesson", label: "Project Brief", icon: BookOpen },
     { key: "workspace", label: "Project Files", icon: FileCode2 },
     { key: "validation", label: "Acceptance Tests", icon: FlaskConical },
@@ -206,6 +207,12 @@ function slugify(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function nextAutoSlug(currentSlug, previousTitle, nextTitle) {
+  const current = String(currentSlug || "").trim();
+  const previousAuto = slugify(previousTitle);
+  return !current || current === previousAuto ? slugify(nextTitle) : current;
 }
 
 function languageForPath(path = "") {
@@ -436,6 +443,27 @@ function normalizeDraft(payload) {
   };
 }
 
+function normalizeCurriculumTree(tracks = []) {
+  return [...tracks]
+    .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || Number(a.id || 0) - Number(b.id || 0))
+    .map((track, trackIndex) => ({
+      ...track,
+      order: trackIndex + 1,
+      sections: [...(track.sections || [])]
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || Number(a.id || 0) - Number(b.id || 0))
+        .map((section, sectionIndex) => ({
+          ...section,
+          order: sectionIndex + 1,
+          exercises: [...(section.exercises || [])]
+            .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || Number(a.id || 0) - Number(b.id || 0))
+            .map((exercise, exerciseIndex) => ({
+              ...exercise,
+              order: exerciseIndex + 1,
+            })),
+        })),
+    }));
+}
+
 function normalizeTrackDraft(track) {
   if (!track) return EMPTY_TRACK_DRAFT;
   return {
@@ -616,7 +644,7 @@ function EmptyState({ icon: Icon = Sparkles, title, children }) {
 
 function getStageSummary(key, mode) {
   const shared = {
-    overview: "Mode, naming, access, XP, and release switches.",
+    overview: "Mode, naming, access rules, XP, and mode-specific scoring.",
     lesson: mode === "frontend_preview" ? "Learner brief, page goal, examples, and visual expectations." : "Learner instructions, theory, examples, and supporting media.",
     workspace: mode === "code" ? "Starter or broken entry file beside the reference solution." : "Files, entrypoint, editable helper files, and previewable content.",
     validation: mode === "frontend_preview" ? "Required files, selectors, text, CSS, and JavaScript checks." : "Visible and hidden checks with accepted stdout outputs.",
@@ -625,6 +653,18 @@ function getStageSummary(key, mode) {
     publish: "Route preview, validation run, readiness check, and publish state.",
   };
   return shared[key] || "Configure this stage for the selected exercise mode.";
+}
+
+function getModeChecklist(mode) {
+  const checklist = {
+    frontend_preview: ["Brief", "Website files", "Preview", "Frontend rules"],
+    code: ["Prompt", "Starter code", "Solution", "Output checks"],
+    multi_file_code: ["Prompt", "File tree", "Entrypoint", "Output checks"],
+    project: ["Brief", "Project files", "Acceptance tests", "Hints"],
+    quiz: ["Question set", "Options", "Answer key", "Pass score"],
+    theory: ["Lesson content", "Instructions", "XP reward", "Publish state"],
+  };
+  return checklist[mode] || checklist.code;
 }
 
 function getModeRecipe(mode) {
@@ -742,12 +782,19 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
     return tree.filter((track) => `${track.title || ""} ${track.description || ""}`.toLowerCase().includes(query));
   }, [tree, treeFilter]);
 
+  const selectedExercisePosition = useMemo(() => {
+    if (!selectedSection || !selectedExercise) return null;
+    const exercises = selectedSection.exercises || [];
+    const index = exercises.findIndex((exercise) => Number(exercise.id) === Number(selectedExercise.id));
+    return index >= 0 ? { position: index + 1, total: exercises.length } : null;
+  }, [selectedExercise, selectedSection]);
+
   const loadTree = useCallback(async (preferredNode = selectedNode) => {
     setLoadingTree(true);
     setError("");
     try {
       const payload = await getCurriculumTree();
-      const tracks = payload.tracks || [];
+      const tracks = normalizeCurriculumTree(payload.tracks || []);
       setTree(tracks);
       const nextNode = resolveNodeFromTree(tracks, preferredNode);
       setSelectedNode(nextNode);
@@ -841,6 +888,17 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
 
   function updateExercise(field, value) {
     setDraft((current) => ({ ...current, exercise: { ...current.exercise, [field]: value } }));
+  }
+
+  function updateExerciseTitle(value) {
+    setDraft((current) => ({
+      ...current,
+      exercise: {
+        ...current.exercise,
+        title: value,
+        slug: nextAutoSlug(current.exercise.slug, current.exercise.title, value),
+      },
+    }));
   }
 
   function updateMode(nextMode) {
@@ -1065,9 +1123,14 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
     setExerciseForm({
       ...EMPTY_EXERCISE_FORM,
       sectionId: section.id,
-      order: (section.exercises?.length || 0) + 1,
+      order: getNextExerciseOrder(section.id),
     });
     setDialog({ type: "exercise-create", sectionId: section.id });
+  }
+
+  function getNextExerciseOrder(sectionId) {
+    const section = (selectedTrack?.sections || []).find((item) => Number(item.id) === Number(sectionId));
+    return (section?.exercises?.length || 0) + 1;
   }
 
   function openDeleteTrackDialog() {
@@ -1205,7 +1268,7 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
         title,
         slug: exerciseForm.slug.trim() || slugify(title),
         mode: exerciseForm.mode,
-        order: Number(exerciseForm.order) || 1,
+        order: getNextExerciseOrder(sectionId),
         instructions_md: "<p>Describe the learner goal, examples, and checks.</p>",
         theory_content: exerciseForm.mode === "theory" ? "<p>Write the theory lesson here.</p>" : "",
         validation_config: defaultValidationConfig(exerciseForm.mode),
@@ -1446,24 +1509,41 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
       <main className="cs-screen cs-track-index">
         <header className="cs-index-hero">
           <div>
-            <span className="cs-kicker">Track-first command center</span>
+            <span className="cs-kicker">Curriculum operations</span>
             <h1>Curriculum Builder</h1>
-            <p>Start from tracks, move into sections, then open a mode-aware workbench only when an exercise needs editing.</p>
+            <p>Manage banners, sections, exercises, and release checks from one compact workspace.</p>
           </div>
           <button type="button" className="cs-btn cs-btn--primary" onClick={openCreateTrackDialog} disabled={!canManageContent}>
             <Plus size={15} /> Create Track
           </button>
         </header>
 
-        <section className="cs-index-toolbar">
-          <label className="cs-global-search">
-            <Search size={16} />
-            <input value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Search available tracks" />
-          </label>
+        <section className="cs-index-toolbar" aria-label="Curriculum filters and totals">
+          <div className="cs-index-toolbar__search">
+            <div className="cs-global-search" role="search">
+              <Search size={16} />
+              <input aria-label="Search available tracks" value={treeFilter} onChange={(event) => setTreeFilter(event.target.value)} placeholder="Search available tracks" />
+              {treeFilter && (
+                <button type="button" onClick={() => setTreeFilter("")} aria-label="Clear track search">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            <span className="cs-search-meta">{filteredTracks.length} shown</span>
+          </div>
           <div className="cs-stats-strip">
-            <div><strong>{curriculumTotals.tracks}</strong><span>Tracks</span></div>
-            <div><strong>{curriculumTotals.sections}</strong><span>Sections</span></div>
-            <div><strong>{curriculumTotals.publishedTracks}</strong><span>Live</span></div>
+            <div className="cs-stat-card">
+              <span className="cs-stat-card__icon"><Layers3 size={15} /></span>
+              <span className="cs-stat-card__copy"><strong>{curriculumTotals.tracks}</strong><small>Tracks</small></span>
+            </div>
+            <div className="cs-stat-card">
+              <span className="cs-stat-card__icon"><BookOpen size={15} /></span>
+              <span className="cs-stat-card__copy"><strong>{curriculumTotals.sections}</strong><small>Sections</small></span>
+            </div>
+            <div className="cs-stat-card">
+              <span className="cs-stat-card__icon cs-stat-card__icon--live"><CheckCircle2 size={15} /></span>
+              <span className="cs-stat-card__copy"><strong>{curriculumTotals.publishedTracks}</strong><small>Live</small></span>
+            </div>
           </div>
         </section>
 
@@ -1488,7 +1568,10 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
                       <StatusPill live={track.is_published}>{track.is_published ? "Live" : "Draft"}</StatusPill>
                     </span>
                     <span>{track.description || "No description added yet."}</span>
-                    <small>{sections.length} sections / {exerciseCount} exercises</small>
+                    <span className="cs-track-tile__meta">
+                      <small>{sections.length} sections</small>
+                      <small>{exerciseCount} exercises</small>
+                    </span>
                   </span>
                   <ChevronRight size={18} />
                 </button>
@@ -1511,7 +1594,7 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
       <main className="cs-screen cs-track-workspace">
         <header
           className={`cs-track-hero ${selectedTrack.featured_image_url ? "has-image" : ""}`}
-          style={selectedTrack.featured_image_url ? { backgroundImage: `linear-gradient(90deg, rgba(11, 18, 32, 0.88), rgba(11, 18, 32, 0.4)), url(${selectedTrack.featured_image_url})` } : undefined}
+          style={selectedTrack.featured_image_url ? { backgroundImage: `linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.84)), url(${selectedTrack.featured_image_url})` } : undefined}
         >
           <div>
             <nav className="cs-breadcrumb" aria-label="Breadcrumb">
@@ -1759,18 +1842,35 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
       "delete-section": "Delete Section",
       "delete-exercise": "Delete Exercise",
     }[dialog.type] || "Studio";
+    const scope = {
+      "track-create": "Track",
+      "track-edit": "Track",
+      "section-create": "Section",
+      "section-edit": "Section",
+      "exercise-create": "Exercise",
+      "delete-track": "Danger",
+      "delete-section": "Danger",
+      "delete-exercise": "Danger",
+    }[dialog.type] || "Studio";
+    const HeaderIcon = dialog.type?.startsWith("delete-") ? AlertCircle : Settings2;
 
     return (
       <div className="cs-modal-backdrop" role="presentation" onMouseDown={(event) => {
         if (event.target === event.currentTarget) closeDialog();
       }}>
-        <section className="cs-modal" role="dialog" aria-modal="true" aria-label={title}>
+        <section className={`cs-modal ${dialog.type?.startsWith("delete-") ? "cs-modal--danger" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
           <header className="cs-modal__head">
-            <div>
-              <span>Builder Console</span>
-              <h2>{title}</h2>
+            <div className="cs-modal__title">
+              <span className="cs-modal__mark"><HeaderIcon size={17} /></span>
+              <div className="cs-modal__copy">
+                <span>Builder Console</span>
+                <h2>{title}</h2>
+              </div>
             </div>
-            <button type="button" className="cs-icon-btn" onClick={closeDialog} title="Close"><X size={16} /></button>
+            <div className="cs-modal__head-actions">
+              <span className={`cs-modal__scope ${scope === "Danger" ? "is-danger" : ""}`}>{scope}</span>
+              <button type="button" className="cs-icon-btn" onClick={closeDialog} title="Close"><X size={16} /></button>
+            </div>
           </header>
           {(dialog.type === "track-create" || dialog.type === "track-edit") && renderTrackDialogForm()}
           {(dialog.type === "section-create" || dialog.type === "section-edit") && renderSectionDialogForm()}
@@ -1811,15 +1911,15 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
     return (
       <form className="cs-modal__body" onSubmit={handleSubmitTrackForm}>
         <div className="cs-form-grid">
-          <label>Track title<input value={trackForm.title} onChange={(event) => setTrackForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></label>
+          <label>Track title<input value={trackForm.title} onChange={(event) => setTrackForm((current) => ({ ...current, title: event.target.value, slug: nextAutoSlug(current.slug, current.title, event.target.value) }))} autoFocus /></label>
           <label>Slug<input value={trackForm.slug} onChange={(event) => setTrackForm((current) => ({ ...current, slug: event.target.value }))} placeholder={slugify(trackForm.title)} /></label>
           <label>Language<select value={trackForm.language_id} onChange={(event) => setTrackForm((current) => ({ ...current, language_id: Number(event.target.value) }))}>{LANGUAGE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
           <label className="cs-toggle"><input type="checkbox" checked={trackForm.is_published} disabled={!canPublishDelete} onChange={(event) => setTrackForm((current) => ({ ...current, is_published: event.target.checked }))} /> Published track</label>
           <label className="cs-field-full">Description<textarea value={trackForm.description} onChange={(event) => setTrackForm((current) => ({ ...current, description: event.target.value }))} rows={5} /></label>
-          <label className="cs-field-full">Featured image URL<input value={trackForm.featured_image_url} onChange={(event) => setTrackForm((current) => ({ ...current, featured_image_url: event.target.value }))} /></label>
+          <label className="cs-field-full">Banner image URL <small>Recommended 1600 x 420 px, JPG/PNG/WebP</small><input value={trackForm.featured_image_url} onChange={(event) => setTrackForm((current) => ({ ...current, featured_image_url: event.target.value }))} placeholder="https://.../track-banner.webp" /></label>
         </div>
         <div className="cs-modal-preview">
-          {trackForm.featured_image_url ? <img src={trackForm.featured_image_url} alt="" /> : <div><Image size={24} /><span>No featured image selected</span></div>}
+          {trackForm.featured_image_url ? <img src={trackForm.featured_image_url} alt="" /> : <div><Image size={24} /><span>No banner selected<br />Use 1600 x 420 px</span></div>}
           <div className="cs-inline-actions">
             <button type="button" className="cs-btn cs-btn--ghost" onClick={() => setMediaTarget("track-form")}><Upload size={14} /> Pick image</button>
             {trackForm.featured_image_url && <button type="button" className="cs-btn cs-btn--danger" onClick={() => setTrackForm((current) => ({ ...current, featured_image_url: "" }))}><Trash2 size={14} /> Remove</button>}
@@ -1837,7 +1937,7 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
     return (
       <form className="cs-modal__body" onSubmit={handleSubmitSectionForm}>
         <div className="cs-form-grid">
-          <label>Section title<input value={sectionForm.title} onChange={(event) => setSectionForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></label>
+          <label>Section title<input value={sectionForm.title} onChange={(event) => setSectionForm((current) => ({ ...current, title: event.target.value, slug: nextAutoSlug(current.slug, current.title, event.target.value) }))} autoFocus /></label>
           <label>Slug<input value={sectionForm.slug} onChange={(event) => setSectionForm((current) => ({ ...current, slug: event.target.value }))} placeholder={slugify(sectionForm.title)} /></label>
           <label className="cs-field-full">Completion badge URL<input value={sectionForm.badge_url} onChange={(event) => setSectionForm((current) => ({ ...current, badge_url: event.target.value }))} /></label>
         </div>
@@ -1863,10 +1963,13 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
           <span>The exercise will open in the correct studio view after it is created.</span>
         </div>
         <div className="cs-form-grid">
-          <label>Exercise title<input value={exerciseForm.title} onChange={(event) => setExerciseForm((current) => ({ ...current, title: event.target.value }))} autoFocus /></label>
+          <label>Exercise title<input value={exerciseForm.title} onChange={(event) => setExerciseForm((current) => ({ ...current, title: event.target.value, slug: nextAutoSlug(current.slug, current.title, event.target.value) }))} autoFocus /></label>
           <label>Slug<input value={exerciseForm.slug} onChange={(event) => setExerciseForm((current) => ({ ...current, slug: event.target.value }))} placeholder={slugify(exerciseForm.title)} /></label>
           <label>Mode<select value={exerciseForm.mode} onChange={(event) => setExerciseForm((current) => ({ ...current, mode: event.target.value }))}>{MODE_OPTIONS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label>Order<input type="number" value={exerciseForm.order} onChange={(event) => setExerciseForm((current) => ({ ...current, order: Number(event.target.value) || 1 }))} /></label>
+          <div className="cs-auto-order-card">
+            <strong>Auto order</strong>
+            <span>New exercise will be #{getNextExerciseOrder(exerciseForm.sectionId || dialog?.sectionId)} in this section.</span>
+          </div>
         </div>
         <div className="cs-mode-preview">
           {(EXERCISE_MODE_CONFIG[exerciseForm.mode]?.tabs || EXERCISE_MODE_CONFIG.code.tabs).map((tab) => <span key={tab.key}>{tab.label}</span>)}
@@ -1886,16 +1989,23 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
       <section className="cs-workbench">
         <aside className="cs-step-rail" aria-label={`${modeMeta.label} workflow`}>
           <div className="cs-step-rail__head">
-            <span>Mode flow</span>
+            <span>Build flow</span>
             <strong>{modeMeta.label}</strong>
           </div>
           {availableTabs.map(({ key, label, icon: Icon }, index) => (
-            <button key={key} type="button" className={`cs-step-card ${activeTab === key ? "is-active" : ""}`} onClick={() => setActiveTab(key)}>
+            <button
+              key={key}
+              type="button"
+              className={`cs-step-card ${activeTab === key ? "is-active" : ""}`}
+              onClick={() => setActiveTab(key)}
+            >
               <span className="cs-step-card__number">{index + 1}</span>
               <Icon size={15} />
               <span>
                 <strong>{label}</strong>
-                <small>{getStageSummary(key, mode)}</small>
+              </span>
+              <span className="cs-help-trigger cs-step-help" data-tooltip={getStageSummary(key, mode)} aria-label={getStageSummary(key, mode)}>
+                <HelpCircle size={14} />
               </span>
             </button>
           ))}
@@ -1904,8 +2014,8 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
         <article className="cs-stage-surface">
           <header className="cs-stage-header">
             <div>
-              <span>{modeMeta.label} stage</span>
-              <h2><ActiveIcon size={18} /> {activeStage?.label || "Setup"}</h2>
+              <span>{modeMeta.label} step</span>
+              <h2><ActiveIcon size={18} /> {activeStage?.label || "Basics"}</h2>
               <p>{getStageSummary(activeStage?.key, mode)}</p>
             </div>
             <StatusPill ready={!draftIssues.length}>{draftIssues.length ? `${draftIssues.length} checks` : "Clean"}</StatusPill>
@@ -1925,29 +2035,104 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
   }
 
   function renderExerciseOverview() {
-    return (
-      <div className="cs-form-stack">
-        <div className="cs-mode-grid">
-          {MODE_OPTIONS.map((item) => (
-            <button type="button" key={item.value} className={mode === item.value ? "is-active" : ""} onClick={() => updateMode(item.value)}>
-              <Code2 size={15} />
-              <strong>{item.label}</strong>
-              <span>{item.description}</span>
-            </button>
-          ))}
-        </div>
+    const showPassingScore = TESTED_CODE_MODES.has(mode);
+    const showAttempts = CODE_MODES.has(mode);
+    const showAutoSubmit = CODE_MODES.has(mode);
+    const modeChecklist = getModeChecklist(mode);
 
-        <div className="cs-form-grid">
-          <label>Exercise title<input value={draft.exercise.title} onChange={(event) => updateExercise("title", event.target.value)} /></label>
-          <label>Slug<input value={draft.exercise.slug} onChange={(event) => updateExercise("slug", event.target.value)} placeholder={slugify(draft.exercise.title)} /></label>
-          <label>Order<input type="number" value={draft.exercise.order} onChange={(event) => updateExercise("order", Number(event.target.value) || 1)} /></label>
-          <label>Unlock rule<select value={draft.exercise.unlock_rule} onChange={(event) => updateExercise("unlock_rule", event.target.value)}><option value="previous_completed">Previous completed</option><option value="always">Always unlocked</option><option value="manual">Manual review</option></select></label>
-          <label>XP reward<input type="number" value={draft.exercise.xp_reward} onChange={(event) => updateExercise("xp_reward", Number(event.target.value) || 0)} /></label>
-          <label>Passing score<input type="number" value={draft.exercise.passing_score_pct} onChange={(event) => updateExercise("passing_score_pct", Number(event.target.value) || 70)} /></label>
-          <label>Attempts allowed<input type="number" value={draft.exercise.attempts_allowed || ""} onChange={(event) => updateExercise("attempts_allowed", event.target.value ? Number(event.target.value) : null)} placeholder="Unlimited" /></label>
-          <label className="cs-toggle"><input type="checkbox" checked={draft.exercise.is_published} disabled={!canPublishDelete} onChange={(event) => updateExercise("is_published", event.target.checked)} /> Published exercise</label>
-          <label className="cs-toggle"><input type="checkbox" checked={draft.exercise.auto_submit_on_pass} onChange={(event) => updateExercise("auto_submit_on_pass", event.target.checked)} /> Auto-submit after passing checks</label>
-        </div>
+    return (
+      <div className="cs-overview-layout">
+        <section className="cs-setup-panel cs-setup-panel--modes">
+          <div className="cs-section-title">
+            <div>
+              <span>Exercise type</span>
+              <h2>Choose the editor shape</h2>
+            </div>
+          </div>
+          <div className="cs-mode-grid">
+            {MODE_OPTIONS.map((item) => (
+              <button type="button" key={item.value} className={mode === item.value ? "is-active" : ""} onClick={() => updateMode(item.value)}>
+                <item.icon size={16} />
+                <strong>{item.label}</strong>
+                <span className="cs-help-trigger" data-tooltip={item.description} aria-label={item.description}>
+                  <HelpCircle size={14} />
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <aside className="cs-setup-summary">
+          <span className="cs-mode-kicker">{modeMeta.label}</span>
+          <h3>{modeMeta.description}</h3>
+          <div className="cs-setup-checklist">
+            {modeChecklist.map((item) => (
+              <span key={item}><Check size={13} /> {item}</span>
+            ))}
+          </div>
+          {draftIssues.length > 0 ? (
+            <div className="cs-setup-alert">
+              <AlertCircle size={15} />
+              <span>{draftIssues.length} item{draftIssues.length === 1 ? "" : "s"} need attention before release.</span>
+            </div>
+          ) : (
+            <div className="cs-setup-alert is-clean">
+              <CheckCircle2 size={15} />
+              <span>Basics are clean for this mode.</span>
+            </div>
+          )}
+        </aside>
+
+        <section className="cs-setup-panel">
+          <div className="cs-section-title">
+            <div>
+              <span>Identity</span>
+              <h2>Name and sequence</h2>
+            </div>
+          </div>
+          <div className="cs-form-grid">
+            <label>Exercise title<input value={draft.exercise.title} onChange={(event) => updateExerciseTitle(event.target.value)} /></label>
+            <label>Slug<input value={draft.exercise.slug} onChange={(event) => updateExercise("slug", event.target.value)} placeholder={slugify(draft.exercise.title)} /></label>
+            <div className="cs-auto-order-card" aria-label="Automatic exercise order">
+              <strong>Auto order</strong>
+              <span>
+                {selectedExercisePosition
+                  ? `Exercise ${selectedExercisePosition.position} of ${selectedExercisePosition.total}`
+                  : "Sequence is managed from the section list"}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <section className="cs-setup-panel">
+          <div className="cs-section-title">
+            <div>
+              <span>Access</span>
+              <h2>Unlock and reward</h2>
+            </div>
+          </div>
+          <div className="cs-form-grid">
+            <label>Unlock rule<select value={draft.exercise.unlock_rule} onChange={(event) => updateExercise("unlock_rule", event.target.value)}><option value="previous_completed">Previous completed</option><option value="always">Always unlocked</option><option value="manual">Manual review</option></select></label>
+            <label>XP reward<input type="number" value={draft.exercise.xp_reward} onChange={(event) => updateExercise("xp_reward", Number(event.target.value) || 0)} /></label>
+            <label className="cs-toggle"><input type="checkbox" checked={draft.exercise.is_published} disabled={!canPublishDelete} onChange={(event) => updateExercise("is_published", event.target.checked)} /> Published exercise</label>
+          </div>
+        </section>
+
+        {(showPassingScore || showAttempts || showAutoSubmit) && (
+          <section className="cs-setup-panel">
+            <div className="cs-section-title">
+              <div>
+                <span>Evaluation</span>
+                <h2>{mode === "frontend_preview" ? "Preview rule behavior" : "Check behavior"}</h2>
+              </div>
+            </div>
+            <div className="cs-form-grid">
+              {showPassingScore && <label>Passing score<input type="number" value={draft.exercise.passing_score_pct} onChange={(event) => updateExercise("passing_score_pct", Number(event.target.value) || 70)} /></label>}
+              {showAttempts && <label>Attempts allowed<input type="number" value={draft.exercise.attempts_allowed || ""} onChange={(event) => updateExercise("attempts_allowed", event.target.value ? Number(event.target.value) : null)} placeholder="Unlimited" /></label>}
+              {showAutoSubmit && <label className="cs-toggle"><input type="checkbox" checked={draft.exercise.auto_submit_on_pass} onChange={(event) => updateExercise("auto_submit_on_pass", event.target.checked)} /> Auto-submit after passing checks</label>}
+            </div>
+          </section>
+        )}
       </div>
     );
   }

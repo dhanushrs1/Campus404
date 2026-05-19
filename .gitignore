@@ -25,7 +25,10 @@ api/.venv/
 Thumbs.db
 
 # Local service data
-api/*.db
+*.db
 mysql_data/
 judge_redis_data/
 judge_postgres_data/
+
+# Local Docker dev overrides (never push to production)
+docker-compose.override.yml

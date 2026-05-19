@@ -315,6 +315,76 @@ async def _close_sequence_gap(
     await db.execute(statement.values({sequence_column.key: sequence_column - 1}))
 
 
+async def _delete_track_graph(db: AsyncSession, track_id: int) -> None:
+    section_ids = list(
+        (await db.scalars(select(models.Section.id).where(models.Section.track_id == track_id))).all()
+    )
+    exercise_ids: list[int] = []
+    task_ids: list[int] = []
+    question_ids: list[int] = []
+
+    if section_ids:
+        exercise_ids = list(
+            (
+                await db.scalars(
+                    select(models.Exercise.id).where(models.Exercise.section_id.in_(section_ids))
+                )
+            ).all()
+        )
+
+    if exercise_ids:
+        task_ids = list(
+            (
+                await db.scalars(
+                    select(models.Task.id).where(models.Task.exercise_id.in_(exercise_ids))
+                )
+            ).all()
+        )
+        question_ids = list(
+            (
+                await db.scalars(
+                    select(models.QuizQuestion.id).where(models.QuizQuestion.exercise_id.in_(exercise_ids))
+                )
+            ).all()
+        )
+
+    if task_ids:
+        await db.execute(delete(models.UserTaskProgress).where(models.UserTaskProgress.task_id.in_(task_ids)))
+
+    if exercise_ids:
+        await db.execute(delete(models.ExerciseAttempt).where(models.ExerciseAttempt.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.QuizAttempt).where(models.QuizAttempt.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.UserExerciseProgress).where(models.UserExerciseProgress.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.XpEvent).where(models.XpEvent.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.UserTrackProgress).where(models.UserTrackProgress.last_exercise_id.in_(exercise_ids)))
+
+    if section_ids:
+        await db.execute(delete(models.UserSectionProgress).where(models.UserSectionProgress.section_id.in_(section_ids)))
+        await db.execute(delete(models.UserBadge).where(models.UserBadge.section_id.in_(section_ids)))
+        await db.execute(delete(models.XpEvent).where(models.XpEvent.section_id.in_(section_ids)))
+
+    await db.execute(delete(models.ExerciseAttempt).where(models.ExerciseAttempt.track_id == track_id))
+    await db.execute(delete(models.QuizAttempt).where(models.QuizAttempt.track_id == track_id))
+    await db.execute(delete(models.UserExerciseProgress).where(models.UserExerciseProgress.track_id == track_id))
+    await db.execute(delete(models.UserSectionProgress).where(models.UserSectionProgress.track_id == track_id))
+    await db.execute(delete(models.UserTrackProgress).where(models.UserTrackProgress.track_id == track_id))
+    await db.execute(delete(models.UserBadge).where(models.UserBadge.track_id == track_id))
+    await db.execute(delete(models.XpEvent).where(models.XpEvent.track_id == track_id))
+
+    if question_ids:
+        await db.execute(delete(models.QuizOption).where(models.QuizOption.question_id.in_(question_ids)))
+    if exercise_ids:
+        await db.execute(delete(models.QuizQuestion).where(models.QuizQuestion.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.Hint).where(models.Hint.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.ExerciseTestCase).where(models.ExerciseTestCase.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.ExerciseFile).where(models.ExerciseFile.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.Task).where(models.Task.exercise_id.in_(exercise_ids)))
+        await db.execute(delete(models.Exercise).where(models.Exercise.id.in_(exercise_ids)))
+    if section_ids:
+        await db.execute(delete(models.Section).where(models.Section.id.in_(section_ids)))
+    await db.execute(delete(models.Track).where(models.Track.id == track_id))
+
+
 def _validate_unique_ids(item_ids: list[int]) -> None:
     if len(set(item_ids)) != len(item_ids):
         raise HTTPException(
@@ -436,6 +506,8 @@ def _exercise_publish_issues(
     mode = _normalize_mode(exercise.mode)
     issues: list[schemas.AdminPublishIssue] = []
 
+    ex_name = f"'{exercise.title}'" if str(exercise.title or "").strip() else f"Untitled Exercise (ID {exercise.id})"
+
     def add(message: str, severity: str = "error") -> None:
         issues.append(
             schemas.AdminPublishIssue(
@@ -449,48 +521,48 @@ def _exercise_publish_issues(
         )
 
     if not str(exercise.title or "").strip():
-        add("Exercise title is required.")
+        add(f"Exercise title is required for {ex_name}.")
     if int(exercise.xp_reward or 0) < 0:
-        add("XP reward cannot be negative.")
+        add(f"XP reward cannot be negative in {ex_name}.")
 
     has_instruction = bool(str(exercise.instructions_md or exercise.theory_content or "").strip())
     if not has_instruction:
-        add("Add learner instructions or theory content.")
+        add(f"Add learner instructions or theory content for {ex_name}.")
 
     if mode in {"code", "multi_file_code", "frontend_preview", "project"}:
         files = list(exercise.files or [])
         entry_file = _entry_file_from_exercise(exercise)
         if not files:
-            add("Add at least one workspace file.")
+            add(f"Add at least one workspace file for {ex_name}.")
         elif not any(file.is_entrypoint for file in files):
-            add("Choose an entrypoint file.")
+            add(f"Choose an entrypoint file for {ex_name}.")
         if mode != "frontend_preview":
             if not str(entry_file.starter_code if entry_file else "").strip():
-                add("Add starter or broken code for the entry file.")
+                add(f"Add starter or broken code for the entry file in {ex_name}.")
             if not str(entry_file.solution_code if entry_file else "").strip():
-                add("Add solution code for validation.")
+                add(f"Add solution code for validation in {ex_name}.")
             if not _has_meaningful_test_cases(exercise):
-                add("Add at least one test case with a non-empty accepted output.")
+                add(f"Add at least one test case with a non-empty accepted output for {ex_name}.")
 
     if mode == "frontend_preview":
         config = exercise.validation_config or {}
         if not _has_frontend_acceptance_rules(config):
-            add("Add frontend preview acceptance rules.")
+            add(f"Add frontend preview acceptance rules for {ex_name}.")
 
     if mode == "quiz":
         questions = list(exercise.quiz_questions or [])
         if not questions:
-            add("Add quiz questions.")
+            add(f"Add quiz questions to {ex_name}.")
         for question in questions:
             options = list(question.options or [])
             if not str(question.question_text or "").strip():
-                add(f"Question {question.order or question.id} needs question text.")
+                add(f"Question {question.order or question.id} needs question text in {ex_name}.")
             if len(options) < 2:
-                add(f"Question {question.order or question.id} needs at least two options.")
+                add(f"Question {question.order or question.id} needs at least two options in {ex_name}.")
             if any(not str(option.option_text or "").strip() for option in options):
-                add(f"Question {question.order or question.id} has an empty option.")
+                add(f"Question {question.order or question.id} has an empty option in {ex_name}.")
             if sum(1 for option in options if option.is_correct) != 1:
-                add(f"Question {question.order or question.id} needs a correct option.")
+                add(f"Question {question.order or question.id} must have exactly one correct option in {ex_name}.")
 
     if mode == "theory" and not str(exercise.theory_content or exercise.instructions_md or "").strip():
         add("Theory lessons need lesson content.")
@@ -665,12 +737,12 @@ async def delete_track(
     admin: User = Depends(get_current_admin),
 ) -> Response:
     _require_platform_admin(admin)
-    item = await db.scalar(select(models.Track).where(models.Track.id == track_id))
-    if not item:
+    track_order = await db.scalar(select(models.Track.order).where(models.Track.id == track_id))
+    if track_order is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
 
-    removed_order = int(item.order)
-    await db.delete(item)
+    removed_order = int(track_order)
+    await _delete_track_graph(db, track_id)
     await _close_sequence_gap(db, models.Track, models.Track.order, removed_order, [])
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -2569,6 +2641,9 @@ async def check_track_publish_ready(
             .selectinload(models.Exercise.test_cases),
             selectinload(models.Track.sections)
             .selectinload(models.Section.exercises)
+            .selectinload(models.Exercise.tasks),
+            selectinload(models.Track.sections)
+            .selectinload(models.Section.exercises)
             .selectinload(models.Exercise.hints),
             selectinload(models.Track.sections)
             .selectinload(models.Section.exercises)
@@ -2594,13 +2669,14 @@ async def check_track_publish_ready(
     test_count = 0
     for section in _ordered(list(track.sections or [])):
         section_count += 1
+        sec_name = f"'{section.title}'" if str(section.title or "").strip() else f"Untitled Section (ID {section.id})"
         if not str(section.title or "").strip():
             issues.append(
-                schemas.AdminPublishIssue(scope="section", track_id=track_id, section_id=int(section.id), message="Section title is required.")
+                schemas.AdminPublishIssue(scope="section", track_id=track_id, section_id=int(section.id), message=f"Section title is required for {sec_name}.")
             )
         if not section.exercises:
             issues.append(
-                schemas.AdminPublishIssue(scope="section", track_id=track_id, section_id=int(section.id), message="Add at least one exercise.")
+                schemas.AdminPublishIssue(scope="section", track_id=track_id, section_id=int(section.id), message=f"Add at least one exercise to {sec_name}.")
             )
         for exercise in _ordered(list(section.exercises or [])):
             exercise_count += 1

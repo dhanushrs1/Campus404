@@ -9,10 +9,16 @@ function getAuthHeaders() {
 }
 
 async function request(endpoint, options = {}) {
-  const res = await fetch(apiUrl(endpoint), {
-    ...options,
-    headers: { ...getAuthHeaders(), ...options.headers },
-  });
+  let res;
+  const maxAttempts = options.method && options.method !== "GET" ? 1 : 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    res = await fetch(apiUrl(endpoint), {
+      ...options,
+      headers: { ...getAuthHeaders(), ...options.headers },
+    });
+    if (!res || ![502, 503, 504].includes(res.status) || attempt === maxAttempts) break;
+    await new Promise((resolve) => window.setTimeout(resolve, attempt * 450));
+  }
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
     try {

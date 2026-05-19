@@ -1,17 +1,27 @@
 services:
+  api:
+    # Local development only:
+    # mount Python source and run Uvicorn with reload so API edits do not
+    # require rebuilding the service image after every backend change.
+    command: sh -c "alembic upgrade head && uvicorn main:app --reload --reload-dir /app/auth --reload-dir /app/contact --reload-dir /app/curriculum --reload-dir /app/media --host 0.0.0.0 --port 8000"
+    volumes:
+      - ./api:/app
+      - ./api/uploads:/app/uploads
+    environment:
+      WATCHFILES_FORCE_POLLING: "true"
+
   client:
-    # Stop at the 'build' stage of the Dockerfile so we have a Node.js environment
+    # Local development only:
+    # run Vite inside Docker so source edits update through HMR without
+    # rebuilding the production Nginx image after every frontend change.
     build:
       context: ./client
       target: build
-    
-    # Run the Vite development server for live-reloading
     command: npm run dev -- --host 0.0.0.0 --port 80
-    
-    # Map the local code into the container for instant updates
     volumes:
       - ./client:/app
       - /app/node_modules
-    
     environment:
-      - CHOKIDAR_USEPOLLING=true
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_PROXY_TARGET: "http://api:8000"
+      WATCHPACK_POLLING: "true"

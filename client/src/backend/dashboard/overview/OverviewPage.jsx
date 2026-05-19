@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Award,
@@ -14,6 +14,7 @@ import {
   Trophy,
   User,
   Users,
+  HelpCircle
 } from "lucide-react";
 import {
   Area,
@@ -28,24 +29,25 @@ import {
 } from "recharts";
 import { apiUrl } from "../../../shared/api.js";
 import { ASSETS } from "../../../shared/assets.js";
-import { EmptyState, IconBubble, TrendPill } from "../../shared/AdminWidgets.jsx";
+import { EmptyState, IconBubble } from "../../shared/AdminWidgets.jsx";
 import {
   clampNumber,
   formatNumber,
   formatRelativeTime,
-  formatShortDate,
   percentChange,
   percentOf,
   prettyStatus,
-  statusTone,
   toNumber,
 } from "../adminUtils.js";
+import "./OverviewPage.css";
+
+// ... existing helper functions and chart components ...
 
 const TONE_COLORS = {
-  blue: "#1f62ff",
-  indigo: "#5b5dff",
-  amber: "#d97706",
-  green: "#18a96f",
+  blue: "#3b82f6",
+  indigo: "#6366f1",
+  amber: "#f59e0b",
+  green: "#10b981",
 };
 
 function displayNameFromUsername(username) {
@@ -54,41 +56,38 @@ function displayNameFromUsername(username) {
   return cleaned
     .split(/[._-\s]+/)
     .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
 
 function normalizeVisitDay(day) {
   return {
     date: day?.date,
-    label: formatShortDate(day?.date),
+    label: new Date(day?.date).toLocaleDateString(undefined, { month: '"short"', day: '"numeric"' }) || '"?"',
     unique_visits: toNumber(day?.unique_visits ?? day?.visits ?? day?.sessions),
   };
 }
 
 function KpiSparkChart({ data, dataKey, tone = "blue" }) {
   const hasData = Array.isArray(data) && data.length > 1;
-  if (!hasData) {
-    return <div className="ao-kpi-card__empty-line" aria-hidden="true" />;
-  }
+  if (!hasData) return null;
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 8, right: 2, left: 2, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
         <defs>
-          <linearGradient id={`ao-kpi-${tone}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={TONE_COLORS[tone] || TONE_COLORS.blue} stopOpacity={0.26} />
-            <stop offset="100%" stopColor={TONE_COLORS[tone] || TONE_COLORS.blue} stopOpacity={0.02} />
+          <linearGradient id={"spark-"} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={TONE_COLORS[tone] || TONE_COLORS.blue} stopOpacity={0.2} />
+            <stop offset="95%" stopColor={TONE_COLORS[tone] || TONE_COLORS.blue} stopOpacity={0} />
           </linearGradient>
         </defs>
         <Area
           type="monotone"
           dataKey={dataKey}
           stroke={TONE_COLORS[tone] || TONE_COLORS.blue}
-          strokeWidth={3}
-          fill={`url(#ao-kpi-${tone})`}
+          strokeWidth={2}
+          fill={"url(#spark-)"}
           dot={false}
-          isAnimationActive
         />
       </AreaChart>
     </ResponsiveContainer>
@@ -97,11 +96,9 @@ function KpiSparkChart({ data, dataKey, tone = "blue" }) {
 
 function VisitTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
-  const visits = payload[0]?.value ?? 0;
   return (
-    <div className="ao-recharts-tooltip">
-      <strong>{label}</strong>
-      <span>{formatNumber(visits)} unique visits</span>
+    <div style={{ background: '"#1e293b"', color: '"white"', padding: '"8px 12px"', borderRadius: '"8px"', fontSize: '"0.875rem"' }}>
+      <strong>{label}</strong>: {formatNumber(payload[0]?.value ?? 0)} visits
     </div>
   );
 }
@@ -111,23 +108,22 @@ function DailyVisitsChart({ data }) {
 
   if (!data.length || !hasVisits) {
     return (
-      <div className="ao-visit-chart-empty">
-        <EmptyState icon={Globe2} title="No visits recorded yet">
-          Public-site visits will appear here after the new analytics endpoint receives traffic.
-        </EmptyState>
+      <div className="overview-empty">
+        <Globe2 size={32} />
+        <p>No visits recorded yet</p>
       </div>
     );
   }
 
   return (
-    <div className="ao-visit-chart">
+    <div style={{ height: '"300px"', marginTop: '"20px"' }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 18, right: 12, left: -8, bottom: 4 }}>
-          <CartesianGrid stroke="#e4edf8" strokeDasharray="4 7" vertical={false} />
-          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#607294", fontSize: 12, fontWeight: 800 }} />
-          <YAxis axisLine={false} tickLine={false} tick={{ fill: "#607294", fontSize: 12, fontWeight: 800 }} allowDecimals={false} />
-          <Tooltip content={<VisitTooltip />} cursor={{ fill: "rgba(31, 98, 255, 0.08)" }} />
-          <Bar dataKey="unique_visits" name="Unique visits" radius={[8, 8, 3, 3]} fill="#1f62ff" />
+        <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '"#94a3b8"', fontSize: 12 }} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fill: '"#94a3b8"', fontSize: 12 }} allowDecimals={false} />
+          <Tooltip content={<VisitTooltip />} cursor={{ fill: '"#f8fafc"' }} />
+          <Bar dataKey="unique_visits" name="Unique visits" radius={[4, 4, 0, 0]} fill="#3b82f6" />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -145,9 +141,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
     async function requestJson(path) {
       const token = localStorage.getItem("campus404_token");
       const response = await fetch(apiUrl(path), {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { ...(token ? { Authorization: "Bearer ${token}" } : {}) },
       });
 
       if (response.status === 401) {
@@ -156,9 +150,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
       }
 
       const payload = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(payload?.detail || `Unable to load ${path} (${response.status}).`);
-      }
+      if (!response.ok) throw new Error(payload?.detail || "Unable to load ${path}");
       return payload;
     }
 
@@ -174,382 +166,177 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
       if (statsResult.status === "fulfilled") setStats(statsResult.value);
       if (healthResult.status === "fulfilled") setHealth(healthResult.value);
 
-      const failures = [statsResult, healthResult].filter((result) => result.status === "rejected");
-      if (failures.length === 2) {
-        setError(failures[0].reason?.message || "Unable to load admin dashboard.");
+      if (statsResult.status === "rejected" && healthResult.status === "rejected") {
+        setError("Unable to load admin dashboard.");
       }
     }
 
     void loadDashboard();
-    return () => {
-      disposed = true;
-    };
+    return () => { disposed = true; };
   }, [onSessionExpired]);
 
   const dashboardStats = stats || {};
   const dashboardHealth = health || {};
   const activity = Array.isArray(dashboardStats.activity_by_day) ? dashboardStats.activity_by_day : [];
+  
   const visitActivity = useMemo(() => {
     const source = Array.isArray(dashboardStats.visit_activity_by_day) && dashboardStats.visit_activity_by_day.length
       ? dashboardStats.visit_activity_by_day
       : activity;
     return source.map(normalizeVisitDay);
   }, [activity, dashboardStats.visit_activity_by_day]);
+
   const attempts = Array.isArray(dashboardHealth.recent_attempts) ? dashboardHealth.recent_attempts : [];
   const topLearners = Array.isArray(dashboardStats.top_learners) ? dashboardStats.top_learners : [];
-  const recentUsers = Array.isArray(dashboardStats.recent_users) ? dashboardStats.recent_users : [];
   const trackPerformance = Array.isArray(dashboardStats.track_performance) ? dashboardStats.track_performance : [];
-  const topEntryPaths = Array.isArray(dashboardStats.top_entry_paths) ? dashboardStats.top_entry_paths : [];
-  const today = activity[activity.length - 1] || {};
-  const yesterday = activity[activity.length - 2] || {};
+
   const todayVisits = visitActivity[visitActivity.length - 1]?.unique_visits ?? toNumber(dashboardStats.unique_visits_24h);
-  const yesterdayVisits = visitActivity[visitActivity.length - 2]?.unique_visits ?? 0;
-  const visitTotal7d = visitActivity.reduce((total, day) => total + toNumber(day.unique_visits), 0);
-  const bestVisitDay = visitActivity.reduce(
-    (best, day) => (toNumber(day.unique_visits) > toNumber(best.unique_visits) ? day : best),
-    { label: "No day", unique_visits: 0 },
-  );
-  const contentReadiness = percentOf(dashboardStats.published_exercises, dashboardStats.total_exercises);
-  const engagementRate = percentOf(dashboardStats.active_users_24h, dashboardStats.total_users);
-  const reviewQueueCount = toNumber(dashboardStats.pending_content) + toNumber(dashboardStats.failed_attempts_last_24h);
+  
   const adminName = displayNameFromUsername(username);
   const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
-  const topEntryLabel = topEntryPaths[0]?.path ? `Top entry ${topEntryPaths[0].path}` : "No entry paths yet";
-  const learnerAvatars = [
-    ASSETS.avatars.curlyBlackBlueHoodie,
-    ASSETS.avatars.blueHeadphonesBlackHoodie,
-    ASSETS.avatars.brownPonytailBlueHoodie,
-    ASSETS.avatars.spikyBrownBlueWhiteHoodie,
-    ASSETS.avatars.pinkBobBlackHoodie,
-  ];
 
   const commandHealth = [
-    { label: "Judge", value: dashboardStats.judge_health || dashboardHealth.judge_health || "unknown", icon: Activity },
-    { label: "Database", value: dashboardStats.database_health || "unknown", icon: Database },
-    { label: "Leaderboards", value: dashboardHealth.leaderboard_health || dashboardStats.leaderboard_health || "unknown", icon: Trophy },
-    { label: "Content", value: dashboardHealth.content_health || "unknown", icon: FolderTree },
+    { label: "Judge Processor", value: dashboardStats.judge_health || dashboardHealth.judge_health || "unknown", icon: Activity, tone: "blue" },
+    { label: "Main Database", value: dashboardStats.database_health || "unknown", icon: Database, tone: "indigo" },
+    { label: "Leaderboards", value: dashboardHealth.leaderboard_health || dashboardStats.leaderboard_health || "unknown", icon: Trophy, tone: "amber" },
+    { label: "Content Map", value: dashboardHealth.content_health || "unknown", icon: FolderTree, tone: "green" },
   ];
 
   const metricCards = [
-    {
-      label: "Total Learners",
-      value: dashboardStats.total_users ?? 0,
-      detail: `${formatNumber(dashboardStats.new_users_24h ?? 0)} new today`,
-      icon: Users,
-      tone: "blue",
-      trend: percentChange(today.new_users, yesterday.new_users),
-      seriesKey: "new_users",
-      series: activity,
-    },
-    {
-      label: "Active Today",
-      value: dashboardStats.active_users_24h ?? 0,
-      detail: `${engagementRate}% of learners`,
-      icon: User,
-      tone: "indigo",
-      trend: percentChange(today.active_users, yesterday.active_users),
-      seriesKey: "active_users",
-      series: activity,
-    },
-    {
-      label: "XP Awarded Today",
-      value: dashboardStats.xp_awarded_24h ?? 0,
-      detail: `${formatNumber(dashboardStats.xp_last_7_days ?? 0)} XP this week`,
-      icon: Award,
-      tone: "amber",
-      trend: percentChange(today.xp, yesterday.xp),
-      seriesKey: "xp",
-      series: activity,
-    },
-    {
-      label: "Unique Visits Today",
-      value: todayVisits,
-      detail: topEntryLabel,
-      icon: Globe2,
-      tone: "green",
-      trend: percentChange(todayVisits, yesterdayVisits),
-      seriesKey: "unique_visits",
-      series: visitActivity,
-    },
+    { label: "Total Learners", value: dashboardStats.total_users ?? 0, help: "Aggregate registered users across platform", icon: Users, tone: "blue", trend: dashboardStats.new_users_24h || 0, trendLabel: "new today", seriesKey: "new_users", series: activity },
+    { label: "Active Today", value: dashboardStats.active_users_24h ?? 0, help: "Learners who solved exercises today", icon: User, tone: "indigo", trend: percentOf(dashboardStats.active_users_24h, dashboardStats.total_users), trendLabel: "% of total", seriesKey: "active_users", series: activity },
+    { label: "XP Awarded (24h)", value: dashboardStats.xp_awarded_24h ?? 0, help: "Experience points earned naturally", icon: Award, tone: "amber", trend: dashboardStats.xp_last_7_days || 0, trendLabel: "this week", seriesKey: "xp", series: activity },
+    { label: "Visits Today", value: todayVisits, help: "Unique site visits", icon: Globe2, tone: "green", trend: "-", trendLabel: "avg", seriesKey: "unique_visits", series: visitActivity },
   ];
 
   const attentionItems = [
-    { label: "Failed judge runs", detail: "Inspect submissions", value: dashboardStats.failed_attempts_last_24h ?? 0, tone: "red", icon: Activity, target: "submissions" },
-    { label: "Pending content", detail: "Drafts and unpublished items", value: dashboardStats.pending_content ?? 0, tone: "amber", icon: ClipboardCheck, target: "curriculum" },
-    { label: "Unread messages", detail: "Contact inbox", value: dashboardStats.unread_messages ?? 0, tone: "violet", icon: Inbox, target: "contacts" },
-    { label: "Draft exercises", detail: "Not visible to learners", value: dashboardStats.draft_exercises ?? 0, tone: "blue", icon: Code2, target: "curriculum" },
-  ];
-
-  const liveActivity = [
-    ...attempts.slice(0, 4).map((attempt) => ({
-      label: `${attempt.username || "Learner"} ${attempt.status === "failed" ? "needs review on" : "completed"} ${attempt.exercise_title || "an exercise"}`,
-      time: formatRelativeTime(attempt.created_at),
-      tone: attempt.status === "failed" ? "red" : "green",
-      icon: attempt.status === "failed" ? Activity : CheckCircle2,
-    })),
-    ...recentUsers.slice(0, 2).map((learner) => ({
-      label: `New learner registered: ${learner.display_name || learner.username}`,
-      time: learner.created_at ? formatRelativeTime(learner.created_at) : "recently",
-      tone: "blue",
-      icon: User,
-    })),
-  ].slice(0, 6);
-
-  const readyCount = toNumber(dashboardStats.published_exercises);
-  const reviewCount = toNumber(dashboardStats.pending_content);
-  const draftCount = Math.max(toNumber(dashboardStats.total_exercises) - readyCount - reviewCount, 0);
-  const totalContent = Math.max(toNumber(dashboardStats.total_exercises), readyCount + reviewCount + draftCount, 1);
-  const readinessSlices = [
-    { label: "Ready", value: readyCount, percent: percentOf(readyCount, totalContent), tone: "green" },
-    { label: "In Review", value: reviewCount, percent: percentOf(reviewCount, totalContent), tone: "amber" },
-    { label: "Draft", value: draftCount, percent: percentOf(draftCount, totalContent), tone: "muted" },
+    { label: "Failed judge runs", value: dashboardStats.failed_attempts_last_24h ?? 0, icon: Activity, target: "submissions" },
+    { label: "Pending content", value: dashboardStats.pending_content ?? 0, icon: ClipboardCheck, target: "curriculum" },
+    { label: "Unread messages", value: dashboardStats.unread_messages ?? 0, icon: Inbox, target: "contacts" },
   ];
 
   return (
-    <div className="ao-page ao-reference-page">
-      {error && <div className="ap-inline-error">{error}</div>}
+    <div className="overview-container">
+      {error && <div style={{ color: '"red"' }}>{error}</div>}
 
-      <section className="ao-command-hero">
-        <div className="ao-command-hero__copy">
-          <span className="ao-command-hero__eyebrow">{todayLabel}</span>
-          <h2>Welcome back, {adminName}</h2>
-          <p>Here is the real-time pulse of Campus404 today.</p>
-          <div className="ao-command-health">
-            {commandHealth.map(({ label, value, icon: Icon }) => (
-              <div className="ao-command-health__item" key={label}>
-                <Icon size={22} />
-                <span>{label}</span>
-                <strong className={`is-${statusTone(value)}`}>{prettyStatus(value)}</strong>
-              </div>
-            ))}
-          </div>
+      <header className="overview-hero">
+        <div className="overview-hero-text">
+          <span>{todayLabel}</span>
+          <h2>Overview Dashboard</h2>
+          <p>Welcome back, {adminName}. Here's the health and performance matrix.</p>
         </div>
-        <img className="ao-command-hero__image" src={ASSETS.tracks.adminCommandCenter} alt="" />
-      </section>
+      </header>
 
-      <section className="ao-kpi-grid ao-kpi-grid--reference" aria-label="Platform metrics">
-        {metricCards.map(({ label, value, detail, icon: Icon, tone, trend, series, seriesKey }) => (
-          <article className={`ao-kpi-card ao-kpi-card--${tone}`} key={label}>
-            <div className="ao-kpi-card__head">
-              <span className="ao-kpi-card__icon"><Icon size={25} /></span>
-              <div className="ao-kpi-card__text">
-                <span className="ao-kpi-card__label" title={label}>{label}</span>
-                <p className="ao-kpi-card__detail">{detail}</p>
-              </div>
-              <div className="ao-kpi-card__value-stack">
-                <strong className="ao-kpi-card__value">{typeof value === "number" ? formatNumber(value) : value}</strong>
-                <TrendPill value={trend} />
+      <section className="overview-system-health">
+        {commandHealth.map((h, i) => (
+          <div className="overview-health-card" key={i}>
+            <div className="overview-health-icon" style={{ backgroundColor: "#f1f5f9", color: TONE_COLORS[h.tone] }}>
+              <h.icon size={24} />
+            </div>
+            <div className="overview-health-info">
+              <div className="overview-health-label">{h.label}</div>
+              <div className="overview-health-value" style={{ color: h.value === '"healthy"' ? '"#10b981"' : '"inherit"' }}>
+                {h.value === "healthy" ? "Operational" : h.value}
               </div>
             </div>
-            <div className="ao-kpi-card__graph" aria-hidden="true">
+          </div>
+        ))}
+      </section>
+
+      <section className="overview-stats-grid">
+        {metricCards.map(({ label, value, help, icon: Icon, tone, trend, trendLabel, series, seriesKey }) => (
+          <article className="overview-stat-card" key={label}>
+            <div className="overview-stat-header">
+              <div className="overview-stat-title">
+                <div className="overview-stat-icon" style={{ backgroundColor: "#f8fafc", color: TONE_COLORS[tone] }}>
+                  <Icon size={20} />
+                </div>
+                <h3 className="overview-stat-name">{label}</h3>
+              </div>
+              <HelpCircle size={16} className="overview-stat-help" data-tooltip={help} />
+            </div>
+            
+            <div className="overview-stat-body">
+              <div className="overview-stat-value">{formatNumber(value)}</div>
+              <div className="overview-stat-trend neutral">{trend} {trendLabel}</div>
+            </div>
+            
+            <div className="overview-stat-chart">
               <KpiSparkChart data={series} dataKey={seriesKey} tone={tone} />
             </div>
           </article>
         ))}
       </section>
 
-      <section className="ao-reference-grid">
-        <article className="ao-panel ao-panel--activity ao-panel--visits">
-          <header className="ao-panel__header">
-            <div>
-              <h3><Globe2 size={17} /> Daily Unique Visits</h3>
-              <p>One counted visit per IP address per day.</p>
-            </div>
-            <button type="button" onClick={() => onNavigate("analytics")}>Analytics <ChevronRight size={13} /></button>
-          </header>
+      <section className="overview-panels-grid">
+        
+        <article className="overview-panel overview-panel-visits">
+          <div className="overview-panel-title">
+            <h3><Globe2 size={20} /> Daily Unique Visits</h3>
+            <button onClick={() => onNavigate("analytics")}>Full Analytics</button>
+          </div>
           <DailyVisitsChart data={visitActivity} />
-          <footer className="ao-activity-totals ao-visit-totals">
-            <div>
-              <span>Today</span>
-              <strong>{formatNumber(todayVisits)}</strong>
-              <TrendPill value={percentChange(todayVisits, yesterdayVisits)} />
-            </div>
-            <div>
-              <span>7-day total</span>
-              <strong>{formatNumber(visitTotal7d)}</strong>
-            </div>
-            <div>
-              <span>Best day</span>
-              <strong>{formatNumber(bestVisitDay.unique_visits)}</strong>
-              <em>{bestVisitDay.label}</em>
-            </div>
-            <div>
-              <span>Avg/day</span>
-              <strong>{formatNumber(Math.round(visitTotal7d / Math.max(visitActivity.length, 1)))}</strong>
-            </div>
-          </footer>
         </article>
 
-        <article className="ao-panel ao-panel--attention">
-          <header className="ao-panel__header">
-            <div>
-              <h3><Activity size={16} /> Needs Attention</h3>
-              <p>Issues that can block learners.</p>
-            </div>
-            <b>{formatNumber(reviewQueueCount)}</b>
-          </header>
-          <div className="ao-attention-list">
-            {attentionItems.map((item) => (
-              <button type="button" key={item.label} onClick={() => onNavigate(item.target)}>
-                <IconBubble icon={item.icon} tone={item.tone} />
-                <span>
-                  <strong>{item.label}</strong>
-                  <small>{item.detail}</small>
-                </span>
-                <em className={`is-${item.tone}`}>{formatNumber(item.value)}</em>
-              </button>
-            ))}
+        <article className="overview-panel overview-panel-attention">
+          <div className="overview-panel-title">
+            <h3><Activity size={20} /> Needs Attention</h3>
           </div>
-        </article>
-
-        <article className="ao-panel ao-panel--entry-paths">
-          <header className="ao-panel__header">
-            <div>
-              <h3>Entry Paths</h3>
-              <p>First public page seen by unique visitors.</p>
-            </div>
-          </header>
-          <div className="ao-entry-path-list">
-            {topEntryPaths.map((entry) => (
-              <div key={entry.path}>
-                <span>{entry.path || "/"}</span>
-                <strong>{formatNumber(entry.visits)} visits</strong>
+          <div>
+            {attentionItems.map((item, i) => (
+              <div className="overview-list-item" key={i} onClick={() => onNavigate(item.target)}>
+                <div style={{ color: '"#64748b"' }}><item.icon size={18} /></div>
+                <div className="overview-list-item-content">
+                  <div className="overview-list-item-title">{item.label}</div>
+                </div>
+                <div className="overview-list-item-value">{formatNumber(item.value)}</div>
               </div>
             ))}
-            {topEntryPaths.length === 0 && <EmptyState icon={Globe2} title="No entry paths yet">Entry paths appear after public traffic is recorded.</EmptyState>}
           </div>
         </article>
 
-        <article className="ao-panel ao-panel--track-health">
-          <header className="ao-panel__header">
-            <div>
-              <h3>Track Health</h3>
-              <p>Enrollment and completion by track.</p>
-            </div>
-            <button type="button" onClick={() => onNavigate("curriculum")}>View tracks</button>
-          </header>
-          <div className="ao-track-health-list">
-            {trackPerformance.slice(0, 4).map((track, index) => (
-              <button type="button" key={track.track_id} onClick={() => onNavigate("curriculum")}>
-                <IconBubble icon={[Code2, BookOpen, Award, FolderTree][index % 4]} tone={["green", "blue", "amber", "violet"][index % 4]} />
-                <span>
-                  <strong>{track.title}</strong>
-                  <small>{formatNumber(track.enrolled)} learners</small>
-                </span>
-                <div aria-label={`${track.progress_rate || 0}%`}>
-                  <i style={{ width: `${clampNumber(track.progress_rate)}%` }} />
+        <article className="overview-panel overview-panel-live">
+          <div className="overview-panel-title">
+            <h3><CheckCircle2 size={20} /> Recent Executions</h3>
+            <button onClick={() => onNavigate("submissions")}>View Activity</button>
+          </div>
+          <div>
+            {attempts.slice(0, 5).map((attempt, i) => (
+              <div className="overview-list-item" key={i} onClick={() => onNavigate("submissions")}>
+                <Code2 size={18} color={attempt.status === '"failed"' ? '"#e11d48"' : '"#10b981"'} />
+                <div className="overview-list-item-content">
+                  <div className="overview-list-item-title">{attempt.exercise_title || "Unknown Exercise"}</div>
+                  <div className="overview-list-item-sub">{prettyStatus(attempt.status || "accepted")} - {attempt.username || "Learner"}</div>
                 </div>
-                <em>{track.progress_rate || 0}%</em>
-              </button>
-            ))}
-            {trackPerformance.length === 0 && <EmptyState icon={FolderTree} title="No tracks yet">Create tracks in Curriculum Builder to see health here.</EmptyState>}
-          </div>
-        </article>
-
-        <article className="ao-panel ao-panel--live">
-          <header className="ao-panel__header">
-            <div>
-              <h3>Live Activity</h3>
-              <p>Latest learner and judge events.</p>
-            </div>
-            <button type="button" onClick={() => onNavigate("submissions")}>View all</button>
-          </header>
-          <div className="ao-live-list">
-            {liveActivity.map((item, index) => (
-              <div key={`${item.label}-${index}`}>
-                <span className={`ao-live-dot ao-live-dot--${item.tone}`} />
-                <IconBubble icon={item.icon} tone={item.tone} />
-                <strong>{item.label}</strong>
-                <em>{item.time}</em>
+                <div className="overview-list-item-value" style={{ fontSize: '"0.75rem"', color: '"#94a3b8"' }}>
+                  {formatRelativeTime(attempt.created_at)}
+                </div>
               </div>
             ))}
-            {liveActivity.length === 0 && <EmptyState icon={Activity} title="No live activity yet">Learner activity will appear here when the platform receives events.</EmptyState>}
+            {attempts.length === 0 && <div className="overview-empty">No executions yet.</div>}
           </div>
         </article>
 
-        <article className="ao-panel ao-panel--recent-runs">
-          <header className="ao-panel__header">
-            <div>
-              <h3>Recent Judge Runs</h3>
-            </div>
-            <button type="button" onClick={() => onNavigate("submissions")}>View all</button>
-          </header>
-          <div className="ao-runs-list">
-            {attempts.slice(0, 5).map((attempt) => (
-              <button type="button" key={attempt.id} onClick={() => onNavigate("submissions")}>
-                <IconBubble icon={Code2} tone={attempt.status === "failed" ? "red" : "green"} />
-                <span>
-                  <strong>{attempt.exercise_title || "Exercise"}</strong>
-                  <small className={attempt.status === "failed" ? "is-bad" : ""}>{prettyStatus(attempt.status || "accepted")} - {attempt.tests_total ? `${attempt.tests_passed}/${attempt.tests_total}` : prettyStatus(attempt.mode)}</small>
-                </span>
-                <em>{formatRelativeTime(attempt.created_at)}</em>
-              </button>
-            ))}
-            {attempts.length === 0 && <EmptyState icon={ClipboardCheck} title="No judge runs yet">Workspace runs will appear here.</EmptyState>}
+        <article className="overview-panel overview-panel-tracks">
+          <div className="overview-panel-title">
+            <h3><FolderTree size={20} /> Top Tracks</h3>
+            <button onClick={() => onNavigate("curriculum")}>Manage Curriculum</button>
           </div>
-        </article>
-
-        <article className="ao-panel ao-panel--top-learners">
-          <header className="ao-panel__header">
-            <div>
-              <h3>Top Learners</h3>
-            </div>
-            <button type="button" onClick={() => onNavigate("leaderboards")}>Leaderboard</button>
-          </header>
-          <div className="ao-top-list">
-            {topLearners.slice(0, 5).map((learner, index) => {
-              const name = learner.display_name || learner.username;
-              return (
-                <button type="button" key={learner.user_id} onClick={() => onNavigate("leaderboards")}>
-                  <b>#{index + 1}</b>
-                  <span>{learner.avatar_url ? <img src={learner.avatar_url} alt={name} /> : <img src={learnerAvatars[index % learnerAvatars.length]} alt="" />}</span>
-                  <strong>{name}</strong>
-                  <em>{formatNumber(learner.total_xp)} XP</em>
-                </button>
-              );
-            })}
-            {topLearners.length === 0 && <EmptyState icon={Trophy} title="No XP yet">Top learners will appear here after XP is awarded.</EmptyState>}
-          </div>
-        </article>
-
-        <article className="ao-panel ao-panel--readiness">
-          <header className="ao-panel__header">
-            <div>
-              <h3>Content Readiness</h3>
-            </div>
-          </header>
-          <div className="ao-readiness-body">
-            <div
-              className="ao-readiness-donut"
-              style={{
-                "--ready": `${readinessSlices[0].percent}%`,
-                "--review": `${readinessSlices[1].percent}%`,
-              }}
-            >
-              <strong>{contentReadiness}%</strong>
-              <span>Ready</span>
-            </div>
-            <div className="ao-readiness-legend">
-              {readinessSlices.map((item) => (
-                <div key={item.label}>
-                  <i className={`is-${item.tone}`} />
-                  <span>{item.label}</span>
-                  <strong>{item.percent}% ({formatNumber(item.value)})</strong>
+          <div>
+            {trackPerformance.slice(0, 5).map((track, i) => (
+              <div className="overview-list-item" key={i} onClick={() => onNavigate("curriculum")}>
+                <BookOpen size={18} color="#3b82f6" />
+                <div className="overview-list-item-content">
+                  <div className="overview-list-item-title">{track.title}</div>
+                  <div className="overview-list-item-sub">{formatNumber(track.enrolled)} learners</div>
                 </div>
-              ))}
-            </div>
+                <div className="overview-list-item-value">{track.progress_rate || 0}%</div>
+              </div>
+            ))}
+            {trackPerformance.length === 0 && <div className="overview-empty">No tracks configured yet.</div>}
           </div>
-          <footer className="ao-readiness-stats">
-            <div>
-              <span>Total Exercises</span>
-              <strong>{formatNumber(dashboardStats.total_exercises ?? 0)}</strong>
-            </div>
-            <div>
-              <span>Needs Review</span>
-              <strong>{formatNumber(reviewCount)}</strong>
-            </div>
-          </footer>
         </article>
+
       </section>
     </div>
   );
