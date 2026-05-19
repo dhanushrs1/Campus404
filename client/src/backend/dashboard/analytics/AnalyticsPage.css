@@ -269,14 +269,13 @@
   display: grid;
   gap: 7px;
   padding: 11px 13px;
-  border: 1px solid var(--ax-line);
+  border: 1px solid #1f2937;
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 16px 34px rgba(20, 33, 61, 0.14);
+  background: #111827;
 }
 
 .ax-tooltip strong {
-  color: var(--ax-ink);
+  color: #ffffff;
   font-size: 0.78rem;
   font-weight: 950;
 }
@@ -286,7 +285,7 @@
   grid-template-columns: 9px minmax(0, 1fr) auto;
   align-items: center;
   gap: 7px;
-  color: var(--ax-muted);
+  color: #cbd5e1;
   font-size: 0.74rem;
   font-weight: 850;
 }
@@ -299,7 +298,87 @@
 }
 
 .ax-tooltip b {
+  color: #f8fafc;
+}
+
+.ax-audience-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ax-bottom-card h4 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ax-breakdown-list {
+  display: grid;
+  gap: 10px;
+}
+
+.ax-breakdown-list > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(84px, 0.45fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid #e8eef7;
+}
+
+.ax-breakdown-list > div:last-child {
+  border-bottom: 0;
+}
+
+.ax-breakdown-list span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.ax-breakdown-list strong,
+.ax-breakdown-list small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ax-breakdown-list strong {
   color: var(--ax-ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.ax-breakdown-list small,
+.ax-breakdown-list > small {
+  color: var(--ax-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.ax-breakdown-list div div {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8eef7;
+}
+
+.ax-breakdown-list i {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ax-blue), var(--ax-cyan));
+}
+
+.ax-breakdown-list em {
+  color: var(--ax-blue);
+  font-size: 0.78rem;
+  font-style: normal;
+  font-weight: 950;
+  white-space: nowrap;
 }
 
 .ax-track-rank {
@@ -414,11 +493,16 @@
   .ax-panel__body {
     grid-template-columns: 1fr;
   }
+
+  .ax-audience-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 860px) {
   .ax-metrics,
-  .ax-track-rank button {
+  .ax-track-rank button,
+  .ax-breakdown-list > div {
     grid-template-columns: 1fr;
   }
 

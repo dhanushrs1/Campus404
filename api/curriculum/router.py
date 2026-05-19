@@ -102,6 +102,27 @@ def _is_trackable_visit_path(path: str) -> bool:
     return not any(normalized == prefix or normalized.startswith(f"{prefix}/") for prefix in UNTRACKED_VISIT_PREFIXES)
 
 
+def _classify_visit_device(user_agent: str | None) -> str:
+    normalized = (user_agent or "").lower()
+    if not normalized:
+        return "unknown"
+    if any(token in normalized for token in ("bot", "crawler", "spider", "preview", "slurp")):
+        return "bot"
+    if any(token in normalized for token in ("ipad", "tablet", "kindle", "silk")):
+        return "tablet"
+    if any(token in normalized for token in ("mobile", "iphone", "android", "phone", "opera mini")):
+        return "mobile"
+    return "desktop"
+
+
+def _extract_country_code(request: Request) -> str | None:
+    for header_name in ("cf-ipcountry", "x-vercel-ip-country", "x-country-code", "x-appengine-country"):
+        value = (request.headers.get(header_name) or "").strip().upper()
+        if value and value not in {"XX", "ZZ", "UNKNOWN"}:
+            return value[:8]
+    return None
+
+
 def _parse_analytics_date(value: str | None, fallback: date) -> date:
     if not value:
         return fallback
@@ -194,7 +215,10 @@ async def record_site_visit(
 
     now = datetime.utcnow()
     visit_date = now.date()
-    user_agent_hash = _analytics_hash((request.headers.get("user-agent") or "")[:512])
+    user_agent = (request.headers.get("user-agent") or "")[:512]
+    user_agent_hash = _analytics_hash(user_agent)
+    device_type = _classify_visit_device(user_agent)
+    country_code = _extract_country_code(request)
     referrer = (payload.referrer or "").strip()[:1024] or None
 
     existing_visit = await db.scalar(
@@ -204,6 +228,11 @@ async def record_site_visit(
     )
     if existing_visit:
         existing_visit.last_seen_at = now
+        existing_visit.visit_count = max(int(existing_visit.visit_count or 1), 1) + 1
+        if not existing_visit.device_type:
+            existing_visit.device_type = device_type
+        if country_code and not existing_visit.country_code:
+            existing_visit.country_code = country_code
         await db.commit()
         return schemas.SiteVisitResponse(ok=True)
 
@@ -212,6 +241,9 @@ async def record_site_visit(
             visit_date=visit_date,
             ip_hash=ip_hash,
             user_agent_hash=user_agent_hash,
+            visit_count=1,
+            device_type=device_type,
+            country_code=country_code,
             first_path=path,
             referrer=referrer,
             first_seen_at=now,
@@ -3123,28 +3155,75 @@ async def get_admin_analytics(
     day_keys = [day.isoformat() for day in day_dates]
 
     visit_by_day = {key: 0 for key in day_keys}
+    unique_by_day = {key: 0 for key in day_keys}
+    new_by_day = {key: 0 for key in day_keys}
+    returning_by_day = {key: 0 for key in day_keys}
+    range_visitor_hashes: set[str] = set()
+    entry_counts: dict[str, int] = defaultdict(int)
+    device_counts: dict[str, dict[str, int]] = defaultdict(lambda: {"visits": 0, "unique_visitors": 0})
+    country_counts: dict[str, dict[str, int]] = defaultdict(lambda: {"visits": 0, "unique_visitors": 0})
+
+    first_seen_rows = await db.execute(
+        select(models.SiteVisit.ip_hash, func.min(models.SiteVisit.visit_date).label("first_visit_date"))
+        .group_by(models.SiteVisit.ip_hash)
+    )
+    first_visit_by_hash = {
+        row.ip_hash: row.first_visit_date
+        for row in first_seen_rows.all()
+        if row.ip_hash and row.first_visit_date
+    }
+
     visit_rows = await db.execute(
-        select(models.SiteVisit.visit_date, func.count().label("visit_count"))
+        select(
+            models.SiteVisit.visit_date,
+            models.SiteVisit.ip_hash,
+            models.SiteVisit.visit_count,
+            models.SiteVisit.device_type,
+            models.SiteVisit.country_code,
+            models.SiteVisit.first_path,
+        )
         .where(models.SiteVisit.visit_date >= start)
         .where(models.SiteVisit.visit_date <= end)
-        .group_by(models.SiteVisit.visit_date)
     )
     for row in visit_rows.all():
-        if row.visit_date:
-            visit_by_day[row.visit_date.isoformat()] = int(row.visit_count or 0)
+        if not row.visit_date:
+            continue
+        key = row.visit_date.isoformat()
+        if key not in visit_by_day:
+            continue
 
-    entry_rows = await db.execute(
-        select(models.SiteVisit.first_path, func.count().label("visit_count"))
-        .where(models.SiteVisit.visit_date >= start)
-        .where(models.SiteVisit.visit_date <= end)
-        .where(models.SiteVisit.first_path.is_not(None))
-        .group_by(models.SiteVisit.first_path)
-        .order_by(func.count().desc(), models.SiteVisit.first_path.asc())
-        .limit(8)
-    )
+        visit_count = max(int(row.visit_count or 1), 1)
+        visitor_hash = str(row.ip_hash or "")
+        first_visit_date = first_visit_by_hash.get(visitor_hash)
+        device_type = (row.device_type or "unknown").strip().lower() or "unknown"
+        country_code = (row.country_code or "Unknown").strip().upper() or "Unknown"
+        first_path = row.first_path or "/"
+
+        visit_by_day[key] += visit_count
+        unique_by_day[key] += 1
+        range_visitor_hashes.add(visitor_hash)
+        if first_visit_date == row.visit_date:
+            new_by_day[key] += 1
+        else:
+            returning_by_day[key] += 1
+
+        entry_counts[first_path] += visit_count
+        device_counts[device_type]["visits"] += visit_count
+        device_counts[device_type]["unique_visitors"] += 1
+        country_counts[country_code]["visits"] += visit_count
+        country_counts[country_code]["unique_visitors"] += 1
+
     top_entry_paths = [
-        {"path": row.first_path or "/", "visits": int(row.visit_count or 0)}
-        for row in entry_rows.all()
+        {"path": path, "visits": visits}
+        for path, visits in sorted(entry_counts.items(), key=lambda item: (-item[1], item[0]))[:8]
+    ]
+    device_breakdown = [
+        {"device": device, **counts}
+        for device, counts in sorted(device_counts.items(), key=lambda item: (-item[1]["visits"], item[0]))
+    ]
+    country_breakdown = [
+        {"country": country, **counts}
+        for country, counts in sorted(country_counts.items(), key=lambda item: (-item[1]["visits"], item[0]))[:12]
     ]
 
     track_rows = (await db.execute(select(models.Track.id, models.Track.title).order_by(models.Track.order, models.Track.id))).all()
@@ -3247,19 +3326,36 @@ async def get_admin_analytics(
         day_payload = {
             "date": key,
             "visits": int(visit_by_day.get(key, 0)),
+            "unique_visitors": int(unique_by_day.get(key, 0)),
+            "new_visitors": int(new_by_day.get(key, 0)),
+            "returning_visitors": int(returning_by_day.get(key, 0)),
             "track_users": len(users_for_day),
             "events": int(day_events.get(key, 0)),
         }
-        visit_series.append({"date": key, "visits": day_payload["visits"]})
+        visit_series.append({
+            "date": key,
+            "visits": day_payload["visits"],
+            "unique_visitors": day_payload["unique_visitors"],
+            "new_visitors": day_payload["new_visitors"],
+            "returning_visitors": day_payload["returning_visitors"],
+        })
         track_series.append({**day_payload, "tracks": track_counts})
         calendar_days.append(day_payload)
 
+    total_visits = sum(visit_by_day.values())
+    total_daily_unique_visitors = sum(unique_by_day.values())
+    total_new_visitors = sum(new_by_day.values())
+    total_returning_visitors = sum(returning_by_day.values())
     totals = {
-        "visits": sum(visit_by_day.values()),
+        "visits": total_visits,
+        "unique_visitors": len({item for item in range_visitor_hashes if item}),
+        "daily_unique_visitors": total_daily_unique_visitors,
+        "new_visitors": total_new_visitors,
+        "returning_visitors": total_returning_visitors,
         "track_users": len(all_track_users),
         "learning_events": sum(day_events.values()),
         "active_tracks": len(track_breakdown),
-        "average_daily_visits": round(sum(visit_by_day.values()) / max(len(day_keys), 1)),
+        "average_daily_visits": round(total_visits / max(len(day_keys), 1)),
         "average_daily_track_users": round(sum(day["track_users"] for day in calendar_days) / max(len(day_keys), 1)),
     }
 
@@ -3273,6 +3369,8 @@ async def get_admin_analytics(
         calendar_days=calendar_days,
         track_breakdown=track_breakdown[:12],
         top_entry_paths=top_entry_paths,
+        device_breakdown=device_breakdown,
+        country_breakdown=country_breakdown,
     )
 
 
@@ -3423,7 +3521,16 @@ async def get_admin_dashboard_stats(
         )
         or 0
     )
-    visits_last_24h = unique_visits_24h
+    visits_last_24h = int(
+        (
+            await db.scalar(
+                select(func.coalesce(func.sum(models.SiteVisit.visit_count), 0))
+                .select_from(models.SiteVisit)
+                .where(models.SiteVisit.last_seen_at >= start_24h)
+            )
+        )
+        or 0
+    )
     active_users_24h = int(
         (
             await db.scalar(
@@ -3452,7 +3559,7 @@ async def get_admin_dashboard_stats(
     day_dates = [(now - timedelta(days=offset)).date() for offset in range(6, -1, -1)]
     day_keys = [day.isoformat() for day in day_dates]
     activity_by_day = {
-        key: {"date": key, "exercise_attempts": 0, "passed_attempts": 0, "quiz_completions": 0, "xp": 0, "sessions": 0, "unique_visits": 0, "active_users": 0, "new_users": 0}
+        key: {"date": key, "exercise_attempts": 0, "passed_attempts": 0, "quiz_completions": 0, "xp": 0, "sessions": 0, "unique_visits": 0, "visits": 0, "active_users": 0, "new_users": 0}
         for key in day_keys
     }
 
@@ -3489,7 +3596,11 @@ async def get_admin_dashboard_stats(
             activity_by_day[key]["xp"] += int(row.points or 0)
 
     visit_activity = await db.execute(
-        select(models.SiteVisit.visit_date, func.count().label("visit_count"))
+        select(
+            models.SiteVisit.visit_date,
+            func.count().label("unique_count"),
+            func.coalesce(func.sum(models.SiteVisit.visit_count), 0).label("visit_count"),
+        )
         .where(models.SiteVisit.visit_date.in_(day_dates))
         .group_by(models.SiteVisit.visit_date)
     )
@@ -3499,7 +3610,8 @@ async def get_admin_dashboard_stats(
         key = row.visit_date.isoformat()
         if key in activity_by_day:
             activity_by_day[key]["sessions"] = int(row.visit_count or 0)
-            activity_by_day[key]["unique_visits"] = int(row.visit_count or 0)
+            activity_by_day[key]["visits"] = int(row.visit_count or 0)
+            activity_by_day[key]["unique_visits"] = int(row.unique_count or 0)
 
     login_activity = await db.execute(
         select(func.date(UserSession.login_time).label("login_date"), func.count(func.distinct(UserSession.user_id)).label("user_count"))
@@ -3655,11 +3767,14 @@ async def get_admin_dashboard_stats(
         ]
 
     top_entry_rows = await db.execute(
-        select(models.SiteVisit.first_path, func.count().label("visit_count"))
+        select(
+            models.SiteVisit.first_path,
+            func.coalesce(func.sum(models.SiteVisit.visit_count), 0).label("visit_count"),
+        )
         .where(models.SiteVisit.visit_date.in_(day_dates))
         .where(models.SiteVisit.first_path.is_not(None))
         .group_by(models.SiteVisit.first_path)
-        .order_by(func.count().desc(), models.SiteVisit.first_path.asc())
+        .order_by(func.coalesce(func.sum(models.SiteVisit.visit_count), 0).desc(), models.SiteVisit.first_path.asc())
         .limit(5)
     )
     top_entry_paths = [
@@ -3705,7 +3820,7 @@ async def get_admin_dashboard_stats(
         quiz_pass_rate=quiz_pass_rate,
         activity_by_day=list(activity_by_day.values()),
         visit_activity_by_day=[
-            {"date": item["date"], "unique_visits": item["unique_visits"], "visits": item["unique_visits"]}
+            {"date": item["date"], "unique_visits": item["unique_visits"], "visits": item["visits"]}
             for item in activity_by_day.values()
         ],
         top_entry_paths=top_entry_paths,

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   CalendarDays,
+  Compass,
+  MonitorSmartphone,
   Globe2,
   MousePointerClick,
   Route,
@@ -9,7 +11,6 @@ import {
 } from "lucide-react";
 import {
   Area,
-  AreaChart,
   Bar,
   CartesianGrid,
   ComposedChart,
@@ -94,6 +95,8 @@ function createEmptyAnalytics(startDate, endDate) {
     calendar_days: emptyDays,
     track_breakdown: [],
     top_entry_paths: [],
+    device_breakdown: [],
+    country_breakdown: [],
   };
 }
 
@@ -113,6 +116,8 @@ function normalizeAnalyticsPayload(payload, startDate, endDate) {
     calendar_days: Array.isArray(payload.calendar_days) ? payload.calendar_days : empty.calendar_days,
     track_breakdown: Array.isArray(payload.track_breakdown) ? payload.track_breakdown : [],
     top_entry_paths: Array.isArray(payload.top_entry_paths) ? payload.top_entry_paths : [],
+    device_breakdown: Array.isArray(payload.device_breakdown) ? payload.device_breakdown : [],
+    country_breakdown: Array.isArray(payload.country_breakdown) ? payload.country_breakdown : [],
   };
 }
 
@@ -125,15 +130,26 @@ function adaptDashboardStats(payload, startDate, endDate) {
   const visitsByDay = new Map((payload.visit_activity_by_day || []).map((day) => [day.date, day]));
   const trackSeries = days.map((date) => {
     const activity = activityByDay.get(date) || {};
+    const visits = toNumber(visitsByDay.get(date)?.visits ?? visitsByDay.get(date)?.unique_visits);
+    const uniqueVisitors = toNumber(visitsByDay.get(date)?.unique_visits ?? visits);
     return {
       date,
-      visits: toNumber(visitsByDay.get(date)?.unique_visits ?? visitsByDay.get(date)?.visits),
+      visits,
+      unique_visitors: uniqueVisitors,
+      new_visitors: 0,
+      returning_visitors: 0,
       track_users: toNumber(activity.active_users),
       events: toNumber(activity.exercise_attempts) + toNumber(activity.quiz_completions),
       tracks: {},
     };
   });
-  const visitSeries = trackSeries.map(({ date, visits }) => ({ date, visits }));
+  const visitSeries = trackSeries.map(({ date, visits, unique_visitors, new_visitors, returning_visitors }) => ({
+    date,
+    visits,
+    unique_visitors,
+    new_visitors,
+    returning_visitors,
+  }));
   const trackBreakdown = (payload.track_performance || []).map((track) => ({
     track_id: track.track_id,
     title: track.title || `Track ${track.track_id}`,
@@ -152,6 +168,10 @@ function adaptDashboardStats(payload, startDate, endDate) {
       range_days: days.length,
       totals: {
         visits: totalVisits,
+        unique_visitors: visitSeries.reduce((sum, day) => sum + toNumber(day.unique_visitors), 0),
+        daily_unique_visitors: visitSeries.reduce((sum, day) => sum + toNumber(day.unique_visitors), 0),
+        new_visitors: 0,
+        returning_visitors: 0,
         track_users: totalTrackUsers,
         learning_events: totalEvents,
         active_tracks: trackBreakdown.filter((track) => toNumber(track.users) > 0 || toNumber(track.events) > 0).length,
@@ -242,10 +262,10 @@ function RangeControls({ activePreset, startDate, endDate, onPreset, onCustom })
 function MetricStrip({ analytics }) {
   const totals = analytics?.totals || {};
   const metrics = [
-    { label: "Unique visits", value: totals.visits, icon: Globe2, tone: "blue" },
-    { label: "Track learners", value: totals.track_users, icon: Users, tone: "green" },
-    { label: "Learning events", value: totals.learning_events, icon: MousePointerClick, tone: "violet" },
-    { label: "Active tracks", value: totals.active_tracks, icon: Route, tone: "amber" },
+    { label: "Total visits", value: totals.visits, icon: Globe2, tone: "blue" },
+    { label: "Unique visitors", value: totals.unique_visitors ?? totals.daily_unique_visitors, icon: Users, tone: "green" },
+    { label: "New visitors", value: totals.new_visitors, icon: MousePointerClick, tone: "violet" },
+    { label: "Returning visitors", value: totals.returning_visitors, icon: Route, tone: "amber" },
   ];
 
   return (
@@ -265,6 +285,7 @@ function VisitsPanel({ data }) {
   const hasData = data.some((item) => toNumber(item.visits) > 0);
   const peak = data.reduce((best, item) => (toNumber(item.visits) > toNumber(best.visits) ? item : best), { visits: 0 });
   const total = data.reduce((sum, item) => sum + toNumber(item.visits), 0);
+  const uniqueTotal = data.reduce((sum, item) => sum + toNumber(item.unique_visitors), 0);
   const average = Math.round(total / Math.max(data.length, 1));
 
   return (
@@ -272,10 +293,11 @@ function VisitsPanel({ data }) {
       <header className="ax-panel__header">
         <div>
           <h3><Globe2 size={18} /> Visit analytics</h3>
-          <p>Unique public-site visits, one counted visit per IP per day.</p>
+          <p>Total public-site visits, including repeat visits from the same visitor.</p>
         </div>
         <div className="ax-panel__chips">
           <span>{formatNumber(total)} visits</span>
+          <span>{formatNumber(uniqueTotal)} daily unique</span>
           <span>{formatNumber(average)} avg/day</span>
           <span>Peak {formatNumber(peak.visits || 0)}</span>
         </div>
@@ -285,7 +307,7 @@ function VisitsPanel({ data }) {
         {hasData ? (
           <div className="ax-chart ax-chart--large">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 18, right: 24, left: -4, bottom: 6 }}>
+              <ComposedChart data={data} margin={{ top: 18, right: 24, left: -4, bottom: 6 }}>
                 <defs>
                   <linearGradient id="axVisits" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#1f62ff" stopOpacity={0.34} />
@@ -298,7 +320,10 @@ function VisitsPanel({ data }) {
                 <YAxis axisLine={false} tickLine={false} allowDecimals={false} tick={{ fill: "#607294", fontSize: 12, fontWeight: 800 }} />
                 <Tooltip content={<ChartTooltip />} />
                 <Area type="monotone" dataKey="visits" name="Visits" stroke="#1f62ff" strokeWidth={4} fill="url(#axVisits)" dot={false} activeDot={{ r: 6 }} />
-              </AreaChart>
+                <Line type="monotone" dataKey="unique_visitors" name="Unique visitors" stroke="#18a96f" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="new_visitors" name="New visitors" stroke="#7c5cff" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="returning_visitors" name="Returning visitors" stroke="#d97706" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         ) : (
@@ -309,6 +334,72 @@ function VisitsPanel({ data }) {
 
       </div>
     </article>
+  );
+}
+
+function formatDeviceLabel(value) {
+  const normalized = String(value || "unknown").replace(/[_-]+/g, " ");
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function AudienceBreakdown({ devices, countries, entryPaths }) {
+  const maxDeviceVisits = Math.max(...devices.map((item) => toNumber(item.visits)), 1);
+  const maxCountryVisits = Math.max(...countries.map((item) => toNumber(item.visits)), 1);
+  const maxEntryVisits = Math.max(...entryPaths.map((item) => toNumber(item.visits)), 1);
+
+  return (
+    <section className="ax-audience-grid" aria-label="Audience breakdown">
+      <article className="ax-bottom-card">
+        <h4><MonitorSmartphone size={16} /> Devices</h4>
+        <div className="ax-breakdown-list">
+          {devices.map((item) => (
+            <div key={item.device || "unknown"}>
+              <span>
+                <strong>{formatDeviceLabel(item.device)}</strong>
+                <small>{formatNumber(item.unique_visitors || 0)} unique</small>
+              </span>
+              <div><i style={{ width: `${percentOf(item.visits, maxDeviceVisits)}%` }} /></div>
+              <em>{formatNumber(item.visits || 0)}</em>
+            </div>
+          ))}
+          {devices.length === 0 && <small>No device data for this range.</small>}
+        </div>
+      </article>
+
+      <article className="ax-bottom-card">
+        <h4><Globe2 size={16} /> Countries</h4>
+        <div className="ax-breakdown-list">
+          {countries.map((item) => (
+            <div key={item.country || "Unknown"}>
+              <span>
+                <strong>{item.country || "Unknown"}</strong>
+                <small>{formatNumber(item.unique_visitors || 0)} unique</small>
+              </span>
+              <div><i style={{ width: `${percentOf(item.visits, maxCountryVisits)}%` }} /></div>
+              <em>{formatNumber(item.visits || 0)}</em>
+            </div>
+          ))}
+          {countries.length === 0 && <small>No country data for this range.</small>}
+        </div>
+      </article>
+
+      <article className="ax-bottom-card">
+        <h4><Compass size={16} /> Entry pages</h4>
+        <div className="ax-breakdown-list">
+          {entryPaths.map((item) => (
+            <div key={item.path || "/"}>
+              <span>
+                <strong>{item.path || "/"}</strong>
+                <small>First page</small>
+              </span>
+              <div><i style={{ width: `${percentOf(item.visits, maxEntryVisits)}%` }} /></div>
+              <em>{formatNumber(item.visits || 0)}</em>
+            </div>
+          ))}
+          {entryPaths.length === 0 && <small>No entry page data for this range.</small>}
+        </div>
+      </article>
+    </section>
   );
 }
 
@@ -454,6 +545,9 @@ export default function AnalyticsPage({ onSessionExpired }) {
       ...day,
       label: formatShortDate(day.date),
       visits: toNumber(day.visits),
+      unique_visitors: toNumber(day.unique_visitors ?? day.unique_visits),
+      new_visitors: toNumber(day.new_visitors),
+      returning_visitors: toNumber(day.returning_visitors),
     })),
     [analytics?.visit_series],
   );
@@ -467,6 +561,9 @@ export default function AnalyticsPage({ onSessionExpired }) {
     [analytics?.track_series],
   );
   const trackBreakdown = analytics?.track_breakdown || [];
+  const deviceBreakdown = analytics?.device_breakdown || [];
+  const countryBreakdown = analytics?.country_breakdown || [];
+  const topEntryPaths = analytics?.top_entry_paths || [];
 
   useEffect(() => {
     if (selectedTrackId !== "all" && !trackBreakdown.some((track) => String(track.track_id) === String(selectedTrackId))) {
@@ -506,6 +603,11 @@ export default function AnalyticsPage({ onSessionExpired }) {
           tracks={trackBreakdown}
           selectedTrackId={selectedTrackId}
           onSelectTrack={setSelectedTrackId}
+        />
+        <AudienceBreakdown
+          devices={deviceBreakdown}
+          countries={countryBreakdown}
+          entryPaths={topEntryPaths}
         />
       </section>
     </div>

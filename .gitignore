@@ -1,16 +1,27 @@
 # Frontend artifacts
+node_modules/
 client/node_modules/
+dist/
 client/dist/
+build/
+coverage/
+.vite/
 client/.vite/
+client/.vite-dev*.log
+*.tsbuildinfo
 
 # Backend Python artifacts
-api/__pycache__/
 __pycache__/
-api/.pytest_cache/
-api/.mypy_cache/
-api/.ruff_cache/
+**/__pycache__/
+.pytest_cache/
+**/.pytest_cache/
+.mypy_cache/
+**/.mypy_cache/
+.ruff_cache/
+**/.ruff_cache/
 api/.venv/
 *.py[cod]
+*$py.class
 
 # Environment and local config
 .env
@@ -19,16 +30,38 @@ api/.venv/
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # OS / editor files
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
 
 # Local service data
 *.db
 mysql_data/
 judge_redis_data/
 judge_postgres_data/
+api/uploads/public/**
+!api/uploads/public/
+!api/uploads/public/.gitkeep
+api/uploads/private_assets/**
+!api/uploads/private_assets/
+!api/uploads/private_assets/README.md
+
+# Local scratch / temporary files
+temp_css.txt
+temp_*.txt
+*.tmp
+*.temp
+*.bak
+*.orig
 
 # Local Docker dev overrides (never push to production)
 docker-compose.override.yml

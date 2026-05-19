@@ -741,6 +741,8 @@ class AdminAnalyticsRangeResponse(BaseModel):
     calendar_days: List[Dict[str, Any]] = Field(default_factory=list)
     track_breakdown: List[Dict[str, Any]] = Field(default_factory=list)
     top_entry_paths: List[Dict[str, Any]] = Field(default_factory=list)
+    device_breakdown: List[Dict[str, Any]] = Field(default_factory=list)
+    country_breakdown: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class AdminDashboardStats(BaseModel):

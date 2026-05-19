@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import os
 from logging.config import fileConfig
+from pathlib import Path
 
 from alembic import context
+from dotenv import load_dotenv
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
@@ -14,6 +16,13 @@ from auth.models import Base
 from contact import models as _contact_models  # noqa: F401
 from curriculum import models as _curriculum_models  # noqa: F401
 from media import models as _media_models  # noqa: F401
+
+# Load .env the same way the FastAPI app does: project root first, then api/.
+_api_dir = Path(__file__).resolve().parents[1]
+for _env_path in (_api_dir.parent / ".env", _api_dir / ".env"):
+    if _env_path.exists():
+        load_dotenv(_env_path, override=False)
+        break
 
 config = context.config
 

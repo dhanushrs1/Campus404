@@ -91,24 +91,26 @@ function formatVisitLabel(value) {
 }
 
 function normalizeVisitDay(day) {
+  const visits = toNumber(day?.visits ?? day?.total_visits ?? day?.sessions ?? day?.unique_visits);
   return {
     date: day?.date,
     label: formatVisitLabel(day?.date),
-    unique_visits: toNumber(day?.unique_visits ?? day?.visits ?? day?.sessions),
+    visits,
+    unique_visits: toNumber(day?.unique_visits ?? day?.unique_visitors ?? visits),
   };
 }
 
 function VisitTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: "#1e293b", color: "white", padding: "8px 12px", borderRadius: "8px", fontSize: "0.875rem" }}>
+    <div className="overview-chart-tooltip">
       <strong>{label}</strong>: {formatNumber(payload[0]?.value ?? 0)} visits
     </div>
   );
 }
 
 function DailyVisitsChart({ data }) {
-  const hasVisits = data.some((day) => toNumber(day.unique_visits) > 0);
+  const hasVisits = data.some((day) => toNumber(day.visits) > 0);
 
   if (!data.length || !hasVisits) {
     return (
@@ -127,7 +129,7 @@ function DailyVisitsChart({ data }) {
           <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
           <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} allowDecimals={false} />
           <Tooltip content={<VisitTooltip />} cursor={{ fill: "#f8fafc" }} />
-          <Bar dataKey="unique_visits" name="Unique visits" radius={[4, 4, 0, 0]} fill="#3b82f6" />
+          <Bar dataKey="visits" name="Visits" radius={[4, 4, 0, 0]} fill="#3b82f6" />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -191,10 +193,9 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
   const topLearners = Array.isArray(dashboardStats.top_learners) ? dashboardStats.top_learners : [];
   const trackPerformance = Array.isArray(dashboardStats.track_performance) ? dashboardStats.track_performance : [];
 
-  const todayVisits = visitActivity[visitActivity.length - 1]?.unique_visits ?? toNumber(dashboardStats.unique_visits_24h);
+  const todayVisits = visitActivity[visitActivity.length - 1]?.visits ?? toNumber(dashboardStats.visits_last_24h);
   
   const adminName = displayNameFromUsername(username);
-  const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
 
   const commandHealth = [
     { label: "Database", value: dashboardStats.database_health || "unknown", icon: Database, tone: "indigo" },
@@ -205,7 +206,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
     { label: "Total Learners", value: dashboardStats.total_users ?? 0, help: "Aggregate registered users across platform", icon: Users, tone: "blue", trend: dashboardStats.new_users_24h || 0, trendLabel: "new today" },
     { label: "Active Today", value: dashboardStats.active_users_24h ?? 0, help: "Learners who solved exercises today", icon: User, tone: "indigo", trend: percentOf(dashboardStats.active_users_24h, dashboardStats.total_users), trendLabel: "% of total" },
     { label: "XP Awarded (24h)", value: dashboardStats.xp_awarded_24h ?? 0, help: "Experience points earned naturally", icon: Award, tone: "amber", trend: dashboardStats.xp_last_7_days || 0, trendLabel: "this week" },
-    { label: "Visits Today", value: todayVisits, help: "Unique site visits", icon: Globe2, tone: "green", trend: "-", trendLabel: "avg" },
+    { label: "Visits Today", value: todayVisits, help: "Total tracked visits today, including repeat visits from the same visitor.", icon: Globe2, tone: "green", trend: dashboardStats.unique_visits_24h || 0, trendLabel: "unique visitors" },
   ];
 
   const attentionItems = [
@@ -220,7 +221,6 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
 
       <header className="overview-hero">
         <div className="overview-hero-text">
-          <span>{todayLabel}</span>
           <h2>Overview Dashboard</h2>
           <p>Welcome back, {adminName}. Here's the health and performance matrix.</p>
           
@@ -277,7 +277,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
         
         <article className="overview-panel overview-panel-visits">
           <div className="overview-panel-title">
-            <h3><Globe2 size={20} /> Daily Unique Visits</h3>
+            <h3><Globe2 size={20} /> Daily Visits</h3>
             <button onClick={() => onNavigate("analytics")}>Full Analytics</button>
           </div>
           <DailyVisitsChart data={visitActivity} />

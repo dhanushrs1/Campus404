@@ -38,18 +38,11 @@
   flex: 1;
   max-width: 60%;
 }
-.overview-hero-text > span {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0;
-}
 .overview-hero-text h2 {
   font-size: 2rem;
   font-weight: 800;
   color: #0f172a;
-  margin: 8px 0;
+  margin: 0 0 8px;
   letter-spacing: 0;
 }
 .overview-hero-text p {
@@ -240,14 +233,31 @@
 }
 
 .overview-stat-card .ap-tooltip-wrap::after {
+  width: max-content;
+  max-width: 240px;
   left: auto;
   right: 0;
   transform: translateY(-8px);
+  white-space: normal;
+  text-align: left;
   z-index: 100;
 }
 
-.overview-stat-card .ap-tooltip-wrap:hover::after {
+.overview-stat-card .ap-tooltip-wrap::before {
+  left: auto;
+  right: 4px;
+  transform: translateY(-8px) rotate(45deg);
+  z-index: 99;
+}
+
+.overview-stat-card .ap-tooltip-wrap:hover::after,
+.overview-stat-card .ap-tooltip-wrap:focus-within::after {
   transform: translateY(-4px);
+}
+
+.overview-stat-card .ap-tooltip-wrap:hover::before,
+.overview-stat-card .ap-tooltip-wrap:focus-within::before {
+  transform: translateY(-4px) rotate(45deg);
 }
 
 .overview-stat-value {
@@ -398,6 +408,21 @@
 
 .overview-panel-visits .recharts-responsive-container {
   min-height: 250px;
+}
+
+.overview-chart-tooltip {
+  padding: 8px 10px;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  background: #111827;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 760;
+}
+
+.overview-chart-tooltip strong {
+  color: #ffffff;
+  font-weight: 850;
 }
 
 .overview-empty {

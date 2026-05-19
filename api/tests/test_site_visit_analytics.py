@@ -14,16 +14,24 @@ import curriculum.router as curriculum_router
 from curriculum import models, schemas
 
 
-def make_request(ip_address: str = "203.0.113.10") -> Request:
+def make_request(
+    ip_address: str = "203.0.113.10",
+    user_agent: str = "pytest",
+    country_code: str | None = None,
+) -> Request:
+    headers = [
+        (b"x-real-ip", ip_address.encode("ascii")),
+        (b"user-agent", user_agent.encode("ascii")),
+    ]
+    if country_code:
+        headers.append((b"cf-ipcountry", country_code.encode("ascii")))
+
     return Request(
         {
             "type": "http",
             "method": "POST",
             "path": "/api/analytics/visit",
-            "headers": [
-                (b"x-real-ip", ip_address.encode("ascii")),
-                (b"user-agent", b"pytest"),
-            ],
+            "headers": headers,
             "client": (ip_address, 12345),
         }
     )
@@ -51,19 +59,22 @@ async def db_session():
 
 
 @pytest.mark.asyncio
-async def test_site_visit_counts_same_ip_once_per_day(db_session, monkeypatch):
+async def test_site_visit_increments_same_ip_repeat_visits(db_session, monkeypatch):
     FrozenDateTime.current = datetime(2026, 5, 14, 10, 0, 0)
     monkeypatch.setattr(curriculum_router, "datetime", FrozenDateTime)
 
     payload = schemas.SiteVisitRequest(path="/tracks", referrer=None)
-    await curriculum_router.record_site_visit(payload, make_request("203.0.113.10"), db_session)
-    await curriculum_router.record_site_visit(payload, make_request("203.0.113.10"), db_session)
+    await curriculum_router.record_site_visit(payload, make_request("203.0.113.10", user_agent="Mozilla/5.0 iPhone", country_code="IN"), db_session)
+    await curriculum_router.record_site_visit(payload, make_request("203.0.113.10", user_agent="Mozilla/5.0 iPhone", country_code="IN"), db_session)
 
     count = await db_session.scalar(select(func.count()).select_from(models.SiteVisit))
     visit = await db_session.scalar(select(models.SiteVisit))
 
     assert count == 1
     assert visit.first_path == "/tracks"
+    assert visit.visit_count == 2
+    assert visit.device_type == "mobile"
+    assert visit.country_code == "IN"
 
 
 @pytest.mark.asyncio
