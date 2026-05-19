@@ -10,7 +10,7 @@ import BadgeLibraryPage from "./media/BadgeLibraryPage.jsx";
 import AdminAccountPage from "./account/AdminAccountPage.jsx";
 import AdminSettingsPage from "./settings/AdminSettingsPage.jsx";
 import AdminContactInbox from "./contacts/AdminContactInbox.jsx";
-import { clearAuthSession, readAuthSession } from "../shared/authSession.js";
+import { authenticatedFetch, clearAuthSession, readAuthSession } from "../shared/authSession.js";
 import { fetchAdminContactMessages } from "../shared/contactApi.js";
 import AdminSidebar from "./sidebar/AdminSidebar.jsx";
 import AdminTopBar from "./dashboard/AdminTopBar.jsx";
@@ -23,6 +23,7 @@ import {
   NAV_ALIASES,
   NAV_KEY_SET,
 } from "./dashboard/adminNavigation.js";
+import "./shared/AdminSharedUI.css";
 import "./AdminDashboardPage.css";
 
 function AccessDenied() {
@@ -145,13 +146,8 @@ export default function AdminDashboardPage() {
     let isActive = true;
 
     async function verifySession() {
-      const token = localStorage.getItem("campus404_token");
-      if (!token) return;
-
       try {
-        const res = await fetch(apiUrl("/auth/me"), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authenticatedFetch(apiUrl("/auth/me"));
 
         if (res.status === 401) {
           if (isActive) handleSessionExpired();
@@ -216,13 +212,12 @@ export default function AdminDashboardPage() {
     setIsLoggingOut(true);
     try {
       const token = localStorage.getItem("campus404_token");
-      if (token) {
-        await fetch(apiUrl("/auth/logout"), {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          keepalive: true,
-        });
-      }
+      await fetch(apiUrl("/auth/logout"), {
+        method: "POST",
+        credentials: "include",
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        keepalive: true,
+      });
     } catch {
       // Ignore network failures during logout; the local session is still cleared.
     } finally {

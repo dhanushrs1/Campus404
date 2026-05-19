@@ -1,9 +1,11 @@
 import { apiUrl } from "./api.js";
+import { authenticatedFetch, ensureAuthSession } from "./authSession.js";
 
 const SESSION_EXPIRED_STATUS = 401;
 
-function readAccessToken() {
-  return localStorage.getItem("campus404_token") ?? "";
+async function readAccessToken() {
+  const session = await ensureAuthSession();
+  return session.token;
 }
 
 async function parseResponse(response) {
@@ -33,7 +35,7 @@ export async function submitContactMessage(payload) {
 }
 
 export async function fetchAdminContactMessages({ status = "all", search = "", limit = 50, offset = 0 } = {}) {
-  const token = readAccessToken();
+  const token = await readAccessToken();
   if (!token) {
     const error = new Error("Session expired. Please sign in again.");
     error.status = SESSION_EXPIRED_STATUS;
@@ -51,27 +53,22 @@ export async function fetchAdminContactMessages({ status = "all", search = "", l
     params.set("search", search.trim());
   }
 
-  const response = await fetch(apiUrl(`/api/admin/contact-messages?${params.toString()}`), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await authenticatedFetch(apiUrl(`/api/admin/contact-messages?${params.toString()}`));
 
   return parseResponse(response);
 }
 
 export async function updateAdminContactMessage(messageId, payload) {
-  const token = readAccessToken();
+  const token = await readAccessToken();
   if (!token) {
     const error = new Error("Session expired. Please sign in again.");
     error.status = SESSION_EXPIRED_STATUS;
     throw error;
   }
 
-  const response = await fetch(apiUrl(`/api/admin/contact-messages/${messageId}`), {
+  const response = await authenticatedFetch(apiUrl(`/api/admin/contact-messages/${messageId}`), {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),

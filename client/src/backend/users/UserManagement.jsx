@@ -17,6 +17,7 @@ import {
   Lock
 } from "lucide-react";
 import { apiUrl } from "../../shared/api.js";
+import { authenticatedFetch } from "../../shared/authSession.js";
 import "./UserManagement.css";
 
 const ELEVATED_ROLES = new Set(["ADMIN", "EDITOR"]);
@@ -57,10 +58,7 @@ function ActivityModal({ user, onClose, onSessionExpired }) {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const token = localStorage.getItem("campus404_token");
-        const res = await fetch(apiUrl(`/auth/admin/users/${user.id}/sessions`), {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await authenticatedFetch(apiUrl(`/auth/admin/users/${user.id}/sessions`));
         if (res.status === 401) {
           onSessionExpired?.();
           throw new Error(SESSION_EXPIRED_ERROR);
@@ -315,14 +313,7 @@ export default function UserManagement({
       setIsRefreshing(true);
       setErrorMessage("");
 
-      const token = localStorage.getItem("campus404_token");
-      if (!token) {
-        throw new Error("Session expired. Please sign in again.");
-      }
-
-      const res = await fetch(apiUrl("/auth/admin/users"), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authenticatedFetch(apiUrl("/auth/admin/users"));
 
       if (res.status === 401) {
         onSessionExpired?.();
@@ -368,11 +359,6 @@ export default function UserManagement({
 
     setActionLoading("global-save");
     try {
-      const token = localStorage.getItem("campus404_token");
-      if (!token) {
-        throw new Error("Session expired. Please sign in again.");
-      }
-
       setErrorMessage("");
       
       const newUsersList = [...users];
@@ -389,11 +375,10 @@ export default function UserManagement({
           typeof pending.role === "string" &&
           normalizeRole(pending.role) !== normalizeRole(user.role)
         ) {
-          const roleRes = await fetch(apiUrl(`/auth/admin/users/${user.id}/role`), {
+          const roleRes = await authenticatedFetch(apiUrl(`/auth/admin/users/${user.id}/role`), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ role: pending.role }),
           });
@@ -417,11 +402,10 @@ export default function UserManagement({
           typeof pending.is_active === "boolean" &&
           pending.is_active !== Boolean(latestUser.is_active)
         ) {
-          const statusRes = await fetch(apiUrl(`/auth/admin/users/${user.id}/status`), {
+          const statusRes = await authenticatedFetch(apiUrl(`/auth/admin/users/${user.id}/status`), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({
               is_active: pending.is_active,

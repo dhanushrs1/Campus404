@@ -40,6 +40,9 @@ async def init_db() -> None:
             "ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 1",
             "ALTER TABLE users ADD COLUMN avatar VARCHAR(512) DEFAULT NULL",
             "ALTER TABLE users ADD COLUMN ban_reason VARCHAR(256) DEFAULT NULL",
+            # User session refresh-token additions
+            "ALTER TABLE user_sessions ADD COLUMN refresh_token_hash VARCHAR(128) DEFAULT NULL",
+            "ALTER TABLE user_sessions ADD COLUMN refresh_expires_at DATETIME DEFAULT NULL",
             # Exercises table additions
             "ALTER TABLE exercises ADD COLUMN mode VARCHAR(50) NOT NULL DEFAULT 'code'",
             "ALTER TABLE exercises ADD COLUMN theory_content TEXT NULL",

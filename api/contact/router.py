@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.database import get_db
 from auth.jwt_utils import _decode
-from auth.models import User
+from auth.models import User, UserSession
 from contact.models import ContactMessage
 from contact.schemas import (
     ContactMessageCreate,
@@ -39,6 +39,15 @@ def _token_session_version(payload: dict[str, Any]) -> int:
     return version if version > 0 else 1
 
 
+def _token_session_id(payload: dict[str, Any]) -> int | None:
+    value = payload.get("sid")
+    try:
+        session_id = int(value)
+    except (TypeError, ValueError):
+        return None
+    return session_id if session_id > 0 else None
+
+
 async def _get_current_admin(request: Request, db: AsyncSession) -> User:
     auth_header = request.headers.get("authorization") or request.headers.get("Authorization") or ""
     if not auth_header.lower().startswith("bearer "):
@@ -61,6 +70,19 @@ async def _get_current_admin(request: Request, db: AsyncSession) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired. Please log in again.",
         )
+
+    session_id = _token_session_id(payload)
+    if session_id:
+        login_session = await db.scalar(
+            select(UserSession)
+            .where(UserSession.id == session_id)
+            .where(UserSession.user_id == user.id)
+        )
+        if not login_session or login_session.logout_time is not None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired. Please log in again.",
+            )
 
     if _normalize_role(user.role) not in ELEVATED_ROLES:
         raise HTTPException(

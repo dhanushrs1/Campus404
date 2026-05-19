@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { apiUrl, fetchAdminActivityLogs } from "../../shared/api.js";
+import { authenticatedFetch, syncAuthSession } from "../../shared/authSession.js";
 import "./AdminAccountPage.css";
 
 const SESSION_EXPIRED_ERROR = "__SESSION_EXPIRED__";
@@ -96,19 +97,7 @@ export default function AdminAccountPage({ onSessionExpired, onProfileUpdated })
   }, [sessions]);
 
   async function fetchWithAuth(url, options = {}) {
-    const token = localStorage.getItem("campus404_token") || "";
-    if (!token) {
-      onSessionExpired?.();
-      throw new Error(SESSION_EXPIRED_ERROR);
-    }
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...(options.headers || {}),
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await authenticatedFetch(url, options);
 
     if (response.status === 401) {
       onSessionExpired?.();
@@ -213,13 +202,7 @@ export default function AdminAccountPage({ onSessionExpired, onProfileUpdated })
         avatar: updated.avatar,
       });
 
-      localStorage.setItem("campus404_username", updated.username);
-      localStorage.setItem("campus404_role", updated.role);
-      if (updated.avatar) {
-        localStorage.setItem("campus404_avatar_url", updated.avatar);
-      } else {
-        localStorage.removeItem("campus404_avatar_url");
-      }
+      syncAuthSession(updated);
 
       onProfileUpdated?.({
         username: updated.username,

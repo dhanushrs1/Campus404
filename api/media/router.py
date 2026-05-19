@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from auth.database import get_db
 from auth.jwt_utils import _decode
-from auth.models import User
+from auth.models import User, UserSession
 from media.models import MediaFile
 from media.storage_provider import (
     build_cloud_public_id,
@@ -132,6 +132,15 @@ def _token_session_version(payload: dict[str, Any]) -> int:
     return value if value > 0 else 1
 
 
+def _token_session_id(payload: dict[str, Any]) -> int | None:
+    value = payload.get("sid")
+    try:
+        session_id = int(value)
+    except (TypeError, ValueError):
+        return None
+    return session_id if session_id > 0 else None
+
+
 async def get_current_admin(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -159,6 +168,19 @@ async def get_current_admin(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired. Please log in again.",
         )
+
+    session_id = _token_session_id(payload)
+    if session_id:
+        login_session = await db.scalar(
+            select(UserSession)
+            .where(UserSession.id == session_id)
+            .where(UserSession.user_id == user.id)
+        )
+        if not login_session or login_session.logout_time is not None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired. Please log in again.",
+            )
 
     normalized_role = (user.role or payload.get("role") or "").strip().upper()
     if normalized_role not in ELEVATED_ROLES:

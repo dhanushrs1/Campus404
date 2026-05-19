@@ -3,7 +3,9 @@ import { Navigate, useLocation } from "react-router-dom";
 import { APP_ROUTES } from "../routes/paths.js";
 import { apiUrl } from "./api.js";
 import {
+  authenticatedFetch,
   clearAuthSession,
+  ensureAuthSession,
   isElevatedRole,
   readAuthSession,
   syncAuthSession,
@@ -40,15 +42,30 @@ function AccessCheckScreen({ label = "Checking access..." }) {
 
 export function RequireAuth({ children }) {
   const location = useLocation();
-  const session = readAuthSession();
+  const [status, setStatus] = useState(() => (
+    readAuthSession().isAuthenticated ? "authorized" : "checking"
+  ));
 
   useEffect(() => {
-    if (!session.isAuthenticated && session.token) {
-      clearAuthSession();
-    }
-  }, [session.isAuthenticated, session.token]);
+    let disposed = false;
 
-  if (!session.isAuthenticated) {
+    async function verifySession() {
+      const session = await ensureAuthSession();
+      if (disposed) return;
+      setStatus(session.isAuthenticated ? "authorized" : "anonymous");
+    }
+
+    void verifySession();
+    return () => {
+      disposed = true;
+    };
+  }, [location.hash, location.pathname, location.search]);
+
+  if (status === "checking") {
+    return <AccessCheckScreen />;
+  }
+
+  if (status !== "authorized") {
     return <AuthRequiredScreen location={location} />;
   }
 
@@ -69,35 +86,24 @@ function AuthRequiredScreen({ location }) {
 
 export function RequireAdmin({ children }) {
   const location = useLocation();
-  const session = readAuthSession();
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
-    const currentSession = readAuthSession();
-
-    if (!currentSession.isAuthenticated) {
-      if (currentSession.token) {
-        clearAuthSession();
-      }
-      setStatus("anonymous");
-      return undefined;
-    }
-
-    if (!isElevatedRole(currentSession.role)) {
-      setStatus("forbidden");
-      return undefined;
-    }
-
     let disposed = false;
     setStatus("checking");
 
     async function verifyAdminSession() {
       try {
-        const response = await fetch(apiUrl("/auth/me"), {
-          headers: {
-            Authorization: `Bearer ${currentSession.token}`,
-          },
-        });
+        const currentSession = await ensureAuthSession();
+
+        if (disposed) return;
+
+        if (!currentSession.isAuthenticated) {
+          setStatus("anonymous");
+          return;
+        }
+
+        const response = await authenticatedFetch(apiUrl("/auth/me"));
 
         if (disposed) return;
 
@@ -127,7 +133,7 @@ export function RequireAdmin({ children }) {
     return () => {
       disposed = true;
     };
-  }, [session.token]);
+  }, [location.hash, location.pathname, location.search]);
 
   if (status === "anonymous") {
     return (

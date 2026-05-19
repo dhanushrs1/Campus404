@@ -1,4 +1,5 @@
 import { apiUrl } from "./api.js";
+import { authenticatedFetch } from "./authSession.js";
 
 function getAuthHeaders() {
   const token = localStorage.getItem("campus404_token");
@@ -12,7 +13,7 @@ async function request(endpoint, options = {}) {
   let res;
   const maxAttempts = options.method && options.method !== "GET" ? 1 : 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    res = await fetch(apiUrl(endpoint), {
+    res = await authenticatedFetch(apiUrl(endpoint), {
       ...options,
       headers: { ...getAuthHeaders(), ...options.headers },
     });
@@ -52,15 +53,11 @@ export const deleteTrack = (id) => request(`/api/admin/tracks/${id}`, { method: 
 export const reorderTracks = (item_ids) => request("/api/admin/tracks/reorder", { method: "PUT", body: JSON.stringify({ item_ids }) });
 
 export async function uploadTrackFeaturedImage(file) {
-  const token = localStorage.getItem("campus404_token");
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(apiUrl("/api/admin/uploads/track-featured-image"), {
+  const res = await authenticatedFetch(apiUrl("/api/admin/uploads/track-featured-image"), {
     method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
     body: formData,
   });
 

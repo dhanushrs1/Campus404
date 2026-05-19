@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Activity, ClipboardCheck, FolderTree, Radio, Trophy } from "lucide-react";
 import { apiUrl } from "../../shared/api.js";
+import { authenticatedFetch } from "../../shared/authSession.js";
 import { IconBubble } from "../shared/AdminWidgets.jsx";
 import { prettyStatus, statusTone } from "./adminUtils.js";
 
@@ -13,12 +14,7 @@ export default function LearningOpsPage({ variant = "health", onSessionExpired }
 
     async function loadHealth() {
       try {
-        const token = localStorage.getItem("campus404_token");
-        const response = await fetch(apiUrl("/api/admin/learning-engine/health"), {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+        const response = await authenticatedFetch(apiUrl("/api/admin/learning-engine/health"));
 
         if (response.status === 401) {
           onSessionExpired?.();

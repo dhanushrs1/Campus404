@@ -17,7 +17,7 @@ import {
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { apiUrl } from "../../../shared/api.js";
 import { ASSETS } from "../../../shared/assets.js";
-import { consumeAuthReturnTo } from "../../../shared/authSession.js";
+import { consumeAuthReturnTo, saveAuthSession } from "../../../shared/authSession.js";
 import "./OAuthCallbackPage.css";
 
 const CAMPUS_AVATARS = [
@@ -196,14 +196,12 @@ export default function OAuthCallbackPage() {
 
     const nextRole = (role ?? "student").toUpperCase();
     const nextAvatarUrl = (avatarUrl ?? "").trim();
-    localStorage.setItem("campus404_token", token);
-    localStorage.setItem("campus404_role", nextRole);
-    localStorage.setItem("campus404_username", username ?? "");
-    if (nextAvatarUrl) {
-      localStorage.setItem("campus404_avatar_url", nextAvatarUrl);
-    } else {
-      localStorage.removeItem("campus404_avatar_url");
-    }
+    saveAuthSession({
+      access_token: token,
+      role: nextRole,
+      username: username ?? "",
+      avatar_url: nextAvatarUrl,
+    });
     navigate(consumeAuthReturnTo(APP_ROUTES.frontendDashboard), { replace: true });
   }, [avatarUrl, navigate, role, status, token, username]);
 
@@ -435,6 +433,7 @@ export default function OAuthCallbackPage() {
     try {
       const res = await fetch(apiUrl("/auth/complete-profile"), {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${setupToken}`,
@@ -456,14 +455,12 @@ export default function OAuthCallbackPage() {
       const nextRole = (data.role ?? "student").toUpperCase();
       const nextUsername = data.username ?? "";
       const nextAvatarUrl = (data.avatar_url ?? selectedAvatar.src ?? "").trim();
-      localStorage.setItem("campus404_token", data.access_token);
-      localStorage.setItem("campus404_role", nextRole);
-      localStorage.setItem("campus404_username", nextUsername);
-      if (nextAvatarUrl) {
-        localStorage.setItem("campus404_avatar_url", nextAvatarUrl);
-      } else {
-        localStorage.removeItem("campus404_avatar_url");
-      }
+      saveAuthSession({
+        access_token: data.access_token,
+        role: nextRole,
+        username: nextUsername,
+        avatar_url: nextAvatarUrl,
+      });
       navigate(consumeAuthReturnTo(APP_ROUTES.frontendDashboard), { replace: true });
     } catch {
       setErrMsg("Network error. Please try again.");

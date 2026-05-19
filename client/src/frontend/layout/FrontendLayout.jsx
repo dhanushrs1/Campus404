@@ -5,7 +5,7 @@ import Footer from "../components/Footer/Footer.jsx";
 import AuthModal from "../components/AuthModal/AuthModal.jsx";
 import { APP_ROUTES } from "../../routes/paths.js";
 import { apiUrl } from "../../shared/api.js";
-import { clearAuthSession, readAuthSession, saveAuthReturnTo } from "../../shared/authSession.js";
+import { clearAuthSession, ensureAuthSession, readAuthSession, saveAuthReturnTo } from "../../shared/authSession.js";
 import "./FrontendLayout.css";
 
 function shouldTrackVisit(pathname) {
@@ -27,15 +27,28 @@ export default function FrontendLayout() {
   const [avatarUrl, setAvatarUrl] = useState(initialSession.avatarUrl);
 
   useEffect(() => {
-    const session = readAuthSession();
+    let disposed = false;
 
-    if (session.isAuthenticated) {
-      setIsAuthenticated(true);
-      setUserRole(session.role);
-      setDisplayName(session.username);
-      setAvatarUrl(session.avatarUrl);
-      return;
+    function applySession(session) {
+      if (disposed) return;
+      setIsAuthenticated(Boolean(session?.isAuthenticated));
+      setUserRole(session?.role || "USER");
+      setDisplayName(session?.username || "");
+      setAvatarUrl(session?.avatarUrl || "");
     }
+
+    function handleAuthChanged(event) {
+      applySession(event.detail || readAuthSession());
+    }
+
+    window.addEventListener("campus404:auth-changed", handleAuthChanged);
+    applySession(readAuthSession());
+    ensureAuthSession().then(applySession);
+
+    return () => {
+      disposed = true;
+      window.removeEventListener("campus404:auth-changed", handleAuthChanged);
+    };
   }, []);
 
   useEffect(() => {
@@ -101,14 +114,13 @@ export default function FrontendLayout() {
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("campus404_token");
-      if (token) {
-        await fetch(apiUrl("/auth/logout"), {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
+      await fetch(apiUrl("/auth/logout"), {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
     } catch {
       // Ignore network errors on logout.
     }

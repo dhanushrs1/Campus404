@@ -20,8 +20,10 @@ import {
   YAxis,
 } from "recharts";
 import { apiUrl } from "../../../shared/api.js";
+import { authenticatedFetch } from "../../../shared/authSession.js";
 import { EmptyState } from "../../shared/AdminWidgets.jsx";
 import { addDays, formatNumber, formatShortDate, isoDate, percentOf, toNumber } from "../adminUtils.js";
+import "./AnalyticsPage.css";
 
 function monthStart(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1, 12);
@@ -406,14 +408,9 @@ export default function AnalyticsPage({ onSessionExpired }) {
     let disposed = false;
 
     async function loadAnalytics() {
-      const token = localStorage.getItem("campus404_token");
       const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
       try {
-        const response = await fetch(apiUrl(`/api/admin/analytics?${params.toString()}`), {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+        const response = await authenticatedFetch(apiUrl(`/api/admin/analytics?${params.toString()}`));
 
         if (response.status === 401) {
           onSessionExpired?.();
@@ -422,11 +419,7 @@ export default function AnalyticsPage({ onSessionExpired }) {
 
         const payload = await readJsonResponse(response);
         if (response.status === 404) {
-          const fallbackResponse = await fetch(apiUrl("/api/admin/dashboard/stats"), {
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-          });
+          const fallbackResponse = await authenticatedFetch(apiUrl("/api/admin/dashboard/stats"));
           if (fallbackResponse.status === 401) {
             onSessionExpired?.();
             throw new Error("Session expired.");

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { deleteMediaFile, getMediaStorageSettings, listMedia, getOptimizedCloudinaryUrl } from "../../shared/mediaApi.js";
 import UploadMediaModal from "./components/UploadMediaModal.jsx";
-import "./MediaLibraryPage.css";
+import "../shared/AdminMediaLibrary.css";
 
 // ── Formatters ─────────────────────────────────────────────────────────────
 

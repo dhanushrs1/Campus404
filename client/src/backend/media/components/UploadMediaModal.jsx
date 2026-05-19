@@ -13,7 +13,7 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { uploadMediaFiles } from "../../../shared/mediaApi.js";
-import "./UploadMediaModal.css";
+import "../../shared/AdminUploadModal.css";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB

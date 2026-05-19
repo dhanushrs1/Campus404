@@ -22,20 +22,30 @@ Endpoints:
 
 from __future__ import annotations
 
+import hashlib
 import os
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import desc, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.database import get_db
-from auth.jwt_utils import _decode, create_access_token, create_setup_token, verify_setup_token
+from auth.jwt_utils import (
+    REFRESH_TOKEN_EXPIRE_DAYS,
+    _decode,
+    create_access_token,
+    create_refresh_token,
+    create_setup_token,
+    verify_refresh_token,
+    verify_setup_token,
+)
 from auth.models import AdminActivityLog, User, UserSession
 from auth.schemas import (
     AccessTokenResponse,
@@ -68,6 +78,9 @@ GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
 FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 ELEVATED_ROLES = {"ADMIN", "EDITOR"}
+REFRESH_COOKIE_NAME = os.getenv("AUTH_REFRESH_COOKIE_NAME", "campus404_refresh")
+REFRESH_COOKIE_PATH = "/auth"
+REFRESH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN") or None
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +185,84 @@ def _token_session_version(payload: dict[str, Any]) -> int:
     return version if version > 0 else 1
 
 
+def _token_session_id(payload: dict[str, Any]) -> int | None:
+    value = payload.get("sid")
+    try:
+        session_id = int(value)
+    except (TypeError, ValueError):
+        return None
+    return session_id if session_id > 0 else None
+
+
+def _refresh_expires_at() -> datetime:
+    return datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
+
+def _hash_refresh_token_id(token_id: str) -> str:
+    return hashlib.sha256(token_id.encode("utf-8")).hexdigest()
+
+
+def _cookie_is_secure(request: Request) -> bool:
+    explicit = (os.getenv("AUTH_COOKIE_SECURE") or "").strip().lower()
+    if explicit in {"1", "true", "yes", "on"}:
+        return True
+    if explicit in {"0", "false", "no", "off"}:
+        return False
+    return (
+        request.headers.get("x-forwarded-proto", "").split(",", 1)[0].strip().lower() == "https"
+        or request.url.scheme == "https"
+    )
+
+
+def _set_refresh_cookie(response: Response, request: Request, refresh_token: str) -> None:
+    response.set_cookie(
+        key=REFRESH_COOKIE_NAME,
+        value=refresh_token,
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        httponly=True,
+        secure=_cookie_is_secure(request),
+        samesite="lax",
+        path=REFRESH_COOKIE_PATH,
+        domain=REFRESH_COOKIE_DOMAIN,
+    )
+
+
+def _clear_refresh_cookie(response: Response, request: Request) -> None:
+    response.delete_cookie(
+        key=REFRESH_COOKIE_NAME,
+        path=REFRESH_COOKIE_PATH,
+        domain=REFRESH_COOKIE_DOMAIN,
+        secure=_cookie_is_secure(request),
+        httponly=True,
+        samesite="lax",
+    )
+
+
+async def _create_login_session(
+    *,
+    db: AsyncSession,
+    user: User,
+    request: Request,
+) -> tuple[UserSession, str]:
+    token_id = secrets.token_urlsafe(32)
+    session = UserSession(
+        user_id=user.id,
+        ip_address=_extract_client_ip(request),
+        device_info=(request.headers.get("user-agent") or "")[:500] or None,
+        refresh_token_hash=_hash_refresh_token_id(token_id),
+        refresh_expires_at=_refresh_expires_at(),
+    )
+    db.add(session)
+    await db.flush()
+    refresh_token = create_refresh_token(
+        user.username,
+        int(user.session_version or 1),
+        int(session.id),
+        token_id,
+    )
+    return session, refresh_token
+
+
 def _extract_client_ip(request: Request) -> str | None:
     # Prefer X-Real-IP — NGINX sets this to $remote_addr (the actual client IP)
     # before any X-Forwarded-For chain is appended, so it is the most reliable.
@@ -262,6 +353,19 @@ async def _get_authenticated_user(
             detail="Session expired. Please log in again.",
         )
 
+    session_id = _token_session_id(payload)
+    if session_id:
+        login_session = await db.scalar(
+            select(UserSession)
+            .where(UserSession.id == session_id)
+            .where(UserSession.user_id == user.id)
+        )
+        if not login_session or login_session.logout_time is not None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired. Please log in again.",
+            )
+
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is banned.")
 
@@ -328,6 +432,8 @@ async def _invalidate_user_sessions(db: AsyncSession, user: User) -> None:
 
     for session in active_sessions:
         session.logout_time = now
+        session.refresh_token_hash = None
+        session.refresh_expires_at = None
 
     user.session_version = int(user.session_version or 1) + 1
 
@@ -359,13 +465,7 @@ async def _handle_oauth_profile(
         if avatar_url and user.avatar != avatar_url and not _is_campus_avatar_url(user.avatar):
             user.avatar = avatar_url
 
-        db.add(
-            UserSession(
-                user_id=user.id,
-                ip_address=_extract_client_ip(request),
-                device_info=(request.headers.get("user-agent") or "")[:500] or None,
-            )
-        )
+        login_session, refresh_token = await _create_login_session(db=db, user=user, request=request)
 
         normalized_role = _normalize_role(user.role)
         if _is_elevated_role(normalized_role):
@@ -384,7 +484,12 @@ async def _handle_oauth_profile(
         await db.commit()
         await db.refresh(user)
 
-        token = create_access_token(user.username, user.role, int(user.session_version or 1))
+        token = create_access_token(
+            user.username,
+            user.role,
+            int(user.session_version or 1),
+            int(login_session.id),
+        )
         params = urlencode(
             {
                 "status": "active",
@@ -394,7 +499,9 @@ async def _handle_oauth_profile(
                 "avatar_url": user.avatar or avatar_url or "",
             }
         )
-        return RedirectResponse(f"{FRONTEND_URL}/auth/callback?{params}")
+        response = RedirectResponse(f"{FRONTEND_URL}/auth/callback?{params}")
+        _set_refresh_cookie(response, request, refresh_token)
+        return response
 
     setup_token = create_setup_token(email, full_name, provider, avatar_url, gender_hint)
     params = urlencode(
@@ -427,7 +534,7 @@ async def google_login(request: Request) -> RedirectResponse:
             "response_type": "code",
             "scope": "openid email profile",
             "access_type": "offline",
-            "prompt": "select_account",
+            "include_granted_scopes": "true",
         }
     )
     return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
@@ -576,6 +683,7 @@ async def check_username(
 async def complete_profile(
     payload: CompleteProfileRequest,
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> AccessTokenResponse:
     auth_header = request.headers.get("authorization") or request.headers.get("Authorization") or ""
@@ -618,13 +726,7 @@ async def complete_profile(
         await db.commit()
         await db.refresh(new_user)
 
-        db.add(
-            UserSession(
-                user_id=new_user.id,
-                ip_address=_extract_client_ip(request),
-                device_info=(request.headers.get("user-agent") or "")[:500] or None,
-            )
-        )
+        login_session, refresh_token = await _create_login_session(db=db, user=new_user, request=request)
         await db.commit()
         await db.refresh(new_user)
     except IntegrityError:
@@ -634,13 +736,81 @@ async def complete_profile(
             detail="Username or email conflict. Please try again.",
         )
 
-    token = create_access_token(new_user.username, new_user.role, int(new_user.session_version or 1))
+    token = create_access_token(
+        new_user.username,
+        new_user.role,
+        int(new_user.session_version or 1),
+        int(login_session.id),
+    )
+    _set_refresh_cookie(response, request, refresh_token)
     return AccessTokenResponse(
         access_token=token,
         status="active",
         role=new_user.role,
         username=new_user.username,
         avatar_url=final_avatar_url,
+    )
+
+
+@router.post(
+    "/refresh",
+    response_model=AccessTokenResponse,
+    summary="Refresh an authenticated browser session",
+)
+async def refresh_access_token(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> AccessTokenResponse:
+    refresh_token = request.cookies.get(REFRESH_COOKIE_NAME)
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh session required.")
+
+    payload = verify_refresh_token(refresh_token)
+    username = payload.get("sub")
+    session_id = _token_session_id(payload)
+    token_id = str(payload.get("jti") or "")
+    if not username or not session_id or not token_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh session.")
+
+    user = await db.scalar(select(User).where(User.username == username))
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Account is not available.")
+
+    if _token_session_version(payload) != int(user.session_version or 1):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session has been revoked.")
+
+    login_session = await db.scalar(
+        select(UserSession)
+        .where(UserSession.id == session_id)
+        .where(UserSession.user_id == user.id)
+    )
+    if (
+        not login_session
+        or login_session.logout_time is not None
+        or not login_session.refresh_token_hash
+        or login_session.refresh_token_hash != _hash_refresh_token_id(token_id)
+        or (
+            login_session.refresh_expires_at is not None
+            and login_session.refresh_expires_at <= datetime.utcnow()
+        )
+    ):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh session has expired.")
+
+    access_token = create_access_token(
+        user.username,
+        user.role,
+        int(user.session_version or 1),
+        int(login_session.id),
+    )
+    _set_refresh_cookie(response, request, refresh_token)
+
+    return AccessTokenResponse(
+        access_token=access_token,
+        status="active",
+        role=user.role,
+        username=user.username,
+        avatar_url=user.avatar,
     )
 
 
@@ -790,6 +960,7 @@ async def list_account_sessions(
 )
 async def revoke_account_sessions(
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> AdminAccountSessionsRevokeResponse:
     user, normalized_role = await _get_authenticated_user(request, db)
@@ -826,6 +997,7 @@ async def revoke_account_sessions(
 
     await db.commit()
     await db.refresh(user)
+    _clear_refresh_cookie(response, request)
 
     return AdminAccountSessionsRevokeResponse(
         revoked_sessions=revoked_count,
@@ -843,14 +1015,28 @@ async def revoke_account_sessions(
 )
 async def logout_user(
     request: Request,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ):
+    _clear_refresh_cookie(response, request)
     auth_header = request.headers.get("authorization") or request.headers.get("Authorization") or ""
-    if not auth_header.lower().startswith("bearer "):
-        return
 
     try:
-        payload = _decode(auth_header[7:])
+        payload: dict[str, Any] = {}
+        if auth_header.lower().startswith("bearer "):
+            try:
+                payload = _decode(auth_header[7:])
+            except Exception:
+                payload = {}
+
+        if not payload:
+            refresh_token = request.cookies.get(REFRESH_COOKIE_NAME)
+            if refresh_token:
+                try:
+                    payload = verify_refresh_token(refresh_token)
+                except Exception:
+                    payload = {}
+
         username = payload.get("sub")
         if not username:
             return
@@ -859,16 +1045,28 @@ async def logout_user(
         if not user:
             return
 
-        recent_session = await db.scalar(
-            select(UserSession)
-            .where(UserSession.user_id == user.id)
-            .where(UserSession.logout_time.is_(None))
-            .order_by(desc(UserSession.login_time))
-            .limit(1)
-        )
+        session_id = _token_session_id(payload)
+        if session_id:
+            recent_session = await db.scalar(
+                select(UserSession)
+                .where(UserSession.id == session_id)
+                .where(UserSession.user_id == user.id)
+                .limit(1)
+            )
+        else:
+            recent_session = await db.scalar(
+                select(UserSession)
+                .where(UserSession.user_id == user.id)
+                .where(UserSession.logout_time.is_(None))
+                .order_by(desc(UserSession.login_time))
+                .limit(1)
+            )
 
         if recent_session:
-            recent_session.logout_time = datetime.utcnow()
+            if recent_session.logout_time is None:
+                recent_session.logout_time = datetime.utcnow()
+            recent_session.refresh_token_hash = None
+            recent_session.refresh_expires_at = None
 
         normalized_role = _normalize_role(user.role)
         if _is_elevated_role(normalized_role):

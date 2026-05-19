@@ -10,6 +10,8 @@
  *   Overrides to reach FastAPI directly on port 8000.
  */
 
+import { authenticatedFetch, ensureAuthSession } from "./authSession.js";
+
 const _raw = import.meta.env.VITE_API_URL ?? "";
 
 // Treat empty string, whitespace, or undefined the same — same-origin mode
@@ -26,8 +28,9 @@ export function apiUrl(path) {
   return `${API_BASE}${path}`;
 }
 
-function readAccessToken() {
-  return localStorage.getItem("campus404_token") ?? "";
+async function readAccessToken() {
+  const session = await ensureAuthSession();
+  return session.token;
 }
 
 /**
@@ -35,16 +38,15 @@ function readAccessToken() {
  * keepalive=true helps when this is called right before navigation.
  */
 export async function logAdminActivity(payload) {
-  const token = readAccessToken();
+  const token = await readAccessToken();
   if (!token) {
     return { logged: false, reason: "missing-token" };
   }
 
   try {
-    const response = await fetch(apiUrl("/auth/admin-activity"), {
+    const response = await authenticatedFetch(apiUrl("/auth/admin-activity"), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
@@ -65,7 +67,7 @@ export async function logAdminActivity(payload) {
  * Retrieve the latest admin/editor audit logs for dashboard rendering.
  */
 export async function fetchAdminActivityLogs({ limit = 25, offset = 0, role = "", activityType = "", username = "" } = {}) {
-  const token = readAccessToken();
+  const token = await readAccessToken();
   if (!token) {
     return { items: [], total: 0 };
   }
@@ -84,11 +86,8 @@ export async function fetchAdminActivityLogs({ limit = 25, offset = 0, role = ""
     params.set("username", username);
   }
 
-  const response = await fetch(apiUrl(`/auth/admin-activity?${params.toString()}`), {
+  const response = await authenticatedFetch(apiUrl(`/auth/admin-activity?${params.toString()}`), {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {

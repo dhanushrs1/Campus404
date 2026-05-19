@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import { apiUrl } from "../../../shared/api.js";
 import { ASSETS } from "../../../shared/assets.js";
+import { authenticatedFetch } from "../../../shared/authSession.js";
 import { EmptyState, IconBubble } from "../../shared/AdminWidgets.jsx";
 import {
   clampNumber,
@@ -60,10 +61,16 @@ function displayNameFromUsername(username) {
     .join(" ");
 }
 
+function formatVisitLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "?";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function normalizeVisitDay(day) {
   return {
     date: day?.date,
-    label: new Date(day?.date).toLocaleDateString(undefined, { month: '"short"', day: '"numeric"' }) || '"?"',
+    label: formatVisitLabel(day?.date),
     unique_visits: toNumber(day?.unique_visits ?? day?.visits ?? day?.sessions),
   };
 }
@@ -97,7 +104,7 @@ function KpiSparkChart({ data, dataKey, tone = "blue" }) {
 function VisitTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div style={{ background: '"#1e293b"', color: '"white"', padding: '"8px 12px"', borderRadius: '"8px"', fontSize: '"0.875rem"' }}>
+    <div style={{ background: "#1e293b", color: "white", padding: "8px 12px", borderRadius: "8px", fontSize: "0.875rem" }}>
       <strong>{label}</strong>: {formatNumber(payload[0]?.value ?? 0)} visits
     </div>
   );
@@ -116,13 +123,13 @@ function DailyVisitsChart({ data }) {
   }
 
   return (
-    <div style={{ height: '"300px"', marginTop: '"20px"' }}>
+    <div style={{ height: "300px", marginTop: "20px" }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '"#94a3b8"', fontSize: 12 }} />
-          <YAxis axisLine={false} tickLine={false} tick={{ fill: '"#94a3b8"', fontSize: 12 }} allowDecimals={false} />
-          <Tooltip content={<VisitTooltip />} cursor={{ fill: '"#f8fafc"' }} />
+          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fill: "#94a3b8", fontSize: 12 }} allowDecimals={false} />
+          <Tooltip content={<VisitTooltip />} cursor={{ fill: "#f8fafc" }} />
           <Bar dataKey="unique_visits" name="Unique visits" radius={[4, 4, 0, 0]} fill="#3b82f6" />
         </BarChart>
       </ResponsiveContainer>
@@ -139,10 +146,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
     let disposed = false;
 
     async function requestJson(path) {
-      const token = localStorage.getItem("campus404_token");
-      const response = await fetch(apiUrl(path), {
-        headers: { ...(token ? { Authorization: "Bearer ${token}" } : {}) },
-      });
+      const response = await authenticatedFetch(apiUrl(path));
 
       if (response.status === 401) {
         onSessionExpired?.();
@@ -150,7 +154,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
       }
 
       const payload = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(payload?.detail || "Unable to load ${path}");
+      if (!response.ok) throw new Error(payload?.detail || `Unable to load ${path}`);
       return payload;
     }
 
@@ -196,10 +200,8 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
   const todayLabel = new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
 
   const commandHealth = [
-    { label: "Judge Processor", value: dashboardStats.judge_health || dashboardHealth.judge_health || "unknown", icon: Activity, tone: "blue" },
-    { label: "Main Database", value: dashboardStats.database_health || "unknown", icon: Database, tone: "indigo" },
-    { label: "Leaderboards", value: dashboardHealth.leaderboard_health || dashboardStats.leaderboard_health || "unknown", icon: Trophy, tone: "amber" },
-    { label: "Content Map", value: dashboardHealth.content_health || "unknown", icon: FolderTree, tone: "green" },
+    { label: "Database", value: dashboardStats.database_health || "unknown", icon: Database, tone: "indigo" },
+    { label: "Judge Engine", value: dashboardStats.judge_health || dashboardHealth.judge_health || "unknown", icon: Activity, tone: "blue" },
   ];
 
   const metricCards = [
@@ -217,31 +219,33 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
 
   return (
     <div className="overview-container">
-      {error && <div style={{ color: '"red"' }}>{error}</div>}
+      {error && <div style={{ color: "red" }}>{error}</div>}
 
       <header className="overview-hero">
         <div className="overview-hero-text">
           <span>{todayLabel}</span>
           <h2>Overview Dashboard</h2>
           <p>Welcome back, {adminName}. Here's the health and performance matrix.</p>
+          
+          <div className="hero-system-status">
+            {commandHealth.map((h, i) => {
+              const isHealthy = h.value === "healthy";
+              const isUnknown = h.value === "unknown";
+              const statusType = isHealthy ? "healthy" : (isUnknown ? "warn" : "error");
+              const statusText = isHealthy ? "Active" : (isUnknown ? "Standby" : "Offline");
+              return (
+                <div className={`hero-status-badge hero-status--${statusType}`} key={i}>
+                  <span className="system-pulse-dot"></span>
+                  <strong>{h.label}:</strong> {statusText}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="overview-hero-visual">
+          <img src={ASSETS.tracks.adminCommandCenter} alt="Dashboard Graphic" />
         </div>
       </header>
-
-      <section className="overview-system-health">
-        {commandHealth.map((h, i) => (
-          <div className="overview-health-card" key={i}>
-            <div className="overview-health-icon" style={{ backgroundColor: "#f1f5f9", color: TONE_COLORS[h.tone] }}>
-              <h.icon size={24} />
-            </div>
-            <div className="overview-health-info">
-              <div className="overview-health-label">{h.label}</div>
-              <div className="overview-health-value" style={{ color: h.value === '"healthy"' ? '"#10b981"' : '"inherit"' }}>
-                {h.value === "healthy" ? "Operational" : h.value}
-              </div>
-            </div>
-          </div>
-        ))}
-      </section>
 
       <section className="overview-stats-grid">
         {metricCards.map(({ label, value, help, icon: Icon, tone, trend, trendLabel, series, seriesKey }) => (
@@ -253,7 +257,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
                 </div>
                 <h3 className="overview-stat-name">{label}</h3>
               </div>
-              <HelpCircle size={16} className="overview-stat-help" data-tooltip={help} />
+              <span className="overview-stat-tooltip-wrap" data-tooltip={help}><HelpCircle size={16} className="overview-stat-help" /></span>
             </div>
             
             <div className="overview-stat-body">
@@ -285,7 +289,7 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
           <div>
             {attentionItems.map((item, i) => (
               <div className="overview-list-item" key={i} onClick={() => onNavigate(item.target)}>
-                <div style={{ color: '"#64748b"' }}><item.icon size={18} /></div>
+                <div style={{ color: "#64748b" }}><item.icon size={18} /></div>
                 <div className="overview-list-item-content">
                   <div className="overview-list-item-title">{item.label}</div>
                 </div>
@@ -303,12 +307,12 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
           <div>
             {attempts.slice(0, 5).map((attempt, i) => (
               <div className="overview-list-item" key={i} onClick={() => onNavigate("submissions")}>
-                <Code2 size={18} color={attempt.status === '"failed"' ? '"#e11d48"' : '"#10b981"'} />
+                <Code2 size={18} color={String(attempt.status || "").toLowerCase() === "failed" ? "#e11d48" : "#10b981"} />
                 <div className="overview-list-item-content">
                   <div className="overview-list-item-title">{attempt.exercise_title || "Unknown Exercise"}</div>
                   <div className="overview-list-item-sub">{prettyStatus(attempt.status || "accepted")} - {attempt.username || "Learner"}</div>
                 </div>
-                <div className="overview-list-item-value" style={{ fontSize: '"0.75rem"', color: '"#94a3b8"' }}>
+                <div className="overview-list-item-value" style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
                   {formatRelativeTime(attempt.created_at)}
                 </div>
               </div>
@@ -341,3 +345,6 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
     </div>
   );
 }
+
+
+

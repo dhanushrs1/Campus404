@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Search, Image as ImageIcon, CheckCircle, Upload } from "lucide-react";
 import { getMediaStorageSettings, listMedia, getOptimizedCloudinaryUrl } from "../../../shared/mediaApi.js";
 import UploadBadgeModal from "./UploadBadgeModal.jsx";
-import "./BadgePickerModal.css";
+import "../../shared/AdminMediaPickerModal.css";
 
 export default function BadgePickerModal({ isOpen, onClose, onSelect }) {
   const [items, setItems] = useState([]);

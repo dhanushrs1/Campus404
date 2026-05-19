@@ -7,12 +7,30 @@ export const AUTH_STORAGE_KEYS = Object.freeze([
 ]);
 
 export const ELEVATED_ROLES = new Set(["ADMIN", "EDITOR"]);
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").trim();
+const AUTH_CHANGED_EVENT = "campus404:auth-changed";
+
+let refreshPromise = null;
+
+function authApiUrl(path) {
+  return `${API_BASE}${path}`;
+}
 
 function getStorage() {
   try {
     return typeof window !== "undefined" ? window.localStorage : null;
   } catch {
     return null;
+  }
+}
+
+function emitAuthChanged() {
+  try {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(AUTH_CHANGED_EVENT, { detail: readAuthSession() }));
+    }
+  } catch {
+    // Auth state updates are best effort for tabs/components that are currently mounted.
   }
 }
 
@@ -79,11 +97,41 @@ export function readAuthSession() {
   };
 }
 
+export function saveAuthSession(session) {
+  const storage = getStorage();
+  if (!storage || !session) return readAuthSession();
+
+  const token = String(session.access_token || session.token || "").trim();
+  if (token) {
+    storage.setItem("campus404_token", token);
+  }
+
+  const payload = decodeJwtPayload(token);
+  const role = normalizeRole(session.role || payload.role || storage.getItem("campus404_role"));
+  storage.setItem("campus404_role", role);
+
+  const username = String(session.username || payload.sub || storage.getItem("campus404_username") || "").trim();
+  if (username) {
+    storage.setItem("campus404_username", username);
+  }
+
+  const avatar = String(session.avatar_url || session.avatar || "").trim();
+  if (avatar) {
+    storage.setItem("campus404_avatar_url", avatar);
+  } else if (Object.prototype.hasOwnProperty.call(session, "avatar_url") || Object.prototype.hasOwnProperty.call(session, "avatar")) {
+    storage.removeItem("campus404_avatar_url");
+  }
+
+  emitAuthChanged();
+  return readAuthSession();
+}
+
 export function clearAuthSession() {
   const storage = getStorage();
   if (!storage) return;
 
   AUTH_STORAGE_KEYS.forEach((key) => storage.removeItem(key));
+  emitAuthChanged();
 }
 
 function normalizeReturnTo(value) {
@@ -130,4 +178,89 @@ export function syncAuthSession(user) {
   } else if (Object.prototype.hasOwnProperty.call(user, "avatar") || Object.prototype.hasOwnProperty.call(user, "avatar_url")) {
     storage.removeItem("campus404_avatar_url");
   }
+
+  emitAuthChanged();
+}
+
+export async function refreshAuthSession({ force = false } = {}) {
+  const current = readAuthSession();
+  if (!force && current.isAuthenticated) {
+    return current;
+  }
+
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const response = await fetch(authApiUrl("/auth/refresh"), {
+          method: "POST",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            clearAuthSession();
+          }
+          return readAuthSession();
+        }
+
+        const data = await response.json();
+        return saveAuthSession(data);
+      } catch {
+        return readAuthSession();
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+
+  return refreshPromise;
+}
+
+export async function ensureAuthSession() {
+  const session = readAuthSession();
+  if (session.isAuthenticated) {
+    return session;
+  }
+  return refreshAuthSession({ force: true });
+}
+
+function withAuthorization(headers, token) {
+  const nextHeaders = new Headers(headers || {});
+  if (token) {
+    nextHeaders.set("Authorization", `Bearer ${token}`);
+  } else {
+    nextHeaders.delete("Authorization");
+  }
+  return nextHeaders;
+}
+
+export async function authenticatedFetch(input, options = {}) {
+  const session = await ensureAuthSession();
+  const fetchOptions = {
+    ...options,
+    credentials: options.credentials || "include",
+    headers: withAuthorization(options.headers, session.token),
+  };
+
+  let response = await fetch(input, fetchOptions);
+  if (response.status !== 401) {
+    return response;
+  }
+
+  const refreshed = await refreshAuthSession({ force: true });
+  if (!refreshed.isAuthenticated || refreshed.token === session.token) {
+    return response;
+  }
+
+  response = await fetch(input, {
+    ...options,
+    credentials: options.credentials || "include",
+    headers: withAuthorization(options.headers, refreshed.token),
+  });
+
+  if (response.status === 401) {
+    clearAuthSession();
+  }
+
+  return response;
 }

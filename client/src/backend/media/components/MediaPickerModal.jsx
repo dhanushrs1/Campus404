@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Search, Image as ImageIcon, CheckCircle, Upload } from "lucide-react";
 import { getMediaStorageSettings, listMedia, getOptimizedCloudinaryUrl } from "../../../shared/mediaApi.js";
 import UploadMediaModal from "./UploadMediaModal.jsx";
-import "./MediaPickerModal.css";
+import "../../shared/AdminMediaPickerModal.css";
 
 export default function MediaPickerModal({ isOpen, onClose, onSelect }) {
   const [items, setItems] = useState([]);

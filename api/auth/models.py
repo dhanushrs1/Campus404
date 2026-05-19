@@ -46,6 +46,8 @@ class UserSession(Base):
     logout_time = Column(DateTime, nullable=True)
     ip_address = Column(String(64), nullable=True)
     device_info = Column(String(512), nullable=True)  # User-Agent string
+    refresh_token_hash = Column(String(128), nullable=True)
+    refresh_expires_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="sessions")
 

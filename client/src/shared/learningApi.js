@@ -1,5 +1,5 @@
 import { apiUrl } from "./api.js";
-import { clearAuthSession } from "./authSession.js";
+import { authenticatedFetch, clearAuthSession } from "./authSession.js";
 
 function buildHeaders() {
   const token = localStorage.getItem("campus404_token");
@@ -10,7 +10,7 @@ function buildHeaders() {
 }
 
 async function request(endpoint, options = {}) {
-  const response = await fetch(apiUrl(endpoint), {
+  const response = await authenticatedFetch(apiUrl(endpoint), {
     method: options.method || "GET",
     ...options,
     headers: { ...buildHeaders(), ...(options.headers || {}) },

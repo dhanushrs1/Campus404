@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { deleteMediaFile, getMediaStorageSettings, listMedia, getOptimizedCloudinaryUrl } from "../../shared/mediaApi.js";
 import UploadBadgeModal from "./components/UploadBadgeModal.jsx";
-import "./BadgeLibraryPage.css";
+import "../shared/AdminMediaLibrary.css";
 
 // ── Formatters ─────────────────────────────────────────────────────────────
 
