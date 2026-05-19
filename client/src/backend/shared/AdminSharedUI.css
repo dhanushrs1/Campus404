@@ -367,3 +367,63 @@
 .ap-body :where(.aa-card__header p, .as-card__header p, .as-provider span) {
   font-size: 0.76rem;
 }
+
+
+.ap-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.ap-tooltip-wrap::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  padding: 8px 10px;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  background: #111827;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 760;
+  line-height: 1.25;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.ap-tooltip-wrap::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% - 5px);
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-right: 1px solid #1f2937;
+  border-bottom: 1px solid #1f2937;
+  background: #111827;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(-8px) rotate(45deg);
+  transition: all 0.2s;
+  pointer-events: none;
+  z-index: 39;
+}
+
+.ap-tooltip-wrap:hover::after,
+.ap-tooltip-wrap:focus-within::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.ap-tooltip-wrap:hover::before,
+.ap-tooltip-wrap:focus-within::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(-4px) rotate(45deg);
+}

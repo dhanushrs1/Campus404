@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, LogOut, Menu } from "lucide-react";
 import { APP_ROUTES } from "../../routes/paths.js";
 import { ASSETS } from "../../shared/assets.js";
-import { NAV_SECTIONS } from "../dashboard/adminNavigation.js";
+import { NAV_ITEMS } from "../dashboard/adminNavigation.js";
+import "./AdminSidebar.css";
 
 export default function AdminSidebar({
   activeKey,
@@ -15,67 +17,86 @@ export default function AdminSidebar({
   avatarUrl,
   unreadContactCount = 0,
 }) {
+  const [tooltip, setTooltip] = useState(null);
   const version = import.meta.env.VITE_APP_VERSION ?? "1.0.0";
   const contactBadgeLabel = unreadContactCount > 99 ? "99+" : String(unreadContactCount);
 
+  const showTooltip = (event, label) => {
+    if (isOpen) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltip({ label, top: rect.top + rect.height / 2 });
+  };
+
+  const hideTooltip = () => setTooltip(null);
+
   return (
-    <aside className={`ap-sidebar ${isOpen ? "is-open" : "is-closed"}`} aria-label="Admin console">
-      <div className="ap-sidebar__brand-row">
-        <Link to={APP_ROUTES.home} className="ap-sidebar__brand" aria-label="Campus404 home">
+    <aside className={`mod-sidebar ${isOpen ? "is-open" : "is-collapsed"}`} aria-label="Admin console">
+      <div className="mod-sidebar-top">
+        <Link to={APP_ROUTES.home} className="mod-brand" aria-label="Campus404 home">
           <img src={isOpen ? ASSETS.brand.logo : ASSETS.brand.favicon} alt="Campus404" />
         </Link>
-        <button type="button" className="ap-sidebar__toggle" onClick={onToggle} aria-label="Toggle admin navigation">
+        <button
+          type="button"
+          className="mod-sidebar-toggle"
+          onClick={onToggle}
+          aria-label="Toggle admin navigation"
+        >
           <Menu size={18} />
         </button>
       </div>
 
-      <nav className="ap-sidebar__nav" aria-label="Admin navigation">
-        {NAV_SECTIONS.map((section) => (
-          <section className="ap-nav-section" key={section.title}>
-            <h2>{section.title}</h2>
-            {section.items.map(({ key, label, icon: Icon }) => {
-              const isActive = activeKey === key;
-              const showContactBadge = key === "contacts" && unreadContactCount > 0;
+      <nav className="mod-sidebar-nav" aria-label="Admin navigation">
+        {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+          const isActive = activeKey === key;
+          const showContactBadge = key === "contacts" && unreadContactCount > 0;
 
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`ap-nav-item ${isActive ? "is-active" : ""}`}
-                  onClick={() => onSelect(key)}
-                  title={!isOpen ? label : undefined}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <Icon size={18} />
-                  {isOpen && <span>{label}</span>}
-                  {showContactBadge && <b>{contactBadgeLabel}</b>}
-                  {isOpen && isActive && <ChevronRight size={15} className="ap-nav-item__arrow" />}
-                </button>
-              );
-            })}
-          </section>
-        ))}
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`mod-nav-item ${isActive ? "is-active" : ""}`}
+              onClick={() => onSelect(key)}
+              onMouseEnter={(event) => showTooltip(event, label)}
+              onMouseLeave={hideTooltip}
+              onFocus={(event) => showTooltip(event, label)}
+              onBlur={hideTooltip}
+              data-tooltip={label}
+              aria-label={label}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <Icon size={18} />
+              {isOpen && <span>{label}</span>}
+              {showContactBadge && <b>{contactBadgeLabel}</b>}
+              {isOpen && isActive && <ChevronRight size={15} className="mod-nav-arrow" />}
+            </button>
+          );
+        })}
       </nav>
 
-      <div className="ap-sidebar__profile">
-        <div className="ap-sidebar__avatar">
-          {avatarUrl ? <img src={avatarUrl} alt={username} /> : <span>{(username || "A")[0].toUpperCase()}</span>}
+      <div className="mod-sidebar-profile">
+        <div className="mod-avatar">
+          {avatarUrl ? <img src={avatarUrl} alt={username || "Admin"} /> : <span>{(username || "A")[0].toUpperCase()}</span>}
         </div>
         {isOpen && (
-          <div className="ap-sidebar__profile-copy">
+          <div className="mod-profile-text">
             <strong>@{username || "admin"}</strong>
             <span>{role || "ADMIN"}</span>
           </div>
         )}
-        {isOpen && <ChevronRight size={15} className="ap-sidebar__profile-arrow" />}
+        {isOpen && <ChevronRight size={15} className="mod-profile-arrow" />}
       </div>
 
-      <button type="button" className="ap-sidebar__logout" onClick={onLogout}>
+      <button type="button" className="mod-logout" onClick={onLogout}>
         <LogOut size={17} />
         {isOpen && <span>Sign out</span>}
       </button>
 
-      {isOpen && <p className="ap-sidebar__version">Version v{version}</p>}
+      {isOpen && <p className="mod-version">Version v{version}</p>}
+      {!isOpen && tooltip && (
+        <div className="mod-sidebar-tooltip" style={{ top: tooltip.top }}>
+          {tooltip.label}
+        </div>
+      )}
     </aside>
   );
 }

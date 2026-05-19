@@ -13,7 +13,7 @@ import AdminContactInbox from "./contacts/AdminContactInbox.jsx";
 import { authenticatedFetch, clearAuthSession, readAuthSession } from "../shared/authSession.js";
 import { fetchAdminContactMessages } from "../shared/contactApi.js";
 import AdminSidebar from "./sidebar/AdminSidebar.jsx";
-import AdminTopBar from "./dashboard/AdminTopBar.jsx";
+import AdminTopBar from "./topbar/AdminTopBar.jsx";
 import LearningOpsPage from "./dashboard/LearningOpsPage.jsx";
 import AnalyticsPage from "./dashboard/analytics/AnalyticsPage.jsx";
 import OverviewPage from "./dashboard/overview/OverviewPage.jsx";
@@ -25,6 +25,20 @@ import {
 } from "./dashboard/adminNavigation.js";
 import "./shared/AdminSharedUI.css";
 import "./AdminDashboardPage.css";
+import "./styles/admin-buttons.css";
+
+const ADMIN_SIDEBAR_STORAGE_KEY = "campus404_admin_sidebar_open";
+
+function readStoredSidebarOpen() {
+  if (typeof window === "undefined") return true;
+
+  try {
+    const storedValue = window.localStorage.getItem(ADMIN_SIDEBAR_STORAGE_KEY);
+    return storedValue === null ? true : storedValue === "true";
+  } catch {
+    return true;
+  }
+}
 
 function AccessDenied() {
   return (
@@ -49,7 +63,7 @@ export default function AdminDashboardPage() {
   const [role, setRole] = useState(initialSession.role);
   const [username, setUsername] = useState(initialSession.username || "guest");
   const [avatarUrl, setAvatarUrl] = useState(initialSession.avatarUrl);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(readStoredSidebarOpen);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [contactUnreadCount, setContactUnreadCount] = useState(0);
 
@@ -61,7 +75,7 @@ export default function AdminDashboardPage() {
 
   const handleMenuSelect = useCallback(
     (key) => {
-      if (!NAV_KEY_SET.has(key)) return;
+      if (!NAV_KEY_SET.has(key) || key === activeKey) return;
 
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
@@ -70,10 +84,22 @@ export default function AdminDashboardPage() {
           CURRICULUM_QUERY_KEYS.forEach((queryKey) => next.delete(queryKey));
         }
         return next;
-      });
+      }, { preventScrollReset: true, replace: true });
     },
-    [setSearchParams],
+    [activeKey, setSearchParams],
   );
+
+  const handleSidebarToggle = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ADMIN_SIDEBAR_STORAGE_KEY, String(isSidebarOpen));
+    } catch {
+      // Layout preference persistence should never block the admin console.
+    }
+  }, [isSidebarOpen]);
 
   useEffect(() => {
     const tab = (searchParams.get("tab") || "").toLowerCase();
@@ -231,12 +257,12 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <main className={`ap-root ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
+    <main className={`ap-root mod-root ${isSidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
       <AdminSidebar
         activeKey={activeKey}
         onSelect={handleMenuSelect}
         isOpen={isSidebarOpen}
-        onToggle={() => setIsSidebarOpen((prev) => !prev)}
+        onToggle={handleSidebarToggle}
         onLogout={handleLogout}
         username={username}
         role={role}
@@ -244,12 +270,10 @@ export default function AdminDashboardPage() {
         unreadContactCount={contactUnreadCount}
       />
 
-      <div className="ap-content">
+      <div className="ap-content mod-content">
         <AdminTopBar
-          activeKey={activeKey}
           username={username}
           avatarUrl={avatarUrl}
-          onSelect={handleMenuSelect}
         />
 
         <div className={`ap-body ${activeKey === "overview" ? "ap-body--overview" : ""}`}>

@@ -27,7 +27,6 @@
   .rcm-btn-secondary,
   .rcm-btn-run,
   .rcm-btn-apply,
-  .ap-topbar__visitBtn,
   .cfm-sublist-actions button,
   .es-file-add-input button
 ) {
@@ -83,7 +82,6 @@
   .rcm-btn-secondary,
   .rcm-btn-run,
   .rcm-btn-apply,
-  .ap-topbar__visitBtn,
   .cfm-sublist-actions button,
   .es-file-add-input button
 ):hover:not(:disabled) {
@@ -180,7 +178,6 @@
   .ml-overlay-btn,
   .cfm-track-card__icon-btn,
   .es-run-icon-btn,
-  .ap-sidebar__toggle,
   .ap-curriculum-panel__icon-btn,
   .ap-delete-confirm-btn,
   .ci-modal__close,
@@ -228,7 +225,6 @@
   .ml-overlay-btn,
   .cfm-track-card__icon-btn,
   .es-run-icon-btn,
-  .ap-sidebar__toggle,
   .ap-curriculum-panel__icon-btn,
   .ap-delete-confirm-btn,
   .ci-modal__close,

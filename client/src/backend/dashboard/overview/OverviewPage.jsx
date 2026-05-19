@@ -1,24 +1,20 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   Award,
   BookOpen,
   CheckCircle2,
-  ChevronRight,
   ClipboardCheck,
   Code2,
   Database,
   FolderTree,
   Globe2,
   Inbox,
-  Trophy,
   User,
   Users,
   HelpCircle
 } from "lucide-react";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -30,12 +26,9 @@ import {
 import { apiUrl } from "../../../shared/api.js";
 import { ASSETS } from "../../../shared/assets.js";
 import { authenticatedFetch } from "../../../shared/authSession.js";
-import { EmptyState, IconBubble } from "../../shared/AdminWidgets.jsx";
 import {
-  clampNumber,
   formatNumber,
   formatRelativeTime,
-  percentChange,
   percentOf,
   prettyStatus,
   toNumber,
@@ -50,6 +43,36 @@ const TONE_COLORS = {
   amber: "#f59e0b",
   green: "#10b981",
 };
+
+const TONE_BACKGROUNDS = {
+  blue: "#eff6ff",
+  indigo: "#eef2ff",
+  amber: "#fffbeb",
+  green: "#ecfdf5",
+};
+
+const TONE_SHADOWS = {
+  blue: "rgba(59, 130, 246, 0.16)",
+  indigo: "rgba(99, 102, 241, 0.16)",
+  amber: "rgba(245, 158, 11, 0.16)",
+  green: "rgba(16, 185, 129, 0.16)",
+};
+
+function statTrendTone(value) {
+  const numberValue = Number(value);
+  if (Number.isNaN(numberValue) || numberValue === 0) return "neutral";
+  return numberValue > 0 ? "positive" : "negative";
+}
+
+function formatCompactNumber(value) {
+  const numberValue = toNumber(value);
+  if (Math.abs(numberValue) < 1000) return formatNumber(numberValue);
+
+  return new Intl.NumberFormat(undefined, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(numberValue);
+}
 
 function displayNameFromUsername(username) {
   const cleaned = String(username || "admin").replace(/^@/, "").trim();
@@ -73,32 +96,6 @@ function normalizeVisitDay(day) {
     label: formatVisitLabel(day?.date),
     unique_visits: toNumber(day?.unique_visits ?? day?.visits ?? day?.sessions),
   };
-}
-
-function KpiSparkChart({ data, dataKey, tone = "blue" }) {
-  const hasData = Array.isArray(data) && data.length > 1;
-  if (!hasData) return null;
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id={"spark-"} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={TONE_COLORS[tone] || TONE_COLORS.blue} stopOpacity={0.2} />
-            <stop offset="95%" stopColor={TONE_COLORS[tone] || TONE_COLORS.blue} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area
-          type="monotone"
-          dataKey={dataKey}
-          stroke={TONE_COLORS[tone] || TONE_COLORS.blue}
-          strokeWidth={2}
-          fill={"url(#spark-)"}
-          dot={false}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
 }
 
 function VisitTooltip({ active, payload, label }) {
@@ -205,10 +202,10 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
   ];
 
   const metricCards = [
-    { label: "Total Learners", value: dashboardStats.total_users ?? 0, help: "Aggregate registered users across platform", icon: Users, tone: "blue", trend: dashboardStats.new_users_24h || 0, trendLabel: "new today", seriesKey: "new_users", series: activity },
-    { label: "Active Today", value: dashboardStats.active_users_24h ?? 0, help: "Learners who solved exercises today", icon: User, tone: "indigo", trend: percentOf(dashboardStats.active_users_24h, dashboardStats.total_users), trendLabel: "% of total", seriesKey: "active_users", series: activity },
-    { label: "XP Awarded (24h)", value: dashboardStats.xp_awarded_24h ?? 0, help: "Experience points earned naturally", icon: Award, tone: "amber", trend: dashboardStats.xp_last_7_days || 0, trendLabel: "this week", seriesKey: "xp", series: activity },
-    { label: "Visits Today", value: todayVisits, help: "Unique site visits", icon: Globe2, tone: "green", trend: "-", trendLabel: "avg", seriesKey: "unique_visits", series: visitActivity },
+    { label: "Total Learners", value: dashboardStats.total_users ?? 0, help: "Aggregate registered users across platform", icon: Users, tone: "blue", trend: dashboardStats.new_users_24h || 0, trendLabel: "new today" },
+    { label: "Active Today", value: dashboardStats.active_users_24h ?? 0, help: "Learners who solved exercises today", icon: User, tone: "indigo", trend: percentOf(dashboardStats.active_users_24h, dashboardStats.total_users), trendLabel: "% of total" },
+    { label: "XP Awarded (24h)", value: dashboardStats.xp_awarded_24h ?? 0, help: "Experience points earned naturally", icon: Award, tone: "amber", trend: dashboardStats.xp_last_7_days || 0, trendLabel: "this week" },
+    { label: "Visits Today", value: todayVisits, help: "Unique site visits", icon: Globe2, tone: "green", trend: "-", trendLabel: "avg" },
   ];
 
   const attentionItems = [
@@ -248,25 +245,29 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
       </header>
 
       <section className="overview-stats-grid">
-        {metricCards.map(({ label, value, help, icon: Icon, tone, trend, trendLabel, series, seriesKey }) => (
-          <article className="overview-stat-card" key={label}>
+        {metricCards.map(({ label, value, help, icon: Icon, tone, trend, trendLabel }) => (
+          <article
+            className="overview-stat-card"
+            key={label}
+            style={{
+              "--overview-accent": TONE_COLORS[tone] || TONE_COLORS.blue,
+              "--overview-accent-bg": TONE_BACKGROUNDS[tone] || TONE_BACKGROUNDS.blue,
+              "--overview-accent-shadow": TONE_SHADOWS[tone] || TONE_SHADOWS.blue,
+            }}
+          >
             <div className="overview-stat-header">
               <div className="overview-stat-title">
-                <div className="overview-stat-icon" style={{ backgroundColor: "#f8fafc", color: TONE_COLORS[tone] }}>
+                <div className="overview-stat-icon">
                   <Icon size={20} />
                 </div>
                 <h3 className="overview-stat-name">{label}</h3>
               </div>
-              <span className="overview-stat-tooltip-wrap" data-tooltip={help}><HelpCircle size={16} className="overview-stat-help" /></span>
+              <span className="ap-tooltip-wrap" data-tooltip={help}><HelpCircle size={16} className="overview-stat-help" /></span>
             </div>
             
             <div className="overview-stat-body">
-              <div className="overview-stat-value">{formatNumber(value)}</div>
-              <div className="overview-stat-trend neutral">{trend} {trendLabel}</div>
-            </div>
-            
-            <div className="overview-stat-chart">
-              <KpiSparkChart data={series} dataKey={seriesKey} tone={tone} />
+              <div className="overview-stat-value" title={formatNumber(value)}>{formatCompactNumber(value)}</div>
+              <div className={`overview-stat-trend ${statTrendTone(trend)}`}>{trend} {trendLabel}</div>
             </div>
           </article>
         ))}
@@ -345,6 +346,3 @@ export default function OverviewPage({ username, onNavigate, onSessionExpired })
     </div>
   );
 }
-
-
-
