@@ -4,6 +4,8 @@ import {
   BarChart3,
   BookOpen,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Compass,
   Flame,
   Globe2,
@@ -121,14 +123,33 @@ function monthEnd(date) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0, 12);
 }
 
+function todayAtNoon() {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  return today;
+}
+
+function isSameMonth(left, right) {
+  return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth();
+}
+
+function limitCalendarMonth(date, latestDay) {
+  const month = monthStart(date);
+  const latestMonth = monthStart(latestDay);
+  return month > latestMonth ? latestMonth : month;
+}
+
+function getCalendarRangeEnd(month, latestDay) {
+  return isSameMonth(month, latestDay) ? latestDay : monthEnd(month);
+}
+
 function asSafeDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? new Date() : date;
 }
 
 function getRangePreset(preset) {
-  const today = new Date();
-  today.setHours(12, 0, 0, 0);
+  const today = todayAtNoon();
   if (preset === "today") return { start: isoDate(today), end: isoDate(today) };
   if (preset === "yesterday") {
     const day = addDays(today, -1);
@@ -136,7 +157,7 @@ function getRangePreset(preset) {
   }
   if (preset === "7d") return { start: isoDate(addDays(today, -6)), end: isoDate(today) };
   if (preset === "30d") return { start: isoDate(addDays(today, -29)), end: isoDate(today) };
-  if (preset === "month") return { start: isoDate(monthStart(today)), end: isoDate(monthEnd(today)) };
+  if (preset === "month") return { start: isoDate(monthStart(today)), end: isoDate(today) };
   return { start: isoDate(addDays(today, -29)), end: isoDate(today) };
 }
 
@@ -302,6 +323,7 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 function RangeControls({ activePreset, startDate, endDate, onPreset, onCustom }) {
+  const latestDate = isoDate(todayAtNoon());
   const presets = [
     { key: "today", label: "Today" },
     { key: "yesterday", label: "Yesterday" },
@@ -334,6 +356,7 @@ function RangeControls({ activePreset, startDate, endDate, onPreset, onCustom })
           <input
             type="date"
             value={startDate}
+            max={latestDate}
             onChange={(event) => onCustom(event.target.value || startDate, endDate)}
             aria-label="Start date"
           />
@@ -343,6 +366,7 @@ function RangeControls({ activePreset, startDate, endDate, onPreset, onCustom })
           <input
             type="date"
             value={endDate}
+            max={latestDate}
             onChange={(event) => onCustom(startDate, event.target.value || endDate)}
             aria-label="End date"
           />
@@ -365,9 +389,13 @@ function MetricStrip({ analytics }) {
     <section className="ax-metrics" aria-label="Analytics summary">
       {metrics.map(({ label, value, icon: Icon, tone }) => (
         <article className={`ax-metric ax-metric--${tone}`} key={label}>
-          <Icon size={22} />
-          <span>{label}</span>
-          <strong>{formatNumber(value || 0)}</strong>
+          <div className="ax-metric__icon">
+            <Icon size={20} />
+          </div>
+          <div className="ax-metric__body">
+            <span>{label}</span>
+            <strong>{formatNumber(value || 0)}</strong>
+          </div>
         </article>
       ))}
     </section>
@@ -857,6 +885,14 @@ export default function AnalyticsPage({ onSessionExpired }) {
     setEndDate(nextEnd);
   };
 
+  const applyCalendarMonthRange = (date) => {
+    const latestDay = todayAtNoon();
+    const month = limitCalendarMonth(date, latestDay);
+    setActivePreset("calendar");
+    setStartDate(isoDate(month));
+    setEndDate(isoDate(getCalendarRangeEnd(month, latestDay)));
+  };
+
   return (
     <div className="ax-page">
       <RangeControls
@@ -872,7 +908,12 @@ export default function AnalyticsPage({ onSessionExpired }) {
       <section className="ax-section-stack">
         <VisitsPanel data={visitData} />
         
-        <ActivityCalendarHeatmap analytics={analytics} />
+        <ActivityCalendarHeatmap
+          analytics={analytics}
+          startDate={startDate}
+          endDate={endDate}
+          onMonthRange={applyCalendarMonthRange}
+        />
 
         <TrackUsagePanel
           data={trackData}
@@ -896,86 +937,152 @@ export default function AnalyticsPage({ onSessionExpired }) {
   );
 }
 
-function ActivityCalendarHeatmap({ analytics }) {
-  const calendarDays = analytics?.calendar_days || [];
-  const hasData = calendarDays.some((item) => toNumber(item.events) > 0);
+const CALENDAR_MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
-  const maxEvents = useMemo(() => {
-    if (calendarDays.length === 0) return 1;
-    return Math.max(...calendarDays.map((d) => toNumber(d.events)), 1);
-  }, [calendarDays]);
+const CALENDAR_WEEKDAYS = [
+  { key: "mon", label: "Mon" },
+  { key: "tue", label: "Tue" },
+  { key: "wed", label: "Wed" },
+  { key: "thu", label: "Thu" },
+  { key: "fri", label: "Fri" },
+  { key: "sat", label: "Sat" },
+  { key: "sun", label: "Sun" },
+];
 
-  const stats = useMemo(() => {
-    const totalEvents = calendarDays.reduce((sum, d) => sum + toNumber(d.events), 0);
-    const activeDays = calendarDays.filter((d) => toNumber(d.events) > 0).length;
-    const peak = calendarDays.reduce((best, d) => Math.max(best, toNumber(d.events)), 0);
-    const avg = activeDays > 0 ? Math.round(totalEvents / activeDays) : 0;
-    return { totalEvents, activeDays, peak, avg };
-  }, [calendarDays]);
+function parseAnalyticsDay(value) {
+  const [year, month, day] = String(value || "").split("-").map(Number);
+  if (!year || !month || !day) return null;
+  const parsed = new Date(year, month - 1, day, 12);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 
-  const heatmapCells = useMemo(() => {
-    if (calendarDays.length === 0) return [];
-    
-    const cells = calendarDays.map((d) => {
-      const parts = d.date.split("-").map(Number);
-      const dateObj = new Date(parts[0], parts[1] - 1, parts[2], 12);
+function heatmapWeekdayIndex(date) {
+  return (date.getDay() + 6) % 7;
+}
+
+function formatCalendarDate(date) {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+function formatCalendarCellLabel(cell) {
+  const label = formatCalendarDate(cell.dateObj);
+  if (cell.isFutureDate) return `${label}: date has not arrived yet.`;
+  if (!cell.isInRange) return `${label}: outside the selected analytics range.`;
+  return `${label}: ${formatNumber(cell.events)} learning events, ${formatNumber(cell.track_users)} learners, ${formatNumber(cell.visits)} visits.`;
+}
+
+function buildCalendarMonth(viewMonth, days, startDate, endDate, latestDay) {
+  const firstDay = monthStart(viewMonth);
+  const lastDay = monthEnd(viewMonth);
+  const gridStart = addDays(firstDay, -heatmapWeekdayIndex(firstDay));
+  const gridEnd = addDays(lastDay, 6 - heatmapWeekdayIndex(lastDay));
+  const rangeStart = parseAnalyticsDay(startDate);
+  const rangeEnd = parseAnalyticsDay(endDate);
+  const dataByDate = new Map((days || []).map((day) => [day.date, day]));
+
+  const weeks = [];
+  for (let weekStart = gridStart; weekStart <= gridEnd; weekStart = addDays(weekStart, 7)) {
+    const cells = Array.from({ length: 7 }, (_, dayIndex) => {
+      const dateObj = addDays(weekStart, dayIndex);
+      const date = isoDate(dateObj);
+      const recordedDay = dataByDate.get(date);
+      const isFutureDate = dateObj > latestDay;
+      const isInRange = Boolean(!isFutureDate && rangeStart && rangeEnd && dateObj >= rangeStart && dateObj <= rangeEnd);
       return {
-        ...d,
-        isPadding: false,
+        date,
         dateObj,
-        dayOfWeek: dateObj.getDay(),
+        isFutureDate,
+        isInRange,
+        isOutsideMonth: dateObj.getMonth() !== firstDay.getMonth() || dateObj.getFullYear() !== firstDay.getFullYear(),
+        events: toNumber(recordedDay?.events),
+        track_users: toNumber(recordedDay?.track_users),
+        visits: toNumber(recordedDay?.visits),
       };
     });
+    weeks.push({ key: isoDate(weekStart), cells });
+  }
+  return weeks;
+}
 
-    const firstCell = cells[0];
-    const paddingStart = [];
-    const firstDayOfWeek = firstCell.dayOfWeek;
-    for (let i = 0; i < firstDayOfWeek; i++) {
-      paddingStart.push({ isPadding: true, date: "", events: 0 });
-    }
+function ActivityCalendarHeatmap({ analytics, startDate, endDate, onMonthRange }) {
+  const calendarDays = analytics?.calendar_days || [];
+  const latestDay = useMemo(() => todayAtNoon(), []);
+  const rangeMonth = useMemo(
+    () => limitCalendarMonth(parseAnalyticsDay(endDate) || latestDay, latestDay),
+    [endDate, latestDay],
+  );
+  const [viewMonth, setViewMonth] = useState(rangeMonth);
+  const isLatestMonth = isSameMonth(viewMonth, latestDay);
 
-    const lastCell = cells[cells.length - 1];
-    const paddingEnd = [];
-    const lastDayOfWeek = lastCell.dayOfWeek;
-    for (let i = lastDayOfWeek + 1; i <= 6; i++) {
-      paddingEnd.push({ isPadding: true, date: "", events: 0 });
-    }
+  useEffect(() => {
+    setViewMonth(rangeMonth);
+  }, [rangeMonth]);
 
-    return [...paddingStart, ...cells, ...paddingEnd];
+  const calendarWeeks = useMemo(
+    () => buildCalendarMonth(viewMonth, calendarDays, startDate, endDate, latestDay),
+    [calendarDays, endDate, latestDay, startDate, viewMonth],
+  );
+  const monthCells = useMemo(
+    () => calendarWeeks.flatMap((week) => week.cells).filter((cell) => !cell.isOutsideMonth),
+    [calendarWeeks],
+  );
+
+  const maxEvents = useMemo(
+    () => Math.max(...monthCells.filter((cell) => cell.isInRange).map((cell) => cell.events), 1),
+    [monthCells],
+  );
+
+  const stats = useMemo(() => {
+    const totalEvents = calendarDays.reduce((sum, day) => sum + toNumber(day.events), 0);
+    const activeDays = calendarDays.filter((day) => toNumber(day.events) > 0).length;
+    const peakEvents = calendarDays.reduce((best, day) => Math.max(best, toNumber(day.events)), 0);
+    const peakLearners = calendarDays.reduce((best, day) => Math.max(best, toNumber(day.track_users)), 0);
+    const averageEvents = activeDays ? Math.round(totalEvents / activeDays) : 0;
+    return { totalEvents, activeDays, peakEvents, peakLearners, averageEvents };
   }, [calendarDays]);
 
-  const monthLabels = useMemo(() => {
-    if (calendarDays.length === 0) return [];
-    const months = new Set();
-    calendarDays.forEach((d) => {
-      const parts = d.date.split("-").map(Number);
-      const dateObj = new Date(parts[0], parts[1] - 1, parts[2], 12);
-      const label = dateObj.toLocaleDateString("en-US", { month: "short" });
-      months.add(label);
-    });
-    return Array.from(months);
-  }, [calendarDays]);
+  const chooseMonth = (nextMonth) => {
+    const month = limitCalendarMonth(nextMonth, latestDay);
+    setViewMonth(month);
+    onMonthRange?.(month);
+  };
+
+  const changeMonth = (amount) => {
+    chooseMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + amount, 1, 12));
+  };
+
+  const changeYear = (value) => {
+    const year = Number(value);
+    if (!Number.isInteger(year) || year < 1970 || year > latestDay.getFullYear()) return;
+    chooseMonth(new Date(year, viewMonth.getMonth(), 1, 12));
+  };
 
   const getIntensity = (events) => {
-    if (events === 0) return 0;
-    const ratio = events / maxEvents;
+    const numericEvents = toNumber(events);
+    if (!numericEvents) return 0;
+    const ratio = numericEvents / maxEvents;
     if (ratio <= 0.25) return 1;
     if (ratio <= 0.5) return 2;
     if (ratio <= 0.75) return 3;
     return 4;
-  };
-
-  const getCellTooltip = (cell) => {
-    if (cell.isPadding) return "";
-    const parts = cell.date.split("-").map(Number);
-    const dateObj = new Date(parts[0], parts[1] - 1, parts[2], 12);
-    const formattedDate = dateObj.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    return `${formattedDate}: ${formatNumber(cell.events)} events, ${formatNumber(cell.visits)} visits`;
   };
 
   return (
@@ -983,84 +1090,126 @@ function ActivityCalendarHeatmap({ analytics }) {
       <header className="ax-panel__header">
         <div>
           <h3>
-            <CalendarDays size={18} /> Learning Activity Heatmap
+            <CalendarDays size={18} /> Learning activity calendar
           </h3>
-          <p>Visual map of events, visits, and track submissions over time.</p>
+          <p>Exercise and quiz activity across the selected analytics dates.</p>
         </div>
         <div className="ax-panel__chips">
-          <span>{formatNumber(stats.totalEvents)} total events</span>
+          <span>{formatNumber(stats.totalEvents)} learning events</span>
           <span>{formatNumber(stats.activeDays)} active days</span>
-          <span>Peak {formatNumber(stats.peak)}/day</span>
+          <span>Peak {formatNumber(stats.peakEvents)}/day</span>
         </div>
       </header>
 
       <div className="ax-heatmap-layout">
         <div className="ax-heatmap-main">
-          {monthLabels.length > 0 && (
-            <div className="ax-heatmap-months">
-              {monthLabels.map((lbl, idx) => (
-                <span key={lbl + idx}>{lbl}</span>
-              ))}
-            </div>
-          )}
-          <div className="ax-heatmap-container">
-            <div className="ax-heatmap-days-of-week">
-              <span>Mon</span>
-              <span>Wed</span>
-              <span>Fri</span>
-            </div>
-            <div className="ax-heatmap-grid">
-              {heatmapCells.map((cell, idx) => {
-                if (cell.isPadding) {
-                  return <div key={`pad-${idx}`} className="ax-heatmap-cell ax-heatmap-cell--pad" />;
-                }
-                const level = getIntensity(toNumber(cell.events));
-                return (
-                  <div
-                    key={cell.date}
-                    className={`ax-heatmap-cell ax-heatmap-cell--lvl-${level}`}
-                    title={getCellTooltip(cell)}
+          <div className="ax-heatmap-frame">
+            <div className="ax-calendar-toolbar">
+              <div className="ax-calendar-controls">
+                <button type="button" onClick={() => changeMonth(-1)} aria-label="Previous month">
+                  <ChevronLeft size={18} />
+                </button>
+                <label>
+                  <span>Month</span>
+                  <select
+                    value={viewMonth.getMonth()}
+                    onChange={(event) => chooseMonth(new Date(viewMonth.getFullYear(), Number(event.target.value), 1, 12))}
                   >
-                    <div className="ax-cell-tooltip-pop">
-                      <strong>{cell.date}</strong>
-                      <span>Events: <b>{formatNumber(cell.events)}</b></span>
-                      <span>Visits: <b>{formatNumber(cell.visits)}</b></span>
-                    </div>
-                  </div>
-                );
-              })}
+                    {CALENDAR_MONTHS.map((month, index) => (
+                      <option
+                        value={index}
+                        key={month}
+                        disabled={viewMonth.getFullYear() === latestDay.getFullYear() && index > latestDay.getMonth()}
+                      >
+                        {month}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Year</span>
+                  <input
+                    type="number"
+                    min="1970"
+                    max={latestDay.getFullYear()}
+                    step="1"
+                    value={viewMonth.getFullYear()}
+                    onChange={(event) => changeYear(event.target.value)}
+                    aria-label="Calendar year"
+                  />
+                </label>
+                <button type="button" onClick={() => changeMonth(1)} aria-label="Next month" disabled={isLatestMonth}>
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              <button type="button" className="ax-calendar-current" onClick={() => chooseMonth(new Date())}>
+                This month
+              </button>
             </div>
-          </div>
-          <div className="ax-heatmap-legend">
-            <span>Less</span>
-            <div className="ax-heatmap-cell ax-heatmap-cell--lvl-0" />
-            <div className="ax-heatmap-cell ax-heatmap-cell--lvl-1" />
-            <div className="ax-heatmap-cell ax-heatmap-cell--lvl-2" />
-            <div className="ax-heatmap-cell ax-heatmap-cell--lvl-3" />
-            <div className="ax-heatmap-cell ax-heatmap-cell--lvl-4" />
-            <span>More</span>
+
+            <div className="ax-calendar">
+              <div className="ax-calendar-weekdays" aria-hidden="true">
+                {CALENDAR_WEEKDAYS.map((day) => (
+                  <span key={day.key}>{day.label}</span>
+                ))}
+              </div>
+              <div className="ax-calendar-weeks" role="grid" aria-label={`${CALENDAR_MONTHS[viewMonth.getMonth()]} ${viewMonth.getFullYear()} learning activity`}>
+                {calendarWeeks.map((week) => (
+                  <div className="ax-calendar-week" role="row" key={week.key}>
+                    {week.cells.map((cell) => {
+                      const label = formatCalendarCellLabel(cell);
+                      const intensity = cell.isInRange ? getIntensity(cell.events) : 0;
+                      return (
+                        <div
+                          role="gridcell"
+                          key={cell.date}
+                          aria-label={label}
+                          className={[
+                            "ax-calendar-day",
+                            `ax-calendar-day--lvl-${intensity}`,
+                            cell.isOutsideMonth ? "ax-calendar-day--outside" : "",
+                            cell.isFutureDate ? "ax-calendar-day--future" : "",
+                            !cell.isInRange ? "ax-calendar-day--muted" : "",
+                          ].filter(Boolean).join(" ")}
+                        >
+                          <span>{cell.dateObj.getDate()}</span>
+                          {!cell.isOutsideMonth && cell.isInRange && cell.events > 0 && (
+                            <strong>{formatNumber(cell.events)}</strong>
+                          )}
+                          {!cell.isOutsideMonth && cell.isFutureDate && <small>Upcoming</small>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="ax-heatmap-legend">
+              <span>Low</span>
+              <i className="ax-calendar-swatch ax-calendar-day--lvl-0" />
+              <i className="ax-calendar-swatch ax-calendar-day--lvl-1" />
+              <i className="ax-calendar-swatch ax-calendar-day--lvl-2" />
+              <i className="ax-calendar-swatch ax-calendar-day--lvl-3" />
+              <i className="ax-calendar-swatch ax-calendar-day--lvl-4" />
+              <span>High</span>
+            </div>
           </div>
         </div>
 
         <div className="ax-heatmap-sidebar">
-          <h4>Activity Stats</h4>
+          <h4>Learning range</h4>
           <div className="ax-heatmap-stat-row">
-            <span>Active Days Rate</span>
-            <strong>
-              {percentOf(stats.activeDays, Math.max(calendarDays.length, 1))}%
-            </strong>
+            <span>Active day rate</span>
+            <strong>{percentOf(stats.activeDays, Math.max(calendarDays.length, 1))}%</strong>
           </div>
           <div className="ax-heatmap-stat-row">
-            <span>Avg Events / Active Day</span>
-            <strong>{formatNumber(stats.avg)}</strong>
+            <span>Avg events / active day</span>
+            <strong>{formatNumber(stats.averageEvents)}</strong>
           </div>
           <div className="ax-heatmap-stat-row">
-            <span>Visits Peak</span>
-            <strong>
-              {formatNumber(
-                calendarDays.reduce((best, d) => Math.max(best, toNumber(d.visits)), 0)
-              )}
-            </strong>
+            <span>Peak learners / day</span>
+            <strong>{formatNumber(stats.peakLearners)}</strong>
           </div>
         </div>
       </div>

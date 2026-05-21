@@ -667,18 +667,6 @@ function getModeChecklist(mode) {
   return checklist[mode] || checklist.code;
 }
 
-function getModeRecipe(mode) {
-  const recipes = {
-    frontend_preview: ["Website files", "Live preview", "Frontend rules", "Hints", "Release gate"],
-    code: ["Single entry file", "Starter code", "Solution code", "Expected output tests", "Release gate"],
-    multi_file_code: ["Safe file tree", "Entrypoint", "Starter files", "Solution files", "Expected output tests"],
-    project: ["Project brief", "File workspace", "Acceptance tests", "Hints", "Release gate"],
-    quiz: ["Questions", "Options", "One correct answer", "Passing score", "Release gate"],
-    theory: ["Theory content", "Instructions", "XP reward", "Release gate"],
-  };
-  return recipes[mode] || recipes.code;
-}
-
 function FieldList({ items, label, placeholder, onChange, onAdd, onRemove }) {
   const list = items?.length ? items : [""];
   return (
@@ -1716,10 +1704,6 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
             </nav>
             <span className="cs-mode-kicker">{modeMeta.label}</span>
             <h1>{draft.exercise.title || selectedExercise?.title || "Exercise"}</h1>
-            <p>{modeMeta.description}. The workbench below is shaped from this mode recipe, so unrelated controls stay out of the way.</p>
-            <div className="cs-recipe-strip" aria-label={`${modeMeta.label} required setup`}>
-              {getModeRecipe(mode).map((item) => <span key={item}>{item}</span>)}
-            </div>
           </div>
           <div className="cs-hero-actions">
             <button type="button" className="cs-btn cs-btn--ghost" onClick={() => selectNode({ type: "track", trackId: selectedTrack?.id })}>
@@ -1842,16 +1826,6 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
       "delete-section": "Delete Section",
       "delete-exercise": "Delete Exercise",
     }[dialog.type] || "Studio";
-    const scope = {
-      "track-create": "Track",
-      "track-edit": "Track",
-      "section-create": "Section",
-      "section-edit": "Section",
-      "exercise-create": "Exercise",
-      "delete-track": "Danger",
-      "delete-section": "Danger",
-      "delete-exercise": "Danger",
-    }[dialog.type] || "Studio";
     const HeaderIcon = dialog.type?.startsWith("delete-") ? AlertCircle : Settings2;
 
     return (
@@ -1863,12 +1837,10 @@ export default function CurriculumStudioPage({ role = "EDITOR" }) {
             <div className="cs-modal__title">
               <span className="cs-modal__mark"><HeaderIcon size={17} /></span>
               <div className="cs-modal__copy">
-                <span>Builder Console</span>
                 <h2>{title}</h2>
               </div>
             </div>
             <div className="cs-modal__head-actions">
-              <span className={`cs-modal__scope ${scope === "Danger" ? "is-danger" : ""}`}>{scope}</span>
               <button type="button" className="cs-icon-btn" onClick={closeDialog} title="Close"><X size={16} /></button>
             </div>
           </header>
