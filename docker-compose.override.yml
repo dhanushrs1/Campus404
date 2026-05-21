@@ -17,7 +17,7 @@ services:
     build:
       context: ./client
       target: build
-    command: npm run dev -- --host 0.0.0.0 --port 80
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 80"
     volumes:
       - ./client:/app
       - /app/node_modules

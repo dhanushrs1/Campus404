@@ -14,6 +14,9 @@ pydantic[email]==2.11.4
 # Async HTTP client — used for OAuth2 provider token exchanges.
 httpx==0.28.1
 
+# User-Agent parser for analytics device classification.
+user-agents==2.2.0
+
 # Multipart form parser for image/file uploads.
 python-multipart==0.0.20
 

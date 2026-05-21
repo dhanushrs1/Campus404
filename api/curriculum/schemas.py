@@ -743,6 +743,8 @@ class AdminAnalyticsRangeResponse(BaseModel):
     top_entry_paths: List[Dict[str, Any]] = Field(default_factory=list)
     device_breakdown: List[Dict[str, Any]] = Field(default_factory=list)
     country_breakdown: List[Dict[str, Any]] = Field(default_factory=list)
+    bottleneck_exercises: List[Dict[str, Any]] = Field(default_factory=list)
+    active_learners: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class AdminDashboardStats(BaseModel):

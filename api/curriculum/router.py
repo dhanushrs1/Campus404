@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import httpx
+import ipaddress
 import json
 import os
 import re
@@ -31,6 +32,11 @@ from media.storage_provider import (
     upload_blob_to_cloudinary,
 )
 
+try:
+    from user_agents import parse as parse_user_agent
+except ImportError:  # pragma: no cover - dependency is optional at runtime during partial installs
+    parse_user_agent = None
+
 router = APIRouter(tags=["curriculum"])
 
 ELEVATED_ROLES = {"ADMIN", "EDITOR"}
@@ -45,6 +51,9 @@ ALLOWED_TRACK_IMAGE_CONTENT_TYPES = {
 ALLOWED_TRACK_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".jfif"}
 ANALYTICS_HASH_SALT = os.getenv("ANALYTICS_HASH_SALT") or os.getenv("JWT_SECRET", "campus404-analytics")
 UNTRACKED_VISIT_PREFIXES = ("/admin", "/auth", "/api")
+GEOIP_LOOKUP_URL = os.getenv("ANALYTICS_GEOIP_LOOKUP_URL", "http://ip-api.com/json/{ip}")
+GEOIP_LOOKUP_ENABLED = os.getenv("ANALYTICS_GEOIP_LOOKUP_ENABLED", "true").lower() not in {"0", "false", "no"}
+_COUNTRY_CODE_CACHE: dict[str, str | None] = {}
 
 
 def _token_session_version(payload: dict[str, Any]) -> int:
@@ -106,13 +115,27 @@ def _classify_visit_device(user_agent: str | None) -> str:
     normalized = (user_agent or "").lower()
     if not normalized:
         return "unknown"
+
+    if parse_user_agent:
+        parsed = parse_user_agent(user_agent or "")
+        if parsed.is_bot:
+            return "bot"
+        if parsed.is_tablet:
+            return "tablet"
+        if parsed.is_mobile:
+            return "mobile"
+        if parsed.is_pc:
+            return "desktop"
+
     if any(token in normalized for token in ("bot", "crawler", "spider", "preview", "slurp")):
         return "bot"
-    if any(token in normalized for token in ("ipad", "tablet", "kindle", "silk")):
+    if any(token in normalized for token in ("ipad", "tablet", "kindle", "silk", "playbook")):
         return "tablet"
-    if any(token in normalized for token in ("mobile", "iphone", "android", "phone", "opera mini")):
+    if any(token in normalized for token in ("mobile", "iphone", "android", "phone", "opera mini", "windows phone")):
         return "mobile"
-    return "desktop"
+    if any(token in normalized for token in ("windows", "macintosh", "x11", "linux")):
+        return "desktop"
+    return "unknown"
 
 
 def _extract_country_code(request: Request) -> str | None:
@@ -120,6 +143,45 @@ def _extract_country_code(request: Request) -> str | None:
         value = (request.headers.get(header_name) or "").strip().upper()
         if value and value not in {"XX", "ZZ", "UNKNOWN"}:
             return value[:8]
+    return None
+
+
+def _is_public_ip(value: str | None) -> bool:
+    raw = (value or "").strip()
+    if not raw:
+        return False
+    try:
+        return ipaddress.ip_address(raw).is_global
+    except ValueError:
+        return False
+
+
+async def _lookup_country_code(ip_address: str | None) -> str | None:
+    if not GEOIP_LOOKUP_ENABLED or not _is_public_ip(ip_address):
+        return None
+
+    cache_key = str(ip_address)
+    if cache_key in _COUNTRY_CODE_CACHE:
+        return _COUNTRY_CODE_CACHE[cache_key]
+
+    try:
+        async with httpx.AsyncClient(timeout=1.6) as client:
+            response = await client.get(
+                GEOIP_LOOKUP_URL.format(ip=cache_key),
+                params={"fields": "status,countryCode"},
+            )
+            response.raise_for_status()
+            data = response.json()
+    except Exception:
+        _COUNTRY_CODE_CACHE[cache_key] = None
+        return None
+
+    country_code = str(data.get("countryCode") or "").strip().upper()
+    if data.get("status") == "success" and re.fullmatch(r"[A-Z]{2}", country_code):
+        _COUNTRY_CODE_CACHE[cache_key] = country_code
+        return country_code
+
+    _COUNTRY_CODE_CACHE[cache_key] = None
     return None
 
 
@@ -209,7 +271,8 @@ async def record_site_visit(
     if not _is_trackable_visit_path(path):
         return schemas.SiteVisitResponse(ok=True)
 
-    ip_hash = _analytics_hash(_extract_client_ip(request))
+    client_ip = _extract_client_ip(request)
+    ip_hash = _analytics_hash(client_ip)
     if not ip_hash:
         return schemas.SiteVisitResponse(ok=True)
 
@@ -218,7 +281,7 @@ async def record_site_visit(
     user_agent = (request.headers.get("user-agent") or "")[:512]
     user_agent_hash = _analytics_hash(user_agent)
     device_type = _classify_visit_device(user_agent)
-    country_code = _extract_country_code(request)
+    country_code = _extract_country_code(request) or await _lookup_country_code(client_ip)
     referrer = (payload.referrer or "").strip()[:1024] or None
 
     existing_visit = await db.scalar(
@@ -229,9 +292,9 @@ async def record_site_visit(
     if existing_visit:
         existing_visit.last_seen_at = now
         existing_visit.visit_count = max(int(existing_visit.visit_count or 1), 1) + 1
-        if not existing_visit.device_type:
+        if not existing_visit.device_type or existing_visit.device_type == "unknown":
             existing_visit.device_type = device_type
-        if country_code and not existing_visit.country_code:
+        if country_code and (not existing_visit.country_code or existing_visit.country_code == "Unknown"):
             existing_visit.country_code = country_code
         await db.commit()
         return schemas.SiteVisitResponse(ok=True)
@@ -3208,21 +3271,23 @@ async def get_admin_analytics(
             returning_by_day[key] += 1
 
         entry_counts[first_path] += visit_count
-        device_counts[device_type]["visits"] += visit_count
-        device_counts[device_type]["unique_visitors"] += 1
-        country_counts[country_code]["visits"] += visit_count
-        country_counts[country_code]["unique_visitors"] += 1
+        if device_type != "unknown":
+            device_counts[device_type]["visits"] += visit_count
+            device_counts[device_type]["unique_visitors"] += 1
+        if re.fullmatch(r"[A-Z]{2}", country_code):
+            country_counts[country_code]["visits"] += visit_count
+            country_counts[country_code]["unique_visitors"] += 1
 
     top_entry_paths = [
         {"path": path, "visits": visits}
-        for path, visits in sorted(entry_counts.items(), key=lambda item: (-item[1], item[0]))[:8]
+        for path, visits in sorted(entry_counts.items(), key=lambda item: (-item[1], item[0]))[:10]
     ]
     device_breakdown = [
         {"device": device, **counts}
         for device, counts in sorted(device_counts.items(), key=lambda item: (-item[1]["visits"], item[0]))
     ]
     country_breakdown = [
-        {"country": country, **counts}
+        {"country": country, "country_code": country, **counts}
         for country, counts in sorted(country_counts.items(), key=lambda item: (-item[1]["visits"], item[0]))[:12]
     ]
 
@@ -3359,6 +3424,82 @@ async def get_admin_analytics(
         "average_daily_track_users": round(sum(day["track_users"] for day in calendar_days) / max(len(day_keys), 1)),
     }
 
+    # Advanced Analytics: Bottleneck & Failure Analysis
+    from sqlalchemy import case, desc
+
+    bottleneck_rows = await db.execute(
+        select(
+            models.Exercise.id,
+            models.Exercise.title,
+            func.count(models.ExerciseAttempt.id).label("total_attempts"),
+            func.sum(case((models.ExerciseAttempt.status == "failed", 1), else_=0)).label("failed_attempts"),
+            func.sum(case((models.ExerciseAttempt.status.in_(["passed", "submitted"]), 1), else_=0)).label("passed_attempts"),
+            func.sum(models.ExerciseAttempt.used_hint_count).label("total_hints"),
+            func.sum(case((models.ExerciseAttempt.viewed_solution == True, 1), else_=0)).label("total_solutions_viewed")
+        )
+        .join(models.Exercise, models.Exercise.id == models.ExerciseAttempt.exercise_id)
+        .where(models.ExerciseAttempt.created_at >= start_dt)
+        .where(models.ExerciseAttempt.created_at < end_dt)
+        .group_by(models.Exercise.id, models.Exercise.title)
+        .order_by(desc("failed_attempts"), desc("total_attempts"))
+        .limit(10)
+    )
+
+    bottleneck_exercises = []
+    for row in bottleneck_rows.all():
+        total = int(row.total_attempts or 0)
+        failed = int(row.failed_attempts or 0)
+        passed = int(row.passed_attempts or 0)
+        hints = int(row.total_hints or 0)
+        solutions = int(row.total_solutions_viewed or 0)
+        failure_rate = round((failed / total) * 100) if total > 0 else 0
+
+        bottleneck_exercises.append({
+            "exercise_id": int(row.id),
+            "title": str(row.title),
+            "total_attempts": total,
+            "failed_attempts": failed,
+            "passed_attempts": passed,
+            "failure_rate": failure_rate,
+            "total_hints": hints,
+            "total_solutions_viewed": solutions
+        })
+
+    # Advanced Analytics: Engaged/Active Learners
+    attempts_sub = (
+        select(models.ExerciseAttempt.user_id, func.count(models.ExerciseAttempt.id).label("attempts_count"))
+        .where(models.ExerciseAttempt.created_at >= start_dt)
+        .where(models.ExerciseAttempt.created_at < end_dt)
+        .group_by(models.ExerciseAttempt.user_id)
+    ).subquery()
+
+    learner_rows = await db.execute(
+        select(
+            User.id,
+            User.username,
+            func.sum(models.XpEvent.points).label("xp_earned"),
+            func.count(func.distinct(models.XpEvent.exercise_id)).label("exercises_solved_count"),
+            func.coalesce(attempts_sub.c.attempts_count, 0).label("total_attempts")
+        )
+        .join(User, User.id == models.XpEvent.user_id)
+        .outerjoin(attempts_sub, attempts_sub.c.user_id == User.id)
+        .where(models.XpEvent.created_at >= start_dt)
+        .where(models.XpEvent.created_at < end_dt)
+        .group_by(User.id, User.username, attempts_sub.c.attempts_count)
+        .order_by(desc("xp_earned"))
+        .limit(10)
+    )
+
+    active_learners = []
+    for row in learner_rows.all():
+        active_learners.append({
+            "user_id": int(row.id),
+            "username": str(row.username),
+            "xp_earned": int(row.xp_earned or 0),
+            "exercises_solved": int(row.exercises_solved_count or 0),
+            "total_attempts": int(row.total_attempts or 0)
+        })
+
     return schemas.AdminAnalyticsRangeResponse(
         start_date=start.isoformat(),
         end_date=end.isoformat(),
@@ -3371,6 +3512,8 @@ async def get_admin_analytics(
         top_entry_paths=top_entry_paths,
         device_breakdown=device_breakdown,
         country_breakdown=country_breakdown,
+        bottleneck_exercises=bottleneck_exercises,
+        active_learners=active_learners,
     )
 
 
@@ -3775,7 +3918,7 @@ async def get_admin_dashboard_stats(
         .where(models.SiteVisit.first_path.is_not(None))
         .group_by(models.SiteVisit.first_path)
         .order_by(func.coalesce(func.sum(models.SiteVisit.visit_count), 0).desc(), models.SiteVisit.first_path.asc())
-        .limit(5)
+        .limit(10)
     )
     top_entry_paths = [
         {"path": row.first_path or "/", "visits": int(row.visit_count or 0)}
