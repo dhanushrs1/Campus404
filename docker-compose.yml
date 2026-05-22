@@ -28,6 +28,7 @@ services:
       CLOUDINARY_API_KEY: "${CLOUDINARY_API_KEY}"
       CLOUDINARY_API_SECRET: "${CLOUDINARY_API_SECRET}"
       CLOUDINARY_PUBLIC_ID_PREFIX: "${CLOUDINARY_PUBLIC_ID_PREFIX:-campus404}"
+      DIAGNOSTICS_SERVICE_TOKEN: "${DIAGNOSTICS_SERVICE_TOKEN:-}"
       JUDGE_URL: "http://campus404-judge:2358"
     networks:
       - campus404_net
@@ -94,6 +95,8 @@ services:
       REDIS_URL: "redis://campus404-redis:6379/0"
       JUDGE_CPU_TIME_LIMIT: "5"
       JUDGE_MEMORY_LIMIT_MB: "128"
+      DIAGNOSTICS_API_URL: "http://campus404-api:8000/api/internal/diagnostics/error-events"
+      DIAGNOSTICS_SERVICE_TOKEN: "${DIAGNOSTICS_SERVICE_TOKEN:-}"
     networks:
       - campus404_net
     depends_on:
@@ -119,6 +122,8 @@ services:
       REDIS_URL: "redis://campus404-redis:6379/0"
       JUDGE_CPU_TIME_LIMIT: "5"
       JUDGE_MEMORY_LIMIT_MB: "128"
+      DIAGNOSTICS_API_URL: "http://campus404-api:8000/api/internal/diagnostics/error-events"
+      DIAGNOSTICS_SERVICE_TOKEN: "${DIAGNOSTICS_SERVICE_TOKEN:-}"
     networks:
       - campus404_net
     depends_on:

@@ -15,6 +15,7 @@ import uuid
 import redis
 from fastapi import APIRouter, HTTPException
 
+from diagnostics_client import report_operational_error
 from schemas import CodeSubmission
 
 router = APIRouter()
@@ -25,6 +26,39 @@ _redis: redis.Redis = redis.from_url(REDIS_URL, decode_responses=True)
 
 JOB_TTL = 3600          # seconds — 1 hour
 QUEUE_KEY = "execution_queue"
+
+
+def _redis_unavailable(operation: str, message: str, exc: redis.RedisError) -> None:
+    report_operational_error(
+        source_service="judge-api",
+        error_kind="redis_error",
+        message=message,
+        operation=operation,
+        exc=exc,
+    )
+    raise HTTPException(status_code=503, detail="Judge queue is unavailable.") from exc
+
+
+def _set_pending_state(job_id: str, state: str) -> None:
+    try:
+        _redis.set(f"job:{job_id}", state, ex=JOB_TTL)
+    except redis.RedisError as exc:
+        _redis_unavailable("POST /submissions", f"Redis failed while queueing judge job {job_id}.", exc)
+
+
+def _push_job(job_id: str, payload: str) -> None:
+    try:
+        _redis.lpush(QUEUE_KEY, payload)
+    except redis.RedisError as exc:
+        _redis_unavailable("POST /submissions", f"Redis failed while queueing judge job {job_id}.", exc)
+
+
+def _get_job_state(job_id: str) -> str | None:
+    try:
+        return _redis.get(f"job:{job_id}")
+    except redis.RedisError as exc:
+        _redis_unavailable("GET /submissions/{job_id}", f"Redis failed while polling judge job {job_id}.", exc)
+    return None
 
 
 # ── POST /submissions ─────────────────────────────────────────────────────────
@@ -39,7 +73,7 @@ def create_submission(payload: CodeSubmission) -> dict:
 
     # Store initial pending state in Redis with TTL
     state = json.dumps({"status": "pending", "output": None, "error": None})
-    _redis.set(f"job:{job_id}", state, ex=JOB_TTL)
+    _set_pending_state(job_id, state)
 
     # Push job onto the execution queue (worker consumes from the right)
     job_payload = json.dumps({
@@ -59,7 +93,7 @@ def create_submission(payload: CodeSubmission) -> dict:
         "memory_limit_mb": payload.memory_limit_mb,
         "custom_judge_options": payload.custom_judge_options or {},
     })
-    _redis.lpush(QUEUE_KEY, job_payload)
+    _push_job(job_id, job_payload)
 
     return {"job_id": job_id, "status": "pending"}
 
@@ -69,7 +103,7 @@ def create_submission(payload: CodeSubmission) -> dict:
 @router.get("/submissions/{job_id}")
 def get_submission(job_id: str) -> dict:
     """Poll the execution result for a given job."""
-    raw = _redis.get(f"job:{job_id}")
+    raw = _get_job_state(job_id)
     if raw is None:
         raise HTTPException(status_code=404, detail="Job not found or expired.")
     return json.loads(raw)

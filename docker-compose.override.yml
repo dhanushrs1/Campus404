@@ -3,7 +3,26 @@ services:
     # Local development only:
     # mount Python source and run Uvicorn with reload so API edits do not
     # require rebuilding the service image after every backend change.
-    command: sh -c "alembic upgrade head && uvicorn main:app --reload --reload-dir /app/auth --reload-dir /app/contact --reload-dir /app/curriculum --reload-dir /app/media --host 0.0.0.0 --port 8000"
+    command:
+      - python
+      - start_api.py
+      - uvicorn
+      - main:app
+      - --reload
+      - --reload-dir
+      - /app/auth
+      - --reload-dir
+      - /app/contact
+      - --reload-dir
+      - /app/curriculum
+      - --reload-dir
+      - /app/media
+      - --reload-dir
+      - /app/diagnostics
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
     volumes:
       - ./api:/app
       - ./api/uploads:/app/uploads

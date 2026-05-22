@@ -20,6 +20,7 @@ export default function AdminSidebar({
   const [tooltip, setTooltip] = useState(null);
   const version = import.meta.env.VITE_APP_VERSION ?? "1.0.0";
   const contactBadgeLabel = unreadContactCount > 99 ? "99+" : String(unreadContactCount);
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || String(role || "").toUpperCase() === "ADMIN");
 
   const showTooltip = (event, label) => {
     if (isOpen) return;
@@ -46,7 +47,7 @@ export default function AdminSidebar({
       </div>
 
       <nav className="mod-sidebar-nav" aria-label="Admin navigation">
-        {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
+        {visibleNavItems.map(({ key, label, icon: Icon }) => {
           const isActive = activeKey === key;
           const showContactBadge = key === "contacts" && unreadContactCount > 0;
 

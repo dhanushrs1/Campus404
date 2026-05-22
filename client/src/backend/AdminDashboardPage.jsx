@@ -17,6 +17,7 @@ import AdminTopBar from "./topbar/AdminTopBar.jsx";
 import LearningOpsPage from "./dashboard/LearningOpsPage.jsx";
 import AnalyticsPage from "./dashboard/analytics/AnalyticsPage.jsx";
 import OverviewPage from "./dashboard/overview/OverviewPage.jsx";
+import ErrorHandlingPage from "./diagnostics/ErrorHandlingPage.jsx";
 import {
   CURRICULUM_QUERY_KEYS,
   ELEVATED,
@@ -297,6 +298,12 @@ export default function AdminDashboardPage() {
           {activeKey === "submissions" && <LearningOpsPage variant="submissions" onSessionExpired={handleSessionExpired} />}
           {activeKey === "leaderboards" && <LearningOpsPage variant="leaderboards" onSessionExpired={handleSessionExpired} />}
           {activeKey === "health" && <LearningOpsPage variant="health" onSessionExpired={handleSessionExpired} />}
+          {activeKey === "errors" && (
+            <ErrorHandlingPage
+              role={role}
+              onSessionExpired={handleSessionExpired}
+            />
+          )}
           {activeKey === "users" && (
             <UserManagement
               role={role}

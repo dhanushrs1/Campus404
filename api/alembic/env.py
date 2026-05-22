@@ -15,6 +15,7 @@ from auth.models import Base
 # Register all model modules on Base.metadata.
 from contact import models as _contact_models  # noqa: F401
 from curriculum import models as _curriculum_models  # noqa: F401
+from diagnostics import models as _diagnostics_models  # noqa: F401
 from media import models as _media_models  # noqa: F401
 
 # Load .env the same way the FastAPI app does: project root first, then api/.

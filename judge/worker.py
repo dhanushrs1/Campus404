@@ -21,6 +21,7 @@ from pathlib import Path
 
 import redis
 
+from diagnostics_client import report_operational_error
 from frontend_validation import execute_frontend_validation
 
 logging.basicConfig(
@@ -289,6 +290,15 @@ def main() -> None:
                 result = execute_job(job)
             except Exception as exc:
                 log.exception("Unexpected error executing job %s", job_id)
+                report_operational_error(
+                    source_service="judge-worker",
+                    error_kind="job_infrastructure_error",
+                    severity="critical",
+                    message=f"Unexpected worker error executing job {job_id}.",
+                    operation="worker.execute_job",
+                    details={"job_id": job_id, "language_id": job.get("language_id")},
+                    exc=exc,
+                )
                 result = {
                     "status": "completed",
                     "output": None,
@@ -302,9 +312,24 @@ def main() -> None:
             log.info("Job %s finished — verdict: %s", job_id, result.get("verdict"))
 
         except RedisError as e:
+            report_operational_error(
+                source_service="judge-worker",
+                error_kind="redis_error",
+                message="Judge worker could not reach Redis.",
+                operation="worker.queue_loop",
+                exc=e,
+            )
             log.error("Redis error: %s — retrying in 3s", e)
             time.sleep(3)
         except Exception as e:
+            report_operational_error(
+                source_service="judge-worker",
+                error_kind="worker_loop_error",
+                severity="critical",
+                message="Unexpected judge worker loop error.",
+                operation="worker.queue_loop",
+                exc=e,
+            )
             log.exception("Unexpected worker error: %s", e)
             time.sleep(1)
 

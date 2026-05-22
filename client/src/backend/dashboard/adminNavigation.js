@@ -1,5 +1,6 @@
 import {
   Activity,
+  AlertTriangle,
   Award,
   BarChart3,
   ClipboardCheck,
@@ -42,6 +43,7 @@ export const NAV_SECTIONS = [
     title: "Operations",
     items: [
       { key: "health", label: "System Health", icon: Activity },
+      { key: "errors", label: "Error Handling", icon: AlertTriangle, adminOnly: true },
       { key: "account", label: "My Account", icon: User },
       { key: "settings", label: "Settings", icon: Settings2 },
     ],

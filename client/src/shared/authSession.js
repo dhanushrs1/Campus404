@@ -1,3 +1,5 @@
+import { reportRequestFailure } from "./diagnosticsReporter.jsx";
+
 export const AUTH_STORAGE_KEYS = Object.freeze([
   "campus404_token",
   "campus404_role",
@@ -234,6 +236,17 @@ function withAuthorization(headers, token) {
   return nextHeaders;
 }
 
+async function fetchWithDiagnostics(input, options) {
+  try {
+    const response = await fetch(input, options);
+    reportRequestFailure({ input, options, response });
+    return response;
+  } catch (error) {
+    reportRequestFailure({ input, options, error });
+    throw error;
+  }
+}
+
 export async function authenticatedFetch(input, options = {}) {
   const session = await ensureAuthSession();
   const fetchOptions = {
@@ -242,7 +255,7 @@ export async function authenticatedFetch(input, options = {}) {
     headers: withAuthorization(options.headers, session.token),
   };
 
-  let response = await fetch(input, fetchOptions);
+  let response = await fetchWithDiagnostics(input, fetchOptions);
   if (response.status !== 401) {
     return response;
   }
@@ -252,7 +265,7 @@ export async function authenticatedFetch(input, options = {}) {
     return response;
   }
 
-  response = await fetch(input, {
+  response = await fetchWithDiagnostics(input, {
     ...options,
     credentials: options.credentials || "include",
     headers: withAuthorization(options.headers, refreshed.token),

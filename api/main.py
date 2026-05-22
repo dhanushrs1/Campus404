@@ -11,6 +11,7 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import httpx
 from dotenv import load_dotenv
@@ -31,6 +32,14 @@ from auth.database import init_db
 from auth.router import router as auth_router
 from contact.router import router as contact_router
 from curriculum.router import router as curriculum_router
+from diagnostics.router import router as diagnostics_router
+from diagnostics.service import (
+    ErrorEvent,
+    exception_stack,
+    is_diagnostics_path,
+    record_error_best_effort,
+    route_template_from_request,
+)
 from media.router import router as media_router
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -74,7 +83,53 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+
+
+@app.middleware("http")
+async def capture_operational_api_errors(request: Request, call_next):
+    request_id = (request.headers.get("x-request-id") or uuid4().hex)[:96]
+    request.state.request_id = request_id
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        if not is_diagnostics_path(request.url.path):
+            await record_error_best_effort(
+                ErrorEvent(
+                    source_service="api",
+                    error_kind="unhandled_exception",
+                    severity="critical",
+                    message=str(exc) or exc.__class__.__name__,
+                    stack_trace=exception_stack(exc),
+                    route_path=request.url.path,
+                    route_template=route_template_from_request(request),
+                    method=request.method,
+                    status_code=500,
+                    request_id=request_id,
+                ),
+                request=request,
+            )
+        raise
+
+    response.headers["X-Request-ID"] = request_id
+    if response.status_code >= 500 and not is_diagnostics_path(request.url.path):
+        route_template = route_template_from_request(request)
+        await record_error_best_effort(
+            ErrorEvent(
+                source_service="api",
+                error_kind="http_5xx",
+                message=f"{request.method} {route_template or request.url.path} returned HTTP {response.status_code}.",
+                route_path=request.url.path,
+                route_template=route_template,
+                method=request.method,
+                status_code=response.status_code,
+                request_id=request_id,
+            ),
+            request=request,
+        )
+    return response
+
 
 # Public file serving root for user-uploaded assets (URLs stored in DB).
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_PUBLIC_DIR)), name="uploads")
@@ -155,3 +210,4 @@ app.include_router(auth_router)
 app.include_router(contact_router)
 app.include_router(curriculum_router)
 app.include_router(media_router)
+app.include_router(diagnostics_router)
