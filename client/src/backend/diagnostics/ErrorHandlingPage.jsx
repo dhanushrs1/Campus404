@@ -90,8 +90,9 @@ function healthTone(value) {
 function statusTone(value) {
   const status = String(value || "").toLowerCase();
   if (status === "healthy" || status === "resolved") return "good";
-  if (status === "registered_only" || status === "acknowledged" || status === "not_checked") return "warn";
+  if (status === "acknowledged") return "warn";
   if (status === "failed" || status === "open" || status === "critical") return "bad";
+  if (status === "registered_only" || status === "not_checked") return "neutral";
   return "neutral";
 }
 
@@ -100,7 +101,7 @@ function prettyProbeStatus(route) {
     return "Observed issue";
   }
   if (route?.probe_status === "registered_only") {
-    return "Not Live Tested";
+    return "Registered";
   }
   return titleCase(route?.probe_status || "not checked");
 }
@@ -279,6 +280,9 @@ export default function ErrorHandlingPage({ role, onSessionExpired }) {
   const serviceHealth = summary?.service_health || {};
   const metrics = summary?.groups || {};
   const endpointRoutes = Array.isArray(endpoints?.routes) ? endpoints.routes : [];
+  const endpointSummary = endpoints?.latest_run?.summary || {};
+  const skippedEndpointCount = endpointSummary.registered_only
+    || endpointRoutes.filter((route) => route.probe_status === "registered_only").length;
 
   return (
     <div className="eh-page">
@@ -308,10 +312,22 @@ export default function ErrorHandlingPage({ role, onSessionExpired }) {
       </section>
 
       <section className="eh-metrics" aria-label="Error summary">
-        <article><span>Open groups</span><strong>{metrics.open || 0}</strong></article>
-        <article><span>Acknowledged</span><strong>{metrics.acknowledged || 0}</strong></article>
-        <article><span>Resolved</span><strong>{metrics.resolved || 0}</strong></article>
-        <article><span>Occurrences 24h</span><strong>{summary?.recent_occurrences_24h || 0}</strong></article>
+        <article className="is-open">
+          <span className="eh-metric-mark"><AlertTriangle size={18} /></span>
+          <div><span>Open groups</span><strong>{metrics.open || 0}</strong></div>
+        </article>
+        <article className="is-acknowledged">
+          <span className="eh-metric-mark"><ShieldAlert size={18} /></span>
+          <div><span>Acknowledged</span><strong>{metrics.acknowledged || 0}</strong></div>
+        </article>
+        <article className="is-resolved">
+          <span className="eh-metric-mark"><CheckCircle2 size={18} /></span>
+          <div><span>Resolved</span><strong>{metrics.resolved || 0}</strong></div>
+        </article>
+        <article className="is-recent">
+          <span className="eh-metric-mark"><Activity size={18} /></span>
+          <div><span>Occurrences 24h</span><strong>{summary?.recent_occurrences_24h || 0}</strong></div>
+        </article>
       </section>
 
       <section className="eh-panel">
@@ -434,10 +450,27 @@ export default function ErrorHandlingPage({ role, onSessionExpired }) {
           </div>
         </div>
 
-        <div className="eh-endpoint-summary">
-          <span>{endpoints?.latest_run?.summary?.healthy || 0} healthy</span>
-          <span>{endpoints?.latest_run?.summary?.failed || 0} failed</span>
-          <span>{endpoints?.latest_run?.summary?.registered_only || endpointRoutes.filter((route) => route.probe_status === "registered_only").length} not live tested</span>
+        <div className="eh-endpoint-summary" aria-label="Endpoint check results">
+          <article className="is-good">
+            <strong>{endpointSummary.healthy || 0}</strong>
+            <span>Live checks passed</span>
+          </article>
+          <article className="is-bad">
+            <strong>{endpointSummary.failed || 0}</strong>
+            <span>Live checks failed</span>
+          </article>
+          <article className="is-neutral">
+            <strong>{skippedEndpointCount}</strong>
+            <span>Registered, check skipped</span>
+          </article>
+        </div>
+
+        <div className="eh-probe-note">
+          <CircleSlash size={17} />
+          <p>
+            <strong>Registered, check skipped</strong> means the API route exists. The live checker skips writes,
+            OAuth flows, uploads, progress-changing reads, and routes that need a real job or record case.
+          </p>
         </div>
 
         <div className="eh-table-wrap">
@@ -446,7 +479,7 @@ export default function ErrorHandlingPage({ role, onSessionExpired }) {
               <tr>
                 <th>Endpoint</th>
                 <th>Category</th>
-                <th>Probe</th>
+                <th>Check result</th>
                 <th>HTTP</th>
                 <th>Last checked</th>
                 <th>Detail</th>
