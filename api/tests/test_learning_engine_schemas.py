@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("JWT_SECRET", "test-secret")
@@ -82,3 +83,20 @@ def test_frontend_acceptance_rules_require_at_least_one_real_rule():
     assert curriculum_router._has_frontend_acceptance_rules({}) is False
     assert curriculum_router._has_frontend_acceptance_rules({"required_text": [""]}) is False
     assert curriculum_router._has_frontend_acceptance_rules({"required_selectors": [".profile-card"]}) is True
+
+
+def test_submission_monitor_cursor_round_trip():
+    created_at = datetime(2026, 5, 23, 9, 30, tzinfo=timezone.utc)
+    cursor = curriculum_router._encode_submission_cursor(created_at, 42)
+
+    assert cursor
+    assert curriculum_router._decode_submission_cursor(cursor) == (created_at, 42)
+
+
+def test_submission_monitor_response_defaults_are_lightweight():
+    response = schemas.AdminSubmissionAttemptsResponse()
+
+    assert response.items == []
+    assert response.limit == 50
+    assert response.has_more is False
+    assert response.summary.window_size == 0

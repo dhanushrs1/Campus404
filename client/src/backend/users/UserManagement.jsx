@@ -14,7 +14,8 @@ import {
   MonitorSmartphone,
   Globe2,
   GraduationCap,
-  Lock
+  Lock,
+  RefreshCw
 } from "lucide-react";
 import { apiUrl } from "../../shared/api.js";
 import { authenticatedFetch } from "../../shared/authSession.js";
@@ -48,6 +49,42 @@ function normalizeUserRecord(user) {
   };
 }
 
+function titleCaseRole(role) {
+  const normalized = normalizeRole(role);
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function formatDate(value, includeTime = false) {
+  if (!value) return "Never";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unavailable";
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    ...(includeTime ? { hour: "2-digit", minute: "2-digit" } : {}),
+  }).format(date);
+}
+
+function UserAvatar({ avatar, initial }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [avatar]);
+
+  const showImage = Boolean(avatar) && !failed;
+  return (
+    <div className={`um-avatar ${showImage ? "has-image" : ""}`}>
+      {showImage ? (
+        <img className="um-avatar__image" src={avatar} alt="" onError={() => setFailed(true)} />
+      ) : (
+        initial
+      )}
+    </div>
+  );
+}
+
 
 
 function ActivityModal({ user, onClose, onSessionExpired }) {
@@ -77,16 +114,16 @@ function ActivityModal({ user, onClose, onSessionExpired }) {
 
   return (
     <div className="um-modal-overlay">
-      <div className="um-modal um-modal--large">
+      <div className="um-modal um-modal--large" role="dialog" aria-modal="true" aria-labelledby="um-activity-title">
         <div className="um-modal__header">
-          <h3>Activity Log: @{user.username}</h3>
-          <button className="um-modal__close" onClick={onClose}><X size={18} /></button>
+          <h3 id="um-activity-title">Activity Log: @{user.username}</h3>
+          <button type="button" className="um-modal__close" onClick={onClose} aria-label="Close activity log"><X size={18} /></button>
         </div>
         <div className="um-activity-content">
           {loading ? (
             <div className="um-activity-empty"><Loader2 className="um-spin" size={24} /></div>
           ) : error ? (
-            <div className="um-activity-empty" style={{ color: 'var(--state-error)' }}>{error}</div>
+            <div className="um-activity-empty is-error">{error}</div>
           ) : sessions.length === 0 ? (
             <div className="um-activity-empty">No activity found for this user.</div>
           ) : (
@@ -145,14 +182,14 @@ function RoleModal({ user, currentRole, onClose, onConfirm }) {
 
   return (
     <div className="um-modal-overlay">
-      <div className="um-modal">
+      <div className="um-modal" role="dialog" aria-modal="true" aria-labelledby="um-role-title">
         <div className="um-modal__header">
-          <h3>Change Role: @{user.username}</h3>
-          <button className="um-modal__close" onClick={onClose}><X size={18} /></button>
+          <h3 id="um-role-title">Change Role: @{user.username}</h3>
+          <button type="button" className="um-modal__close" onClick={onClose} aria-label="Close role dialog"><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} className="um-modal__body">
           <p className="um-modal__desc">
-            Select a new role for this user. Click Save changes in the table row to apply it globally.
+            Select the permissions this account should receive when staged changes are saved.
           </p>
           <div className="um-input-group">
             {options.map((opt) => (
@@ -176,7 +213,7 @@ function RoleModal({ user, currentRole, onClose, onConfirm }) {
           </div>
           <div className="um-modal__actions">
             <button type="button" className="um-btn um-btn--ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="um-btn um-btn--primary">Apply Role</button>
+            <button type="submit" className="um-btn um-btn--primary">Stage Role</button>
           </div>
         </form>
       </div>
@@ -199,14 +236,14 @@ function BanModal({ user, onClose, onConfirm }) {
 
   return (
     <div className="um-modal-overlay">
-      <div className="um-modal">
+      <div className="um-modal" role="dialog" aria-modal="true" aria-labelledby="um-ban-title">
         <div className="um-modal__header">
-          <h3>Ban User: @{user.username}</h3>
-          <button className="um-modal__close" onClick={onClose}><X size={18} /></button>
+          <h3 id="um-ban-title">Ban User: @{user.username}</h3>
+          <button type="button" className="um-modal__close" onClick={onClose} aria-label="Close ban dialog"><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit} className="um-modal__body">
           <p className="um-modal__desc">
-            This will stage a ban for <strong>{user.first_name}</strong>. Click Save changes in the table row to apply it.
+            This will stage a ban for <strong>{user.first_name}</strong> until the pending changes are saved.
           </p>
           <div className="um-input-group">
             <label>Reason for Ban *</label>
@@ -285,16 +322,29 @@ export default function UserManagement({
   };
 
   const stageStatusChange = (userId, isActive, banReason = null) => {
+    const normalizedNext = Boolean(isActive);
+    const baseUser = users.find((user) => user.id === userId);
+    const normalizedBase = Boolean(baseUser?.is_active);
+
     setPendingChanges((prev) => {
       const existing = prev[userId] || {};
-      return {
-        ...prev,
-        [userId]: {
-          ...existing,
-          is_active: !!isActive,
-          ban_reason: isActive ? null : (banReason || "No reason provided").trim(),
-        },
-      };
+      const next = { ...existing };
+
+      if (normalizedNext === normalizedBase) {
+        delete next.is_active;
+        delete next.ban_reason;
+      } else {
+        next.is_active = normalizedNext;
+        next.ban_reason = normalizedNext ? null : (banReason || "No reason provided").trim();
+      }
+
+      if (next.role === undefined && next.is_active === undefined) {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
+      }
+
+      return { ...prev, [userId]: next };
     });
   };
 
@@ -467,6 +517,22 @@ export default function UserManagement({
     });
   }, [users, search, roleFilter, pendingChanges]);
 
+  const pendingUserCount = Object.keys(pendingChanges).length;
+
+  const userSummary = useMemo(() => {
+    return users.reduce((summary, user) => {
+      const pending = pendingChanges[user.id] || {};
+      const effectiveRole = normalizeRole(pending.role ?? user.role);
+      const effectiveIsActive =
+        typeof pending.is_active === "boolean" ? pending.is_active : Boolean(user.is_active);
+
+      summary.total += 1;
+      if (effectiveIsActive) summary.active += 1;
+      if (effectiveRole === "admin" || effectiveRole === "editor") summary.staff += 1;
+      return summary;
+    }, { total: 0, active: 0, staff: 0 });
+  }, [pendingChanges, users]);
+
   const getRoleIcon = (role, size = 14) => {
     const normalized = normalizeRole(role);
     if (normalized === "admin") return <Shield size={size} />;
@@ -479,20 +545,20 @@ export default function UserManagement({
       return {
         tone: "pending",
         label: "Pending",
-        help: "Yellow dot: you have unsaved changes for this user. Click Save changes to apply.",
+        help: "Staged changes are waiting to be saved.",
       };
     }
     if (!effectiveIsActive) {
       return {
         tone: "banned",
         label: "Banned",
-        help: "Red dot: this account is banned and cannot sign in.",
+        help: "This account is banned and cannot sign in.",
       };
     }
     return {
       tone: "active",
       label: "Active",
-      help: "Green dot: this account is active and can sign in.",
+      help: "This account is active and can sign in.",
     };
   };
 
@@ -511,222 +577,278 @@ export default function UserManagement({
 
   return (
     <div className="um-container">
-      <div className="um-header">
+      <header className="um-header">
         <div className="um-header-content">
+          <span className="um-kicker"><Lock size={15} /> Account operations</span>
           <h2 className="um-title">User Management</h2>
-          <p className="um-subtitle">Edit users in draft mode, then click Save changes to apply.</p>
+          <p className="um-subtitle">Roles, account status, and recent session activity across the platform.</p>
         </div>
-        
-        {Object.keys(pendingChanges).length > 0 && canManageUsers && (
-          <div className="um-global-actions">
-            <button
-              type="button"
-              className="um-reset-btn"
-              disabled={actionLoading === "global-save"}
-              onClick={() => setPendingChanges({})}
-            >
-              Discard all
-            </button>
-            <button
-              type="button"
-              className="um-save-btn"
-              disabled={actionLoading === "global-save"}
-              onClick={handleSaveAllChanges}
-            >
-              {actionLoading === "global-save" ? "Saving..." : "Save changes"}
-            </button>
+
+        <div className="um-header-actions">
+          <button
+            type="button"
+            className="um-refresh-btn"
+            disabled={isRefreshing || pendingUserCount > 0}
+            onClick={() => fetchUsers({ silent: true })}
+            title={pendingUserCount > 0 ? "Save or discard staged changes before refreshing" : "Refresh users"}
+          >
+            <RefreshCw size={16} className={isRefreshing ? "um-spin" : ""} />
+            Refresh
+          </button>
+
+          {pendingUserCount > 0 && canManageUsers && (
+            <div className="um-global-actions">
+              <button
+                type="button"
+                className="um-reset-btn"
+                disabled={actionLoading === "global-save"}
+                onClick={() => setPendingChanges({})}
+              >
+                Discard all
+              </button>
+              <button
+                type="button"
+                className="um-save-btn"
+                disabled={actionLoading === "global-save"}
+                onClick={handleSaveAllChanges}
+              >
+                {actionLoading === "global-save" ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <section className="um-summary" aria-label="User summary">
+        <article>
+          <span className="um-summary-mark"><UserIcon size={19} /></span>
+          <div><span>Accounts</span><strong>{userSummary.total}</strong></div>
+        </article>
+        <article className="is-active">
+          <span className="um-summary-mark"><ShieldCheck size={19} /></span>
+          <div><span>Active</span><strong>{userSummary.active}</strong></div>
+        </article>
+        <article className="is-staff">
+          <span className="um-summary-mark"><Shield size={19} /></span>
+          <div><span>Staff access</span><strong>{userSummary.staff}</strong></div>
+        </article>
+        <article className="is-pending">
+          <span className="um-summary-mark"><PenTool size={19} /></span>
+          <div><span>Staged users</span><strong>{pendingUserCount}</strong></div>
+        </article>
+      </section>
+
+      <section className="um-directory">
+        <header className="um-directory__header">
+          <div>
+            <h3>User directory</h3>
+            <p>{loading ? "Loading accounts..." : `${filteredUsers.length} of ${users.length} accounts shown`}</p>
           </div>
-        )}
-      </div>
+          <span className={`um-access-badge ${canManageUsers ? "is-admin" : "is-readonly"}`}>
+            {canManageUsers ? "Admin controls" : "View only"}
+          </span>
+        </header>
 
-      <div className="um-controls">
-        <div className="um-search">
-          <Search size={16} className="um-search__icon" />
-          <input
-            type="text"
-            placeholder="Search by name, @username, or email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="um-controls">
+          <label className="um-search">
+            <Search size={16} className="um-search__icon" />
+            <input
+              type="text"
+              placeholder="Search by name, @username, or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button type="button" className="um-search__clear" onClick={() => setSearch("")} aria-label="Clear user search">
+                <X size={14} />
+              </button>
+            )}
+          </label>
+
+          <div className="um-filters" aria-label="Filter users by role">
+            {["all", "admin", "editor", "student"].map((r) => (
+              <button
+                key={r}
+                type="button"
+                className={`um-filter-btn ${roleFilter === r ? "um-filter-btn--active" : ""}`}
+                onClick={() => setRoleFilter(r)}
+              >
+                {r.charAt(0).toUpperCase() + r.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="um-filters">
-          {["all", "admin", "editor", "student"].map((r) => (
-            <button
-              key={r}
-              type="button"
-              className={`um-filter-btn ${roleFilter === r ? "um-filter-btn--active" : ""}`}
-              onClick={() => setRoleFilter(r)}
-            >
-              {r.charAt(0).toUpperCase() + r.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="um-table-wrapper">
-        <table className="um-table">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Contact Details</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Joined</th>
-              <th className="um-table__actions-head">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        <div className="um-table-wrapper">
+          <table className="um-table">
+            <thead>
               <tr>
-                <td colSpan="6" className="um-table__empty">
-                  <Loader2 size={24} className="um-spin" style={{ color: "var(--text-secondary)" }} />
-                </td>
+                <th>User</th>
+                <th>Contact Details</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Last Sign In</th>
+                <th className="um-table__actions-head">Actions</th>
               </tr>
-            ) : errorMessage ? (
-              <tr>
-                <td colSpan="6" className="um-table__empty">{errorMessage}</td>
-              </tr>
-            ) : filteredUsers.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="um-table__empty">No users found.</td>
-              </tr>
-            ) : (
-              filteredUsers.map((user) => {
-                const pending = pendingChanges[user.id] || {};
-                const isMe =
-                  String(user.username || "").toLowerCase() ===
-                  String(currentUsername || "").toLowerCase();
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan="7" className="um-table__empty">
+                    <Loader2 size={24} className="um-spin" />
+                  </td>
+                </tr>
+              ) : errorMessage ? (
+                <tr>
+                  <td colSpan="7" className="um-table__empty is-error">{errorMessage}</td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="um-table__empty">No users found.</td>
+                </tr>
+              ) : (
+                filteredUsers.map((user) => {
+                  const pending = pendingChanges[user.id] || {};
+                  const isMe =
+                    String(user.username || "").toLowerCase() ===
+                    String(currentUsername || "").toLowerCase();
 
-                const effectiveRole = normalizeRole(pending.role ?? user.role);
-                const effectiveIsActive =
-                  typeof pending.is_active === "boolean" ? pending.is_active : Boolean(user.is_active);
-                const hasPending =
-                  pending.role !== undefined || pending.is_active !== undefined;
+                  const effectiveRole = normalizeRole(pending.role ?? user.role);
+                  const effectiveIsActive =
+                    typeof pending.is_active === "boolean" ? pending.is_active : Boolean(user.is_active);
+                  const hasPending =
+                    pending.role !== undefined || pending.is_active !== undefined;
 
-                const fullName = `${user.first_name || "Unknown"} ${user.last_name || ""}`.trim();
-                const initial = (fullName.charAt(0) || "?").toUpperCase();
-                const statusMeta = getStatusMeta(effectiveIsActive, hasPending);
+                  const fullName = `${user.first_name || "Unknown"} ${user.last_name || ""}`.trim();
+                  const initial = (fullName.charAt(0) || "?").toUpperCase();
+                  const statusMeta = getStatusMeta(effectiveIsActive, hasPending);
+                  const effectiveBanReason = !effectiveIsActive
+                    ? String(pending.ban_reason ?? user.ban_reason ?? "").trim()
+                    : "";
 
-                return (
-                  <tr key={user.id} className={!effectiveIsActive ? "um-row-banned" : ""}>
-                    <td>
-                      <div className="um-user-cell">
-                        <div className="um-avatar" style={{ background: user.avatar ? 'transparent' : '', border: user.avatar ? '1px solid var(--border-light)' : '' }}>
-                          {user.avatar ? (
-                            <img src={user.avatar} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                          ) : (
-                            initial
+                  return (
+                    <tr key={user.id} className={!effectiveIsActive ? "um-row-banned" : ""}>
+                      <td data-label="User">
+                        <div className="um-user-cell">
+                          <UserAvatar avatar={user.avatar} initial={initial} />
+                          <div className="um-user-info">
+                            <span className="um-name">
+                              {fullName}
+                              {isMe && <span className="um-badge-me">You</span>}
+                            </span>
+                            <span className="um-username">@{user.username}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td data-label="Contact">
+                        <div className="um-email-cell">
+                          <span>{user.email}</span>
+                          <span className="um-provider">via {user.auth_provider}</span>
+                        </div>
+                      </td>
+
+                      <td data-label="Role">
+                        <div className="um-role-cell">
+                          <span className={`um-role-pill um-role-pill--${effectiveRole}`}>
+                            {getRoleIcon(effectiveRole, 15)}
+                            {titleCaseRole(effectiveRole)}
+                          </span>
+                          {pending.role !== undefined && <small>Staged role</small>}
+                        </div>
+                      </td>
+
+                      <td data-label="Status">
+                        <div className="um-status-cell">
+                          <span className={`um-status-pill um-status-pill--${statusMeta.tone}`} title={statusMeta.help}>
+                            <span className={`um-status-dot um-status-dot--${statusMeta.tone}`} />
+                            {statusMeta.label}
+                          </span>
+                          {effectiveBanReason && <small>{effectiveBanReason}</small>}
+                          {hasPending && canManageUsers && (
+                            <button
+                              type="button"
+                              className="um-pending-clear"
+                              onClick={() => clearPendingForUser(user.id)}
+                              aria-label={`Discard staged changes for ${user.username}`}
+                              title="Discard staged changes"
+                            >
+                              <X size={13} />
+                            </button>
                           )}
                         </div>
-                        <div className="um-user-info">
-                          <span className="um-name">
-                            {fullName}
-                            {isMe && <span className="um-badge-me">You</span>}
-                          </span>
-                          <span className="um-username">@{user.username}</span>
-                        </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td>
-                      <div className="um-email-cell">
-                        <span>{user.email}</span>
-                        <span className="um-provider">via {user.auth_provider}</span>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="um-role-icon-wrapper">
-                        <div className={`um-role-icon um-role-icon--${effectiveRole}`}>
-                          {getRoleIcon(effectiveRole, 15)}
-                        </div>
-                        <span className="um-role-tooltip">
-                          {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)}
+                      <td data-label="Joined">
+                        <span className="um-date">
+                          {formatDate(user.created_at)}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td>
-                      <div className="um-status-indicator">
-                        <span className={`um-status-dot um-status-dot--${statusMeta.tone}`} />
-                        <div className="um-status-help-wrapper">
-                          <span className="um-status-help">?</span>
-                          <div className="um-status-tooltip">{statusMeta.help}</div>
+                      <td data-label="Last Sign In">
+                        <span className="um-date">{formatDate(user.last_login, true)}</span>
+                      </td>
+
+                      <td data-label="Actions">
+                        <div className="um-inline-actions">
+                          {/* View Activity */}
+                          <div className="um-action-btn-wrapper">
+                            <button
+                              className="um-action-btn um-action-btn--neutral"
+                              onClick={() => setActivityModalUser(user)}
+                              type="button"
+                              aria-label="View Activity"
+                              title="View activity"
+                            >
+                              <History size={14} />
+                            </button>
+                          </div>
+
+                          {/* Change Role */}
+                          <div className="um-action-btn-wrapper">
+                            <button
+                              className="um-action-btn um-action-btn--accent"
+                              onClick={() => canManageUsers && !isMe && setRoleModalUser({ ...user, role: effectiveRole, base_role: user.role })}
+                              disabled={!canManageUsers || isMe}
+                              type="button"
+                              aria-label="Change Role"
+                              title={isMe ? "Cannot change your own role" : "Change role"}
+                            >
+                              <ShieldCheck size={14} />
+                            </button>
+                          </div>
+
+                          {/* Ban / Unban */}
+                          <div className="um-action-btn-wrapper">
+                            <button
+                              className={`um-action-btn ${effectiveIsActive ? 'um-action-btn--danger' : 'um-action-btn--success'}`}
+                              onClick={() => {
+                                if (!canManageUsers || isMe) return;
+                                if (effectiveIsActive) {
+                                  setBanModalUser({ ...user, is_active: effectiveIsActive });
+                                } else {
+                                  stageStatusChange(user.id, true, null);
+                                }
+                              }}
+                              disabled={!canManageUsers || isMe}
+                              type="button"
+                              aria-label={effectiveIsActive ? "Ban User" : "Unban User"}
+                              title={isMe ? "Cannot ban yourself" : effectiveIsActive ? "Ban user" : "Unban user"}
+                            >
+                              {effectiveIsActive ? <Ban size={14} /> : <ShieldOff size={14} />}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <span className="um-date">
-                        {new Date(user.created_at).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </td>
-
-                    <td>
-                      <div className="um-inline-actions">
-                        {/* View Activity */}
-                        <div className="um-action-btn-wrapper">
-                          <button
-                            className="um-action-btn um-action-btn--neutral"
-                            onClick={() => setActivityModalUser(user)}
-                            disabled={!canManageUsers && !isMe}
-                            aria-label="View Activity"
-                          >
-                            <History size={14} />
-                          </button>
-                          <span className="um-action-tooltip">View Activity</span>
-                        </div>
-
-                        {/* Change Role */}
-                        <div className="um-action-btn-wrapper">
-                          <button
-                            className="um-action-btn um-action-btn--accent"
-                            onClick={() => canManageUsers && !isMe && setRoleModalUser({ ...user, role: effectiveRole })}
-                            disabled={!canManageUsers || isMe}
-                            aria-label="Change Role"
-                          >
-                            <ShieldCheck size={14} />
-                          </button>
-                          <span className="um-action-tooltip">
-                            {isMe ? "Cannot change your own role" : "Change Role"}
-                          </span>
-                        </div>
-
-                        {/* Ban / Unban */}
-                        <div className="um-action-btn-wrapper">
-                          <button
-                            className={`um-action-btn ${effectiveIsActive ? 'um-action-btn--danger' : 'um-action-btn--success'}`}
-                            onClick={() => {
-                              if (!canManageUsers || isMe) return;
-                              if (effectiveIsActive) {
-                                setBanModalUser({ ...user, is_active: effectiveIsActive });
-                              } else {
-                                stageStatusChange(user.id, true, null);
-                              }
-                            }}
-                            disabled={!canManageUsers || isMe}
-                            aria-label={effectiveIsActive ? "Ban User" : "Unban User"}
-                          >
-                            {effectiveIsActive ? <Ban size={14} /> : <ShieldOff size={14} />}
-                          </button>
-                          <span className="um-action-tooltip">
-                            {isMe ? "Cannot ban yourself" : effectiveIsActive ? "Ban User" : "Unban User"}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {banModalUser && (
         <BanModal
@@ -745,7 +867,7 @@ export default function UserManagement({
           currentRole={roleModalUser.role}
           onClose={() => setRoleModalUser(null)}
           onConfirm={(userId, role) => {
-            stageRoleChange(userId, role, roleModalUser.role);
+            stageRoleChange(userId, role, roleModalUser.base_role ?? roleModalUser.role);
             setRoleModalUser(null);
           }}
         />

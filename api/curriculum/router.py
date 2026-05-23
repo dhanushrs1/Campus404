@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import httpx
 import ipaddress
@@ -14,7 +15,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
-from sqlalchemy import delete, func, select, update
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -54,6 +55,7 @@ UNTRACKED_VISIT_PREFIXES = ("/admin", "/auth", "/api")
 GEOIP_LOOKUP_URL = os.getenv("ANALYTICS_GEOIP_LOOKUP_URL", "http://ip-api.com/json/{ip}")
 GEOIP_LOOKUP_ENABLED = os.getenv("ANALYTICS_GEOIP_LOOKUP_ENABLED", "true").lower() not in {"0", "false", "no"}
 _COUNTRY_CODE_CACHE: dict[str, str | None] = {}
+SUBMISSION_ATTEMPT_STATUSES = {"passed", "failed", "submitted", "running"}
 
 
 def _token_session_version(payload: dict[str, Any]) -> int:
@@ -136,6 +138,35 @@ def _classify_visit_device(user_agent: str | None) -> str:
     if any(token in normalized for token in ("windows", "macintosh", "x11", "linux")):
         return "desktop"
     return "unknown"
+
+
+def _encode_submission_cursor(created_at: datetime | None, attempt_id: int | None) -> str | None:
+    if not created_at or not attempt_id:
+        return None
+    payload = {"created_at": created_at.isoformat(), "id": int(attempt_id)}
+    raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _decode_submission_cursor(cursor: str | None) -> tuple[datetime, int] | None:
+    if not cursor:
+        return None
+    try:
+        padding = "=" * (-len(cursor) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(f"{cursor}{padding}".encode("ascii")).decode("utf-8"))
+        created_at = datetime.fromisoformat(str(payload["created_at"]))
+        attempt_id = int(payload["id"])
+    except (KeyError, TypeError, ValueError, UnicodeDecodeError, UnicodeEncodeError, json.JSONDecodeError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid submission attempt cursor.",
+        )
+    if attempt_id <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid submission attempt cursor.",
+        )
+    return created_at, attempt_id
 
 
 def _extract_country_code(request: Request) -> str | None:
@@ -4046,4 +4077,153 @@ async def get_admin_learning_engine_health(
         judge_health=judge_health,
         leaderboard_health="ready",
         recent_attempts=recent_attempts,
+    )
+
+
+@router.get("/api/admin/submissions/attempts", response_model=schemas.AdminSubmissionAttemptsResponse)
+async def get_admin_submission_attempts(
+    status_filter: str | None = Query(default=None, alias="status", max_length=32),
+    mode: str | None = Query(default=None, max_length=50),
+    search: str | None = Query(default=None, max_length=120),
+    cursor: str | None = Query(default=None, max_length=512),
+    created_after: datetime | None = Query(default=None),
+    created_before: datetime | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.AdminSubmissionAttemptsResponse:
+    normalized_status = (status_filter or "").strip().lower()
+    if normalized_status == "all":
+        normalized_status = ""
+    if normalized_status and normalized_status not in SUBMISSION_ATTEMPT_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported submission status filter.",
+        )
+
+    normalized_mode = (mode or "").strip().lower()
+    if normalized_mode == "all":
+        normalized_mode = ""
+
+    statement = (
+        select(
+            models.ExerciseAttempt.id,
+            models.ExerciseAttempt.status,
+            models.ExerciseAttempt.mode,
+            models.ExerciseAttempt.tests_passed,
+            models.ExerciseAttempt.tests_total,
+            models.ExerciseAttempt.created_at,
+            models.ExerciseAttempt.used_hint_count,
+            models.ExerciseAttempt.viewed_solution,
+            models.ExerciseAttempt.xp_awarded,
+            models.Exercise.title.label("exercise_title"),
+            models.Track.title.label("track_title"),
+            models.Section.title.label("section_title"),
+            User.username,
+        )
+        .join(models.Exercise, models.Exercise.id == models.ExerciseAttempt.exercise_id)
+        .join(User, User.id == models.ExerciseAttempt.user_id)
+        .outerjoin(models.Track, models.Track.id == models.ExerciseAttempt.track_id)
+        .outerjoin(models.Section, models.Section.id == models.ExerciseAttempt.section_id)
+    )
+
+    if normalized_status:
+        statement = statement.where(models.ExerciseAttempt.status == normalized_status)
+    if normalized_mode:
+        statement = statement.where(func.lower(models.ExerciseAttempt.mode) == normalized_mode)
+    if created_after:
+        statement = statement.where(models.ExerciseAttempt.created_at >= created_after)
+    if created_before:
+        statement = statement.where(models.ExerciseAttempt.created_at <= created_before)
+
+    search_value = (search or "").strip()
+    if search_value:
+        lowered = f"%{search_value.lower()}%"
+        search_conditions = [
+            func.lower(User.username).like(lowered),
+            func.lower(User.email).like(lowered),
+            func.lower(models.Exercise.title).like(lowered),
+            func.lower(models.Track.title).like(lowered),
+            func.lower(models.Section.title).like(lowered),
+        ]
+        if search_value.isdigit():
+            search_conditions.append(models.ExerciseAttempt.id == int(search_value))
+        statement = statement.where(or_(*search_conditions))
+
+    decoded_cursor = _decode_submission_cursor(cursor)
+    if decoded_cursor:
+        cursor_created_at, cursor_id = decoded_cursor
+        statement = statement.where(
+            or_(
+                models.ExerciseAttempt.created_at < cursor_created_at,
+                and_(
+                    models.ExerciseAttempt.created_at == cursor_created_at,
+                    models.ExerciseAttempt.id < cursor_id,
+                ),
+            )
+        )
+
+    statement = statement.order_by(models.ExerciseAttempt.created_at.desc(), models.ExerciseAttempt.id.desc()).limit(limit + 1)
+    rows = list((await db.execute(statement)).all())
+    page_rows = rows[:limit]
+    has_more = len(rows) > limit
+
+    items = [
+        schemas.AdminSubmissionAttempt(
+            id=int(row.id),
+            status=row.status,
+            mode=row.mode,
+            tests_passed=int(row.tests_passed or 0),
+            tests_total=int(row.tests_total or 0),
+            created_at=row.created_at,
+            exercise_title=row.exercise_title or "Untitled exercise",
+            username=row.username or "learner",
+            track_title=row.track_title,
+            section_title=row.section_title,
+            used_hint_count=int(row.used_hint_count or 0),
+            viewed_solution=bool(row.viewed_solution),
+            xp_awarded=int(row.xp_awarded or 0),
+        )
+        for row in page_rows
+    ]
+
+    status_counts = {"passed": 0, "failed": 0, "submitted": 0, "running": 0, "other": 0}
+    learners: set[str] = set()
+    checks_passed = 0
+    checks_total = 0
+    for item in items:
+        item_status = (item.status or "").strip().lower()
+        if item_status in status_counts:
+            status_counts[item_status] += 1
+        else:
+            status_counts["other"] += 1
+        learners.add(item.username.lower())
+        checks_passed += max(0, int(item.tests_passed or 0))
+        checks_total += max(0, int(item.tests_total or 0))
+
+    last_row = page_rows[-1] if page_rows else None
+    return schemas.AdminSubmissionAttemptsResponse(
+        items=items,
+        limit=limit,
+        has_more=has_more,
+        next_cursor=_encode_submission_cursor(last_row.created_at, int(last_row.id)) if has_more and last_row else None,
+        summary=schemas.AdminSubmissionAttemptSummary(
+            window_size=len(items),
+            passed=status_counts["passed"],
+            failed=status_counts["failed"],
+            submitted=status_counts["submitted"],
+            running=status_counts["running"],
+            other=status_counts["other"],
+            unique_learners=len(learners),
+            checks_passed=checks_passed,
+            checks_total=checks_total,
+            check_pass_rate=round((checks_passed / checks_total) * 100) if checks_total else 0,
+        ),
+        filters={
+            "status": normalized_status or "all",
+            "mode": normalized_mode or "all",
+            "search": search_value,
+            "created_after": created_after.isoformat() if created_after else None,
+            "created_before": created_before.isoformat() if created_before else None,
+        },
     )

@@ -514,6 +514,44 @@ class AdminEngineHealthResponse(BaseModel):
     recent_attempts: List[Dict[str, Any]] = Field(default_factory=list)
 
 
+class AdminSubmissionAttempt(BaseModel):
+    id: int
+    status: str
+    mode: str
+    tests_passed: int = 0
+    tests_total: int = 0
+    created_at: Optional[datetime] = None
+    exercise_title: str
+    username: str
+    track_title: Optional[str] = None
+    section_title: Optional[str] = None
+    used_hint_count: int = 0
+    viewed_solution: bool = False
+    xp_awarded: int = 0
+
+
+class AdminSubmissionAttemptSummary(BaseModel):
+    window_size: int = 0
+    passed: int = 0
+    failed: int = 0
+    submitted: int = 0
+    running: int = 0
+    other: int = 0
+    unique_learners: int = 0
+    checks_passed: int = 0
+    checks_total: int = 0
+    check_pass_rate: int = 0
+
+
+class AdminSubmissionAttemptsResponse(BaseModel):
+    items: List[AdminSubmissionAttempt] = Field(default_factory=list)
+    limit: int = 50
+    has_more: bool = False
+    next_cursor: Optional[str] = None
+    summary: AdminSubmissionAttemptSummary = Field(default_factory=AdminSubmissionAttemptSummary)
+    filters: Dict[str, Any] = Field(default_factory=dict)
+
+
 class TrackTree(TrackInDB):
     sections: List[SectionPublicWithExercises] = Field(default_factory=list)
     learner_count: int = 0

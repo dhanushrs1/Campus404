@@ -176,6 +176,9 @@ class ExerciseAttempt(Base):
     __table_args__ = (
         Index("ix_exercise_attempts_user_exercise_created", "user_id", "exercise_id", "created_at"),
         Index("ix_exercise_attempts_track_created", "track_id", "created_at"),
+        Index("ix_exercise_attempts_created_id", "created_at", "id"),
+        Index("ix_exercise_attempts_status_created", "status", "created_at"),
+        Index("ix_exercise_attempts_mode_created", "mode", "created_at"),
     )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
