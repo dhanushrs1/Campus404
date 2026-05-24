@@ -457,14 +457,22 @@
 .lbYourRank {
   min-height: 104px;
   display: grid;
-  grid-template-columns: minmax(190px, 0.95fr) minmax(140px, 0.48fr) minmax(230px, 1fr) 132px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
-  gap: 16px;
+  gap: 0;
   overflow: hidden;
   position: relative;
-  padding: 14px 16px;
+  padding: 14px 0 14px 16px;
   border-color: #1e4fbf;
   background: #071d46;
+}
+
+.lbYourRank__identity,
+.lbYourRank__metric,
+.lbYourRank__cta {
+  min-height: 70px;
+  padding: 0 24px;
+  border-right: 1px solid rgba(201, 216, 246, 0.24);
 }
 
 .lbYourRank__identity {
@@ -517,6 +525,7 @@
   margin: 0;
   position: relative;
   z-index: 1;
+  align-content: center;
 }
 
 .lbYourRank dd {
@@ -540,7 +549,6 @@
   display: grid;
   gap: 4px;
   align-content: center;
-  justify-self: start;
   min-width: 0;
   position: relative;
   z-index: 1;
@@ -573,7 +581,7 @@
   align-self: stretch;
   min-height: 74px;
   position: relative;
-  margin: -14px -16px -14px 0;
+  margin: -14px 0 -14px 0;
   background: transparent;
   z-index: 1;
 }
@@ -965,8 +973,13 @@
   }
 
   .lbYourRank {
-    grid-template-columns: minmax(188px, 1fr) minmax(130px, 0.48fr) minmax(205px, 1fr) 112px;
-    gap: 14px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .lbYourRank__identity,
+  .lbYourRank__metric,
+  .lbYourRank__cta {
+    padding: 0 18px;
   }
 
   .lbYourRank__art {
@@ -1040,12 +1053,34 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     min-height: 0;
     padding: 14px;
-    gap: 12px;
+    gap: 0;
   }
 
   .lbYourRank__identity,
   .lbYourRank__cta {
     grid-column: 1 / -1;
+  }
+
+  .lbYourRank__identity,
+  .lbYourRank__metric,
+  .lbYourRank__cta {
+    min-height: 62px;
+    padding: 0;
+    border-right: 0;
+  }
+
+  .lbYourRank__identity {
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(201, 216, 246, 0.2);
+  }
+
+  .lbYourRank__metric {
+    padding: 12px 14px 0 0;
+    border-right: 1px solid rgba(201, 216, 246, 0.2);
+  }
+
+  .lbYourRank__cta {
+    padding: 12px 0 0 14px;
   }
 
   .lbYourRank__avatar {

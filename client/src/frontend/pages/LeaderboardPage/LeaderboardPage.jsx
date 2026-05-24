@@ -19,6 +19,7 @@ import {
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { ASSETS } from "../../../shared/assets.js";
 import { getLeaderboard, getTrackTree } from "../../../shared/learningApi.js";
+import AvatarImage from "../../components/AvatarImage/AvatarImage.jsx";
 import "./LeaderboardPage.css";
 
 const RANGE_OPTIONS = [
@@ -127,7 +128,13 @@ function PodiumCard({ learner, place }) {
       {learner ? (
         <>
           <span className="lbPodiumCard__avatar">
-            <img src={learnerAvatar(learner)} alt="" draggable="false" decoding="async" />
+            <AvatarImage
+              src={learnerAvatar(learner)}
+              fallbackKey={learner?.user_id || learner?.username}
+              alt=""
+              draggable="false"
+              decoding="async"
+            />
           </span>
           <strong>{learnerName(learner)}</strong>
           <small>@{learner.username || "learner"}</small>
@@ -419,9 +426,16 @@ export default function LeaderboardPage() {
 
         <section className="lbYourRank">
           <div className="lbYourRank__identity">
-            <span className="lbYourRank__avatar">
-              {currentRank ? <img src={learnerAvatar(currentRank)} alt="" draggable="false" /> : <ShieldCheck size={30} />}
-            </span>
+          <span className="lbYourRank__avatar">
+            {currentRank ? (
+              <AvatarImage
+                src={learnerAvatar(currentRank)}
+                fallbackKey={currentRank?.user_id || currentRank?.username}
+                alt=""
+                draggable="false"
+              />
+            ) : <ShieldCheck size={30} />}
+          </span>
             <div className="lbYourRank__rank">
               <span>Your Rank</span>
               <strong title={formatRankLabel(currentRank?.rank)} aria-label={formatRankLabel(currentRank?.rank)}>
@@ -494,7 +508,13 @@ export default function LeaderboardPage() {
                           <td><TableRank rank={Number(learner.rank)} /></td>
                           <td>
                             <span className="lbLearnerCell">
-                              <img src={learnerAvatar(learner)} alt="" draggable="false" decoding="async" />
+                              <AvatarImage
+                                src={learnerAvatar(learner)}
+                                fallbackKey={learner?.user_id || learner?.username}
+                                alt=""
+                                draggable="false"
+                                decoding="async"
+                              />
                               <span>
                                 <strong>{currentRank?.user_id === learner.user_id ? "You" : learnerName(learner)}</strong>
                                 <small>@{learner.username || "learner"}</small>
@@ -574,7 +594,13 @@ export default function LeaderboardPage() {
               <h2><Sparkles size={17} /> Weekly Spotlight</h2>
               {spotlight ? (
                 <div>
-                  <img src={learnerAvatar(spotlight)} alt="" draggable="false" decoding="async" />
+                  <AvatarImage
+                    src={learnerAvatar(spotlight)}
+                    fallbackKey={spotlight?.user_id || spotlight?.username}
+                    alt=""
+                    draggable="false"
+                    decoding="async"
+                  />
                   <span>
                     <strong>{learnerName(spotlight)}</strong>
                     <small>@{spotlight.username || "learner"}</small>

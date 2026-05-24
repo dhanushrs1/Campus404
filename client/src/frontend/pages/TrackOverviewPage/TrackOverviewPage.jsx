@@ -19,6 +19,7 @@ import {
 import { getAllTaskProgress, getTrackDetailTree, getTrackLeaderboard, getTrackTree } from "../../../shared/learningApi.js";
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { ASSETS } from "../../../shared/assets.js";
+import AvatarImage from "../../components/AvatarImage/AvatarImage.jsx";
 import "./TrackOverviewPage.css";
 
 const EXERCISE_XP = 20;
@@ -505,7 +506,12 @@ export default function TrackOverviewPage() {
                     learnerProofEntries.map((learner) => (
                       <span key={learner.user_id}>
                         {learner.avatar ? (
-                          <img src={learner.avatar} alt="" draggable="false" />
+                          <AvatarImage
+                            src={learner.avatar}
+                            fallbackKey={learner.user_id || learner.username}
+                            alt=""
+                            draggable="false"
+                          />
                         ) : (
                           getAvatarInitial(learner.username)
                         )}
@@ -790,7 +796,12 @@ export default function TrackOverviewPage() {
                       <span className="trackOverviewPage__leaderboardRank">#{learner.rank}</span>
                       <span className="trackOverviewPage__leaderboardAvatar">
                         {learner.avatar_url ? (
-                          <img src={learner.avatar_url} alt="" draggable="false" />
+                          <AvatarImage
+                            src={learner.avatar_url}
+                            fallbackKey={learner.user_id || learner.username}
+                            alt=""
+                            draggable="false"
+                          />
                         ) : (
                           getAvatarInitial(learner.username)
                         )}

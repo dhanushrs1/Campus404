@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { ASSETS } from "../../../shared/assets.js";
+import AvatarImage from "../AvatarImage/AvatarImage.jsx";
 import "./Header.css";
 
 const NAV_MENU_ITEMS = [
@@ -191,9 +192,10 @@ export default function Header({
                     aria-haspopup="true"
                   >
                     {avatarUrl ? (
-                      <img
+                      <AvatarImage
                         src={avatarUrl}
                         alt={displayName ? `${displayName} profile` : "User profile"}
+                        fallbackKey={displayName || avatarUrl}
                         referrerPolicy="no-referrer"
                       />
                     ) : (
@@ -208,9 +210,10 @@ export default function Header({
                       <div className="nav-profile-menu-head">
                         <span className="nav-profile-menu-avatar">
                           {avatarUrl ? (
-                            <img
+                            <AvatarImage
                               src={avatarUrl}
                               alt=""
+                              fallbackKey={displayName || avatarUrl}
                               referrerPolicy="no-referrer"
                             />
                           ) : (
@@ -223,7 +226,7 @@ export default function Header({
                         </span>
                       </div>
                       <Link
-                        to={APP_ROUTES.frontendDashboard}
+                        to={APP_ROUTES.frontendProfile}
                         className="nav-profile-item"
                         onClick={closeProfileMenu}
                       >

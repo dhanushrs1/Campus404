@@ -37,6 +37,7 @@ import {
 } from "../../../shared/learningApi.js";
 import { APP_ROUTES } from "../../../routes/paths.js";
 import { ASSETS } from "../../../shared/assets.js";
+import AvatarImage from "../../components/AvatarImage/AvatarImage.jsx";
 import "./WorkspacePage.css";
 
 function slugify(text) {
@@ -637,7 +638,9 @@ export default function WorkspacePage() {
         <div className="ws-header-right">
           <span className="ws-header-exercise-badge">Level {activeIndex + 1}</span>
           <div className="ws-user-profile">
-            {avatarUrl ? <img src={avatarUrl} alt="" /> : <User size={18} />}
+            {avatarUrl ? (
+              <AvatarImage src={avatarUrl} fallbackKey={data?.username || avatarUrl} alt="" />
+            ) : <User size={18} />}
           </div>
         </div>
       </header>
