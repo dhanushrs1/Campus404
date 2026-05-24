@@ -311,107 +311,129 @@
 }
 
 .lbPodium {
-  min-height: 270px;
+  min-height: 528px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.28fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 338px) minmax(0, 392px) minmax(0, 338px);
   align-items: end;
-  gap: 36px;
-  padding: 6px 34px 0;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px 0 0;
 }
 
 .lbPodiumCard {
-  min-height: 212px;
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 6px;
+  --rank-frame: #f0ad16;
+  --rank-frame-strong: #9e5600;
+  --rank-paper-soft: #fffdf3;
+  width: 100%;
+  aspect-ratio: 1024 / 1365;
+  display: block;
   position: relative;
   overflow: visible;
-  padding: 25px 18px 22px;
+  border: 0;
+  background: transparent;
   text-align: center;
 }
 
-.lbPodiumCard::before,
-.lbPodiumCard::after {
-  content: "";
+.lbPodiumCard__frame {
   position: absolute;
-  inset: 36px 44px 32px;
-  opacity: 0.24;
-  border: 0 solid currentColor;
+  top: 0;
+  bottom: 0;
+  left: -9%;
+  z-index: 0;
+  width: 118%;
+  height: 100%;
+  object-fit: fill;
   pointer-events: none;
-}
-
-.lbPodiumCard::before {
-  border-left-width: 7px;
-  border-radius: 70% 0 0 70%;
-  transform: rotate(-18deg);
-}
-
-.lbPodiumCard::after {
-  border-right-width: 7px;
-  border-radius: 0 70% 70% 0;
-  transform: rotate(18deg);
+  user-select: none;
 }
 
 .lbPodiumCard--gold {
-  min-height: 254px;
-  color: var(--lb-gold);
-  border-color: #f7c545;
-  background: linear-gradient(180deg, #fffefa 0%, #fff8dc 100%);
+  --rank-frame: #f0ad16;
+  --rank-frame-strong: #9e5600;
+  --rank-paper-soft: #fffdf3;
 }
 
 .lbPodiumCard--silver {
-  margin-bottom: 20px;
-  color: #77a7f5;
-  background: linear-gradient(180deg, #fbfdff 0%, #f2f7ff 100%);
+  --rank-frame: #b7c4d6;
+  --rank-frame-strong: #56657a;
+  --rank-paper-soft: #f8fbff;
+  margin-bottom: 26px;
 }
 
 .lbPodiumCard--bronze {
-  margin-bottom: 20px;
-  color: var(--lb-orange);
-  border-color: #ffd1b8;
-  background: linear-gradient(180deg, #fffdfb 0%, #fff1e9 100%);
+  --rank-frame: #c87535;
+  --rank-frame-strong: #7a3517;
+  --rank-paper-soft: #fff4ea;
+  margin-bottom: 26px;
+}
+
+.lbPodiumCard.is-empty {
+  opacity: 0.88;
+}
+
+.lbPodiumCard__content {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 38%;
+  bottom: 12%;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.lbPodiumCard--gold .lbPodiumCard__content {
+  top: 37%;
 }
 
 .lbPodiumCard__medal {
   position: absolute;
-  top: 22px;
-  left: 25px;
+  top: 25%;
+  left: 50%;
   z-index: 3;
-  width: 42px;
-  height: 56px;
+  width: 50px;
+  height: 66px;
   object-fit: contain;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 4px 0 rgba(86, 44, 0, 0.18));
+}
+
+.lbPodiumCard--gold .lbPodiumCard__medal {
+  top: 24%;
+  width: 58px;
+  height: 76px;
 }
 
 .lbPodiumCard__rank {
   position: absolute;
-  top: 25px;
-  left: 28px;
+  top: 25%;
+  left: 50%;
   z-index: 3;
-  color: #1f4388;
+  color: var(--rank-frame-strong);
   font-weight: 900;
+  transform: translateX(-50%);
 }
 
 .lbPodiumCard__avatar {
-  z-index: 2;
-  width: 76px;
-  height: 76px;
+  width: 82px;
+  height: 82px;
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 4px solid #3f7fff;
+  border: 4px solid var(--rank-frame);
   border-radius: 999px;
-  background: #edf5ff;
+  background: var(--rank-paper-soft);
+  box-shadow:
+    0 4px 0 rgba(84, 44, 0, 0.16),
+    0 0 0 3px rgba(255, 255, 255, 0.84);
 }
 
 .lbPodiumCard--gold .lbPodiumCard__avatar {
-  width: 86px;
-  height: 86px;
-  border-color: #f1b922;
-}
-
-.lbPodiumCard--bronze .lbPodiumCard__avatar {
-  border-color: #df7d42;
+  width: 94px;
+  height: 94px;
 }
 
 .lbPodiumCard__avatar img {
@@ -425,33 +447,40 @@
 }
 
 .lbPodiumCard strong {
-  z-index: 2;
+  max-width: 100%;
+  overflow: hidden;
   color: var(--lb-navy);
-  font-size: 1rem;
+  font-size: 1.04rem;
   font-weight: 900;
-  line-height: 1.18;
+  line-height: 1.16;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lbPodiumCard small {
-  z-index: 2;
+  max-width: 100%;
+  overflow: hidden;
   color: #51658e;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lbPodiumCard b {
-  z-index: 2;
   min-height: 34px;
   display: inline-flex;
   align-items: center;
   margin-top: 4px;
   padding: 0 13px;
-  border: 1px solid currentColor;
-  border-radius: 6px;
-  color: currentColor;
-  background: rgba(255, 255, 255, 0.82);
-  font-size: 1rem;
+  border: 2px solid var(--rank-frame);
+  border-radius: 0;
+  color: #ffffff;
+  background: var(--rank-frame-strong);
+  font-size: 0.96rem;
   font-weight: 900;
+  clip-path: var(--pixel-button-corners-tiny);
+  box-shadow: 0 3px 0 rgba(69, 35, 0, 0.15);
 }
 
 .lbYourRank {
@@ -1040,8 +1069,14 @@
   }
 
   .lbPodium {
+    min-height: 0;
     gap: 14px;
     padding: 0;
+  }
+
+  .lbPodiumCard {
+    width: min(100%, 360px);
+    justify-self: center;
   }
 
   .lbPodiumCard--silver,
@@ -1148,7 +1183,28 @@
   }
 
   .lbPodiumCard {
-    min-height: 214px;
+    width: min(100%, 330px);
+    min-height: 0;
+  }
+
+  .lbPodiumCard__medal {
+    width: 44px;
+    height: 58px;
+  }
+
+  .lbPodiumCard--gold .lbPodiumCard__medal {
+    width: 50px;
+    height: 66px;
+  }
+
+  .lbPodiumCard__avatar {
+    width: 76px;
+    height: 76px;
+  }
+
+  .lbPodiumCard--gold .lbPodiumCard__avatar {
+    width: 86px;
+    height: 86px;
   }
 
   .lbRewardCard {

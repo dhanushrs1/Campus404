@@ -81,6 +81,13 @@ function rankMedal(rank) {
   return "";
 }
 
+function rankFrame(rank) {
+  if (rank === 1) return ASSETS.icons.leaderboardRankingCardFrame;
+  if (rank === 2) return ASSETS.icons.leaderboardRankingCardFrameSilver;
+  if (rank === 3) return ASSETS.icons.leaderboardRankingCardFrameBronze;
+  return ASSETS.icons.leaderboardRankingCardFrame;
+}
+
 function trackOptionValue(track) {
   if (!track) return "";
   return track.slug || String(track.id || "");
@@ -119,37 +126,40 @@ function PodiumCard({ learner, place }) {
   const medal = rankMedal(place);
 
   return (
-    <article className={`lbPodiumCard lbPodiumCard--${rankTone(place)} ${place === 1 ? "is-champion" : ""}`}>
+    <article className={`lbPodiumCard lbPodiumCard--${rankTone(place)} ${place === 1 ? "is-champion" : ""} ${learner ? "" : "is-empty"}`}>
+      <img className="lbPodiumCard__frame" src={rankFrame(place)} alt="" draggable="false" decoding="async" />
       {medal ? (
         <img className="lbPodiumCard__medal" src={medal} alt="" draggable="false" decoding="async" />
       ) : (
         <span className="lbPodiumCard__rank">{place}</span>
       )}
-      {learner ? (
-        <>
-          <span className="lbPodiumCard__avatar">
-            <AvatarImage
-              src={learnerAvatar(learner)}
-              fallbackKey={learner?.user_id || learner?.username}
-              alt=""
-              draggable="false"
-              decoding="async"
-            />
-          </span>
-          <strong>{learnerName(learner)}</strong>
-          <small>@{learner.username || "learner"}</small>
-          <b>{formatNumber(learnerXp(learner))} XP</b>
-        </>
-      ) : (
-        <>
-          <span className="lbPodiumCard__avatar is-empty">
-            <Users size={24} />
-          </span>
-          <strong>Waiting for learner</strong>
-          <small>@campus404</small>
-          <b>0 XP</b>
-        </>
-      )}
+      <div className="lbPodiumCard__content">
+        {learner ? (
+          <>
+            <span className="lbPodiumCard__avatar">
+              <AvatarImage
+                src={learnerAvatar(learner)}
+                fallbackKey={learner?.user_id || learner?.username}
+                alt=""
+                draggable="false"
+                decoding="async"
+              />
+            </span>
+            <strong>{learnerName(learner)}</strong>
+            <small>@{learner.username || "learner"}</small>
+            <b>{formatNumber(learnerXp(learner))} XP</b>
+          </>
+        ) : (
+          <>
+            <span className="lbPodiumCard__avatar is-empty">
+              <Users size={22} />
+            </span>
+            <strong>Open spot</strong>
+            <small>Rank {place}</small>
+            <b>-- XP</b>
+          </>
+        )}
+      </div>
     </article>
   );
 }
