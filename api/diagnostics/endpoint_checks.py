@@ -32,11 +32,9 @@ SAFE_DYNAMIC_SAMPLE_KINDS = {
     "/api/admin/exercises/{exercise_id}/files": "exercise",
     "/api/admin/exercises/{exercise_id}/hints": "exercise",
     "/api/admin/exercises/{exercise_id}/test-cases": "exercise",
-    "/api/tracks/{track_identifier}/leaderboard": "published_track",
     "/api/tracks/{track_identifier}": "published_track",
     "/api/exercises/{exercise_identifier}": "exercise",
     "/api/exercises/{exercise_identifier}/workspace": "exercise",
-    "/api/leaderboard/tracks/{track_id}": "track",
     "/auth/admin/users/{user_id}/sessions": "admin_user",
 }
 AUTH_PROVIDER_RE = re.compile(r"^/auth/(google|github)/(login|callback)$")

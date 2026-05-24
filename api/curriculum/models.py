@@ -28,9 +28,22 @@ class Track(Base):
     language_id = Column(Integer, nullable=False)
     order = Column(Integer, nullable=False)
     is_published = Column(Boolean, default=False, nullable=False)
+    leaderboard_enabled = Column(Boolean, default=True, nullable=False)
+    leaderboard_default_range = Column(String(32), default="all_time", nullable=False)
+    leaderboard_page_size = Column(Integer, default=25, nullable=False)
 
     sections = relationship("Section", back_populates="track", cascade="all, delete-orphan")
     track_progress = relationship("UserTrackProgress", back_populates="track", cascade="all, delete-orphan")
+
+
+class LeaderboardSettings(Base):
+    __tablename__ = "leaderboard_settings"
+
+    id = Column(Integer, primary_key=True, autoincrement=False, default=1)
+    global_enabled = Column(Boolean, default=True, nullable=False)
+    default_range = Column(String(32), default="all_time", nullable=False)
+    page_size = Column(Integer, default=25, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
 class Section(Base):
@@ -280,6 +293,7 @@ class XpEvent(Base):
         UniqueConstraint("user_id", "source_type", "source_id", name="uq_xp_events_once_per_source"),
         Index("ix_xp_events_user_created", "user_id", "created_at"),
         Index("ix_xp_events_track_created", "track_id", "created_at"),
+        Index("ix_xp_events_created", "created_at"),
     )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)

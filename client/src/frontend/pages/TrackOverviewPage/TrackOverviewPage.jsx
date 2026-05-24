@@ -239,7 +239,7 @@ export default function TrackOverviewPage() {
   useEffect(() => {
     let disposed = false;
 
-    if (!track?.id) {
+    if (!track?.id || track.leaderboard_enabled === false) {
       setTrackLeaderboard([]);
       return () => {
         disposed = true;
@@ -261,7 +261,7 @@ export default function TrackOverviewPage() {
     return () => {
       disposed = true;
     };
-  }, [track?.id]);
+  }, [track?.id, track?.leaderboard_enabled]);
 
   const learningState = useMemo(() => {
     if (!track) {
@@ -779,20 +779,24 @@ export default function TrackOverviewPage() {
                 <span>Top 5</span>
               </div>
 
-              {leaderboardPreview.length > 0 ? (
+              {track.leaderboard_enabled === false ? (
+                <p className="trackOverviewPage__leaderboardEmpty">
+                  Rankings are currently disabled for this track.
+                </p>
+              ) : leaderboardPreview.length > 0 ? (
                 <ol className="trackOverviewPage__leaderboardList">
                   {leaderboardPreview.map((learner) => (
                     <li key={learner.user_id}>
                       <span className="trackOverviewPage__leaderboardRank">#{learner.rank}</span>
                       <span className="trackOverviewPage__leaderboardAvatar">
-                        {learner.avatar ? (
-                          <img src={learner.avatar} alt="" draggable="false" />
+                        {learner.avatar_url ? (
+                          <img src={learner.avatar_url} alt="" draggable="false" />
                         ) : (
                           getAvatarInitial(learner.username)
                         )}
                       </span>
-                      <span className="trackOverviewPage__leaderboardName">{learner.username}</span>
-                      <strong>{learner.xp} XP</strong>
+                      <span className="trackOverviewPage__leaderboardName">{learner.display_name || learner.username}</span>
+                      <strong>{learner.track_xp ?? learner.total_xp} XP</strong>
                     </li>
                   ))}
                 </ol>
@@ -802,10 +806,12 @@ export default function TrackOverviewPage() {
                 </p>
               )}
 
-              <Link to={APP_ROUTES.frontendTrackLeaderboard(trackSlug)} className="trackOverviewPage__outlineAction">
-                <Trophy size={15} />
-                Explore Leaderboard
-              </Link>
+              {track.leaderboard_enabled !== false && (
+                <Link to={APP_ROUTES.frontendLeaderboard({ scope: "track", track: track.slug || trackSlug })} className="trackOverviewPage__outlineAction">
+                  <Trophy size={15} />
+                  Explore Leaderboard
+                </Link>
+              )}
             </section>
 
             <section className="trackOverviewPage__sideCard trackOverviewPage__continueCard">

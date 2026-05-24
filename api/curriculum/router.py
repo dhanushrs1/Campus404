@@ -25,6 +25,7 @@ from auth.jwt_utils import _decode
 from auth.models import User, UserSession
 from curriculum import models, schemas
 from curriculum.services import LeaderboardService, ProgressService, RewardService, SubmissionService
+from curriculum.services.leaderboards import normalize_leaderboard_page_size, normalize_leaderboard_range, normalize_leaderboard_sort
 from media.storage_provider import (
     build_cloud_public_id,
     ensure_cloudinary_config_ready,
@@ -290,6 +291,39 @@ async def get_current_user(
             )
 
     return user
+
+
+async def get_optional_current_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    auth_header = request.headers.get("authorization") or request.headers.get("Authorization") or ""
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    return await get_current_user(request, db)
+
+
+async def _get_or_create_leaderboard_settings(db: AsyncSession) -> models.LeaderboardSettings:
+    settings_row = await db.scalar(select(models.LeaderboardSettings).where(models.LeaderboardSettings.id == 1))
+    if settings_row:
+        return settings_row
+
+    settings_row = models.LeaderboardSettings(id=1)
+    db.add(settings_row)
+    await db.flush()
+    return settings_row
+
+
+def _track_leaderboard_payload(track: models.Track) -> schemas.LeaderboardSettingsTrack:
+    return schemas.LeaderboardSettingsTrack(
+        id=int(track.id),
+        title=track.title,
+        slug=track.slug,
+        is_published=bool(track.is_published),
+        leaderboard_enabled=bool(track.leaderboard_enabled),
+        leaderboard_default_range=normalize_leaderboard_range(track.leaderboard_default_range),
+        leaderboard_page_size=normalize_leaderboard_page_size(track.leaderboard_page_size),
+    )
 
 
 @router.post("/api/analytics/visit", response_model=schemas.SiteVisitResponse)
@@ -800,6 +834,9 @@ async def create_track(
         language_id=payload.language_id,
         order=order_value,
         is_published=payload.is_published if payload.is_published is not None else False,
+        leaderboard_enabled=bool(payload.leaderboard_enabled),
+        leaderboard_default_range=normalize_leaderboard_range(payload.leaderboard_default_range),
+        leaderboard_page_size=normalize_leaderboard_page_size(payload.leaderboard_page_size),
     )
     db.add(item)
     await db.commit()
@@ -868,10 +905,79 @@ async def update_track(
         if bool(payload.is_published) != bool(item.is_published):
             _require_platform_admin(admin)
         item.is_published = payload.is_published
+    if payload.leaderboard_enabled is not None:
+        item.leaderboard_enabled = bool(payload.leaderboard_enabled)
+    if payload.leaderboard_default_range is not None:
+        item.leaderboard_default_range = normalize_leaderboard_range(payload.leaderboard_default_range)
+    if payload.leaderboard_page_size is not None:
+        item.leaderboard_page_size = normalize_leaderboard_page_size(payload.leaderboard_page_size)
 
     await db.commit()
     await db.refresh(item)
     return item
+
+
+@router.get("/api/admin/settings/leaderboards", response_model=schemas.LeaderboardSettingsResponse)
+async def get_admin_leaderboard_settings(
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_current_admin),
+) -> schemas.LeaderboardSettingsResponse:
+    settings_row = await _get_or_create_leaderboard_settings(db)
+    tracks = (
+        await db.scalars(select(models.Track).order_by(models.Track.order.asc(), models.Track.title.asc()))
+    ).all()
+    await db.commit()
+
+    return schemas.LeaderboardSettingsResponse(
+        global_enabled=bool(settings_row.global_enabled),
+        default_range=normalize_leaderboard_range(settings_row.default_range),
+        page_size=normalize_leaderboard_page_size(settings_row.page_size),
+        tracks=[_track_leaderboard_payload(track) for track in tracks],
+    )
+
+
+@router.patch("/api/admin/settings/leaderboards", response_model=schemas.LeaderboardSettingsResponse)
+async def update_admin_leaderboard_settings(
+    payload: schemas.LeaderboardGlobalSettingsUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> schemas.LeaderboardSettingsResponse:
+    _require_platform_admin(admin)
+    settings_row = await _get_or_create_leaderboard_settings(db)
+
+    if payload.global_enabled is not None:
+        settings_row.global_enabled = bool(payload.global_enabled)
+    if payload.default_range is not None:
+        settings_row.default_range = normalize_leaderboard_range(payload.default_range)
+    if payload.page_size is not None:
+        settings_row.page_size = normalize_leaderboard_page_size(payload.page_size)
+
+    await db.commit()
+    return await get_admin_leaderboard_settings(db=db, _admin=admin)
+
+
+@router.patch("/api/admin/settings/leaderboards/tracks/{track_id}", response_model=schemas.LeaderboardSettingsTrack)
+async def update_admin_track_leaderboard_settings(
+    track_id: int,
+    payload: schemas.LeaderboardTrackSettingsUpdate,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+) -> schemas.LeaderboardSettingsTrack:
+    _require_platform_admin(admin)
+    track = await db.scalar(select(models.Track).where(models.Track.id == track_id))
+    if not track:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
+
+    if payload.leaderboard_enabled is not None:
+        track.leaderboard_enabled = bool(payload.leaderboard_enabled)
+    if payload.leaderboard_default_range is not None:
+        track.leaderboard_default_range = normalize_leaderboard_range(payload.leaderboard_default_range)
+    if payload.leaderboard_page_size is not None:
+        track.leaderboard_page_size = normalize_leaderboard_page_size(payload.leaderboard_page_size)
+
+    await db.commit()
+    await db.refresh(track)
+    return _track_leaderboard_payload(track)
 
 
 @router.delete(
@@ -1523,86 +1629,6 @@ async def list_tracks_student(
                 exercise.task_ids = [t.id for t in exercise.tasks] if exercise.tasks else []
 
     return tracks
-
-@router.get("/api/tracks/{track_identifier}/leaderboard", response_model=list[schemas.TrackLeaderboardEntry])
-async def get_track_leaderboard(
-    track_identifier: str,
-    limit: int = 5,
-    db: AsyncSession = Depends(get_db),
-) -> list[dict[str, Any]]:
-    statement = select(models.Track.id).where(models.Track.is_published == True)
-    if track_identifier.isdigit():
-        statement = statement.where(models.Track.id == int(track_identifier))
-    else:
-        statement = statement.where(models.Track.slug == track_identifier)
-
-    track_id = await db.scalar(statement)
-    if not track_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
-
-    safe_limit = max(1, min(int(limit or 5), 20))
-    task_total_rows = await db.execute(
-        select(models.Exercise.id, func.count(models.Task.id))
-        .join(models.Task, models.Task.exercise_id == models.Exercise.id)
-        .join(models.Section, models.Section.id == models.Exercise.section_id)
-        .where(models.Section.track_id == track_id)
-        .group_by(models.Exercise.id)
-    )
-    task_totals = {
-        int(exercise_id): int(total or 0)
-        for exercise_id, total in task_total_rows.all()
-    }
-    if not task_totals:
-        return []
-
-    progress_rows = await db.execute(
-        select(
-            User.id,
-            User.username,
-            User.avatar,
-            models.Exercise.id,
-            func.count(func.distinct(models.UserTaskProgress.task_id)),
-        )
-        .join(models.UserTaskProgress, models.UserTaskProgress.user_id == User.id)
-        .join(models.Task, models.Task.id == models.UserTaskProgress.task_id)
-        .join(models.Exercise, models.Exercise.id == models.Task.exercise_id)
-        .join(models.Section, models.Section.id == models.Exercise.section_id)
-        .where(models.Section.track_id == track_id)
-        .where(User.is_active == True)
-        .group_by(User.id, User.username, User.avatar, models.Exercise.id)
-    )
-
-    learners: dict[int, dict[str, Any]] = {}
-    for user_id, username, avatar, exercise_id, completed_tasks in progress_rows.all():
-        total_tasks = task_totals.get(int(exercise_id), 0)
-        safe_completed = min(int(completed_tasks or 0), total_tasks or int(completed_tasks or 0))
-        entry = learners.setdefault(
-            int(user_id),
-            {
-                "user_id": int(user_id),
-                "username": username,
-                "avatar": avatar,
-                "completed_tasks": 0,
-                "completed_exercises": 0,
-            },
-        )
-        entry["completed_tasks"] += safe_completed
-        if total_tasks > 0 and safe_completed >= total_tasks:
-            entry["completed_exercises"] += 1
-
-    ranked = sorted(
-        learners.values(),
-        key=lambda item: (-int(item["completed_tasks"]), -int(item["completed_exercises"]), item["username"].lower()),
-    )[:safe_limit]
-
-    return [
-        {
-            **entry,
-            "rank": index + 1,
-            "xp": int(entry["completed_exercises"]) * 20,
-        }
-        for index, entry in enumerate(ranked)
-    ]
 
 @router.get("/api/tracks/{track_identifier}/tree", response_model=schemas.TrackDetailTree)
 async def get_track_detail_tree(
@@ -2317,39 +2343,74 @@ async def get_track_progress(
     return snapshot
 
 
-@router.get("/api/leaderboard/global", response_model=schemas.LeaderboardResponse)
-async def get_global_leaderboard(
-    time_range: str = "all_time",
+@router.get("/api/leaderboards", response_model=schemas.LeaderboardResponse)
+async def get_leaderboard(
+    scope: str = "global",
+    track: str | None = None,
+    time_range: str | None = None,
+    search: str | None = None,
+    sort: str = "xp_desc",
     page: int = 1,
-    page_size: int = 20,
+    page_size: int | None = None,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_optional_current_user),
 ) -> schemas.LeaderboardResponse:
+    settings_row = await _get_or_create_leaderboard_settings(db)
+    normalized_scope = str(scope or "global").strip().lower()
+    if normalized_scope not in {"global", "track"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported leaderboard scope.")
+
+    if normalized_scope == "global":
+        default_range = normalize_leaderboard_range(settings_row.default_range)
+        resolved_page_size = normalize_leaderboard_page_size(page_size, settings_row.page_size)
+        return await LeaderboardService.leaderboard(
+            db,
+            scope="global",
+            time_range=normalize_leaderboard_range(time_range, default_range),
+            search=search,
+            sort=normalize_leaderboard_sort(sort),
+            page=page,
+            page_size=resolved_page_size,
+            current_user_id=int(user.id) if user else None,
+            enabled=bool(settings_row.global_enabled),
+            disabled_reason="Global leaderboard is currently disabled.",
+        )
+
+    track_identifier = str(track or "").strip()
+    if not track_identifier:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Track is required for track leaderboard.")
+
+    statement = select(models.Track).where(models.Track.is_published == True)
+    if track_identifier.isdigit():
+        statement = statement.where(models.Track.id == int(track_identifier))
+    else:
+        statement = statement.where(models.Track.slug == track_identifier)
+
+    track_row = await db.scalar(statement)
+    if not track_row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Track not found")
+
+    track_meta = {
+        "id": int(track_row.id),
+        "title": track_row.title,
+        "slug": track_row.slug,
+        "leaderboard_enabled": bool(track_row.leaderboard_enabled),
+    }
+    default_range = normalize_leaderboard_range(track_row.leaderboard_default_range, settings_row.default_range)
+    resolved_page_size = normalize_leaderboard_page_size(page_size, track_row.leaderboard_page_size)
     return await LeaderboardService.leaderboard(
         db,
-        time_range=time_range,
+        scope="track",
+        track_id=int(track_row.id),
+        track_meta=track_meta,
+        time_range=normalize_leaderboard_range(time_range, default_range),
+        search=search,
+        sort=normalize_leaderboard_sort(sort),
         page=page,
-        page_size=page_size,
-        current_user_id=int(user.id),
-    )
-
-
-@router.get("/api/leaderboard/tracks/{track_id}", response_model=schemas.LeaderboardResponse)
-async def get_track_xp_leaderboard(
-    track_id: int,
-    time_range: str = "all_time",
-    page: int = 1,
-    page_size: int = 20,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> schemas.LeaderboardResponse:
-    return await LeaderboardService.leaderboard(
-        db,
-        track_id=track_id,
-        time_range=time_range,
-        page=page,
-        page_size=page_size,
-        current_user_id=int(user.id),
+        page_size=resolved_page_size,
+        current_user_id=int(user.id) if user else None,
+        enabled=bool(track_row.leaderboard_enabled),
+        disabled_reason=f"{track_row.title} leaderboard is currently disabled.",
     )
 
 

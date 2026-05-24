@@ -57,7 +57,9 @@ export function getTrackTree() {
 }
 
 export function getTrackLeaderboard(trackIdentifier, limit = 5) {
-  return request(`/api/tracks/${trackIdentifier}/leaderboard?limit=${encodeURIComponent(limit)}`);
+  const pageSize = Number(limit) > 25 ? 50 : 25;
+  return getLeaderboard({ scope: "track", track: trackIdentifier, pageSize })
+    .then((payload) => (payload.entries || []).slice(0, Number(limit) || 5));
 }
 
 export function getTrackDetailTree(trackIdentifier) {
@@ -136,12 +138,51 @@ export function getTrackProgress(trackId) {
   return request(`/api/tracks/${trackId}/progress`);
 }
 
-export function getGlobalLeaderboard({ timeRange = "all_time", page = 1, pageSize = 20 } = {}) {
-  return request(`/api/leaderboard/global?time_range=${encodeURIComponent(timeRange)}&page=${encodeURIComponent(page)}&page_size=${encodeURIComponent(pageSize)}`);
+export function getGlobalLeaderboard({ timeRange = "all_time", page = 1, pageSize = 25 } = {}) {
+  return getLeaderboard({ scope: "global", timeRange, page, pageSize });
 }
 
-export function getTrackXpLeaderboard(trackId, { timeRange = "all_time", page = 1, pageSize = 20 } = {}) {
-  return request(`/api/leaderboard/tracks/${trackId}?time_range=${encodeURIComponent(timeRange)}&page=${encodeURIComponent(page)}&page_size=${encodeURIComponent(pageSize)}`);
+export function getTrackXpLeaderboard(trackId, { timeRange = "all_time", page = 1, pageSize = 25 } = {}) {
+  return getLeaderboard({ scope: "track", track: trackId, timeRange, page, pageSize });
+}
+
+export function getLeaderboard({
+  scope = "global",
+  track = "",
+  timeRange = "",
+  search = "",
+  sort = "",
+  page = 1,
+  pageSize = null,
+} = {}) {
+  const params = new URLSearchParams({
+    scope,
+    page: String(page),
+  });
+  if (track) params.set("track", track);
+  if (timeRange) params.set("time_range", timeRange);
+  if (search) params.set("search", search);
+  if (sort) params.set("sort", sort);
+  if (pageSize) params.set("page_size", String(pageSize));
+  return request(`/api/leaderboards?${params.toString()}`);
+}
+
+export function getAdminLeaderboardSettings() {
+  return request("/api/admin/settings/leaderboards");
+}
+
+export function updateAdminLeaderboardSettings(payload) {
+  return request("/api/admin/settings/leaderboards", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAdminTrackLeaderboardSettings(trackId, payload) {
+  return request(`/api/admin/settings/leaderboards/tracks/${trackId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function getMyProgress() {

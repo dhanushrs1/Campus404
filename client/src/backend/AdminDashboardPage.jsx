@@ -14,7 +14,7 @@ import { authenticatedFetch, clearAuthSession, readAuthSession } from "../shared
 import { fetchAdminContactMessages } from "../shared/contactApi.js";
 import AdminSidebar from "./sidebar/AdminSidebar.jsx";
 import AdminTopBar from "./topbar/AdminTopBar.jsx";
-import LearningOpsPage from "./dashboard/LearningOpsPage.jsx";
+import LearningOpsPage from "./dashboard/learning-ops/LearningOpsPage.jsx";
 import AnalyticsPage from "./dashboard/analytics/AnalyticsPage.jsx";
 import OverviewPage from "./dashboard/overview/OverviewPage.jsx";
 import ErrorHandlingPage from "./diagnostics/ErrorHandlingPage.jsx";
@@ -296,7 +296,6 @@ export default function AdminDashboardPage() {
           {activeKey === "media" && <MediaLibraryPage />}
           {activeKey === "rewards" && <BadgeLibraryPage />}
           {activeKey === "submissions" && <LearningOpsPage variant="submissions" onSessionExpired={handleSessionExpired} />}
-          {activeKey === "leaderboards" && <LearningOpsPage variant="leaderboards" onSessionExpired={handleSessionExpired} />}
           {activeKey === "health" && <LearningOpsPage variant="health" onSessionExpired={handleSessionExpired} />}
           {activeKey === "errors" && (
             <ErrorHandlingPage
@@ -317,7 +316,7 @@ export default function AdminDashboardPage() {
               onProfileUpdated={handleProfileUpdated}
             />
           )}
-          {activeKey === "settings" && <AdminSettingsPage />}
+          {activeKey === "settings" && <AdminSettingsPage role={role} />}
         </div>
       </div>
     </main>

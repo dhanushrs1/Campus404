@@ -427,6 +427,9 @@ class TrackBase(BaseModel):
     featured_image_url: Optional[str] = None
     language_id: int
     is_published: Optional[bool] = False
+    leaderboard_enabled: bool = True
+    leaderboard_default_range: str = "all_time"
+    leaderboard_page_size: int = 25
 
 
 class TrackCreate(TrackBase):
@@ -441,6 +444,9 @@ class TrackUpdate(BaseModel):
     language_id: Optional[int] = None
     order: Optional[int] = None
     is_published: Optional[bool] = None
+    leaderboard_enabled: Optional[bool] = None
+    leaderboard_default_range: Optional[str] = None
+    leaderboard_page_size: Optional[int] = None
 
 
 class TrackInDB(TrackBase):
@@ -593,9 +599,45 @@ class LeaderboardResponse(BaseModel):
     entries: List[LeaderboardEntry] = Field(default_factory=list)
     current_user_rank: Optional[LeaderboardEntry] = None
     page: int = 1
-    page_size: int = 20
+    page_size: int = 25
     total: int = 0
+    xp_total: int = 0
     time_range: str = "all_time"
+    sort: str = "xp_desc"
+    has_more: bool = False
+    scope: str = "global"
+    enabled: bool = True
+    disabled_reason: Optional[str] = None
+    track: Optional[Dict[str, Any]] = None
+
+
+class LeaderboardSettingsTrack(BaseModel):
+    id: int
+    title: str
+    slug: Optional[str] = None
+    is_published: bool = False
+    leaderboard_enabled: bool = True
+    leaderboard_default_range: str = "all_time"
+    leaderboard_page_size: int = 25
+
+
+class LeaderboardSettingsResponse(BaseModel):
+    global_enabled: bool = True
+    default_range: str = "all_time"
+    page_size: int = 25
+    tracks: List[LeaderboardSettingsTrack] = Field(default_factory=list)
+
+
+class LeaderboardGlobalSettingsUpdate(BaseModel):
+    global_enabled: Optional[bool] = None
+    default_range: Optional[str] = None
+    page_size: Optional[int] = None
+
+
+class LeaderboardTrackSettingsUpdate(BaseModel):
+    leaderboard_enabled: Optional[bool] = None
+    leaderboard_default_range: Optional[str] = None
+    leaderboard_page_size: Optional[int] = None
 
 
 class TrackStudent(TrackInDB):

@@ -5,7 +5,8 @@ import HomePage from "./frontend/pages/HomePage/HomePage.jsx";
 import WorkspacePage from "./frontend/pages/WorkspacePage/WorkspacePage.jsx";
 import TracksPage from "./frontend/pages/TracksPage/TracksPage.jsx";
 import TrackOverviewPage from "./frontend/pages/TrackOverviewPage/TrackOverviewPage.jsx";
-import TrackLeaderboardPage from "./frontend/pages/TrackLeaderboardPage/TrackLeaderboardPage.jsx";
+import LeaderboardPage from "./frontend/pages/LeaderboardPage/LeaderboardPage.jsx";
+import RankingRewardsPage from "./frontend/pages/RankingRewardsPage/RankingRewardsPage.jsx";
 import ContactPage from "./frontend/pages/ContactPage/ContactPage.jsx";
 import LegalCenterPage from "./frontend/pages/LegalPage/LegalCenterPage.jsx";
 import PrivacyPolicyPage from "./frontend/pages/LegalPage/PrivacyPolicyPage.jsx";
@@ -93,12 +94,24 @@ export default function App() {
             )}
           />
           <Route
+            path={APP_ROUTES.frontendProfile}
+            element={(
+              <RequireAuth>
+                <FrontendDashboardPage />
+              </RequireAuth>
+            )}
+          />
+          <Route
             path={APP_ROUTES.frontendTracks}
             element={<TracksPage />}
           />
           <Route
-            path={APP_ROUTES.frontendTrackLeaderboardPattern}
-            element={<TrackLeaderboardPage />}
+            path={APP_ROUTES.frontendLeaderboards}
+            element={<LeaderboardPage />}
+          />
+          <Route
+            path={APP_ROUTES.frontendRankingRewards}
+            element={<RankingRewardsPage />}
           />
           <Route
             path={APP_ROUTES.frontendTrackOverviewPattern}

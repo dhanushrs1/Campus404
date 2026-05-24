@@ -12,10 +12,10 @@ import {
   Search,
   Trophy,
 } from "lucide-react";
-import { apiUrl } from "../../shared/api.js";
-import { authenticatedFetch } from "../../shared/authSession.js";
-import { IconBubble } from "../shared/AdminWidgets.jsx";
-import { formatRelativeTime, prettyStatus, statusTone, toNumber } from "./adminUtils.js";
+import { apiUrl } from "../../../shared/api.js";
+import { authenticatedFetch } from "../../../shared/authSession.js";
+import { IconBubble } from "../../shared/AdminWidgets.jsx";
+import { formatRelativeTime, prettyStatus, statusTone, toNumber } from "../adminUtils.js";
 import "./LearningOpsPage.css";
 
 const ATTEMPT_FILTERS = [
@@ -234,9 +234,7 @@ export default function LearningOpsPage({ variant = "health", onSessionExpired }
     setReloadVersion((current) => current + 1);
   };
 
-  const title = variant === "leaderboards"
-    ? "Leaderboard Operations"
-    : variant === "submissions"
+  const title = variant === "submissions"
       ? "Submission Monitor"
       : "System Health";
 
@@ -456,7 +454,7 @@ export default function LearningOpsPage({ variant = "health", onSessionExpired }
   return (
     <div className="ap-page ap-ops-page">
       <section className="ap-ops-hero">
-        <IconBubble icon={variant === "leaderboards" ? Trophy : variant === "submissions" ? ClipboardCheck : Activity} tone="blue" />
+        <IconBubble icon={variant === "submissions" ? ClipboardCheck : Activity} tone="blue" />
         <div>
           <p>Learning engine</p>
           <h2>{title}</h2>

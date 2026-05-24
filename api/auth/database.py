@@ -61,6 +61,9 @@ async def init_db() -> None:
             # Tracks table additions
             "ALTER TABLE tracks ADD COLUMN featured_image_url VARCHAR(1024) NULL",
             "ALTER TABLE tracks ADD COLUMN is_published BOOLEAN NOT NULL DEFAULT 0",
+            "ALTER TABLE tracks ADD COLUMN leaderboard_enabled BOOLEAN NOT NULL DEFAULT 1",
+            "ALTER TABLE tracks ADD COLUMN leaderboard_default_range VARCHAR(32) NOT NULL DEFAULT 'all_time'",
+            "ALTER TABLE tracks ADD COLUMN leaderboard_page_size INTEGER NOT NULL DEFAULT 25",
             # Media files table additions
             "ALTER TABLE media_files ADD COLUMN storage_provider VARCHAR(32) NOT NULL DEFAULT 'local'",
             "ALTER TABLE media_files ADD COLUMN cloud_public_id TEXT NULL",
@@ -76,6 +79,17 @@ async def init_db() -> None:
             except Exception:
                 # Column already exists or table doesn't exist yet — either is safe.
                 pass
+
+        try:
+            await conn.execute(
+                text(
+                    "INSERT INTO leaderboard_settings (id, global_enabled, default_range, page_size) "
+                    "SELECT 1, 1, 'all_time', 25 "
+                    "WHERE NOT EXISTS (SELECT 1 FROM leaderboard_settings WHERE id = 1)"
+                )
+            )
+        except Exception:
+            pass
 
         # ── media_files table ──────────────────────────────────────────────
         # create_all above already creates the media_files table if it doesn't

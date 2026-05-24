@@ -2,7 +2,6 @@ import {
   Activity,
   AlertTriangle,
   Award,
-  BarChart3,
   ClipboardCheck,
   FolderTree,
   Home,
@@ -28,7 +27,6 @@ export const NAV_SECTIONS = [
     items: [
       { key: "users", label: "Learners", icon: Users },
       { key: "submissions", label: "Submissions", icon: ClipboardCheck },
-      { key: "leaderboards", label: "Leaderboards", icon: BarChart3 },
       { key: "rewards", label: "Rewards & Badges", icon: Award },
     ],
   },

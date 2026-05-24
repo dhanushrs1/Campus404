@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   BookOpen,
   FileText,
@@ -8,6 +8,7 @@ import {
   Mail,
   Menu,
   Shield,
+  Trophy,
   X,
 } from "lucide-react";
 import { APP_ROUTES } from "../../../routes/paths.js";
@@ -28,6 +29,13 @@ const NAV_MENU_ITEMS = [
     path: APP_ROUTES.frontendTracks,
     icon: BookOpen,
     description: "Explore practical coding tracks and learning paths.",
+  },
+  {
+    key: "leaderboards",
+    label: "Leaderboards",
+    path: APP_ROUTES.frontendLeaderboard({ scope: "global" }),
+    icon: Trophy,
+    description: "See global and track XP rankings.",
   },
   {
     key: "legal",
@@ -56,11 +64,13 @@ export default function Header({
   onLogout,
   onAdminPanelEntry,
 }) {
+  const location = useLocation();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const profileMenuRef = useRef(null);
   const isElevatedUser = userRole === "ADMIN" || userRole === "EDITOR";
+  const currentPath = location.pathname;
 
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
@@ -118,11 +128,17 @@ export default function Header({
           </Link>
 
           <nav className="nav-menu" aria-label="Primary navigation">
-            {DESKTOP_NAV_ITEMS.map((menuItem) => (
-              <Link key={menuItem.key} to={menuItem.path} className="nav-menu-link">
-                {menuItem.label}
-              </Link>
-            ))}
+            {DESKTOP_NAV_ITEMS.map((menuItem) => {
+              const isActive = (
+                (menuItem.key === "leaderboards" && currentPath === APP_ROUTES.frontendLeaderboards)
+                || currentPath === menuItem.path
+              );
+              return (
+                <Link key={menuItem.key} to={menuItem.path} className={`nav-menu-link ${isActive ? "is-active" : ""}`}>
+                  {menuItem.label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="nav-actions">

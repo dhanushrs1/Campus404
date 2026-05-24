@@ -24,7 +24,8 @@ const FOOTER_COLUMNS = [
   {
     title: "Community",
     links: [
-      { label: "Leaderboard", to: APP_ROUTES.frontendDashboard },
+      { label: "Leaderboard", to: APP_ROUTES.frontendLeaderboard({ scope: "global" }) },
+      { label: "Ranking Rewards", to: APP_ROUTES.frontendRankingRewards },
       { label: "Discussions", to: APP_ROUTES.home },
       { label: "Events", to: APP_ROUTES.home },
       { label: "Blog", to: APP_ROUTES.home },

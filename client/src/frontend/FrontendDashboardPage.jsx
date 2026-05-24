@@ -19,7 +19,7 @@ export default function FrontendDashboardPage() {
         const [progressPayload, eventsPayload, leaderboardPayload] = await Promise.all([
           getMyProgress(),
           getMyXpEvents(8),
-          getGlobalLeaderboard({ pageSize: 10 }).catch(() => null),
+          getGlobalLeaderboard({ pageSize: 25 }).catch(() => null),
         ]);
         if (disposed) return;
         setProgress(progressPayload);

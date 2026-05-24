@@ -10,6 +10,7 @@ from fastapi import HTTPException
 import curriculum.router as curriculum_router
 from auth.models import User
 from curriculum import models, schemas
+from curriculum.services.leaderboards import normalize_leaderboard_page_size, normalize_leaderboard_range, normalize_leaderboard_sort
 
 
 def test_workspace_run_request_accepts_multi_file_payload():
@@ -39,6 +40,44 @@ def test_leaderboard_response_supports_current_user_rank():
 
     assert response.current_user_rank.username == "campuslearner"
     assert response.entries[0].total_xp == 120
+
+
+def test_leaderboard_response_supports_scope_and_disabled_state():
+    response = schemas.LeaderboardResponse(
+        enabled=False,
+        disabled_reason="Global leaderboard is currently disabled.",
+        scope="global",
+        has_more=False,
+        sort="xp_desc",
+        xp_total=120,
+    )
+
+    assert response.enabled is False
+    assert response.disabled_reason == "Global leaderboard is currently disabled."
+    assert response.page_size == 25
+    assert response.xp_total == 120
+    assert response.sort == "xp_desc"
+
+
+def test_track_update_accepts_leaderboard_settings():
+    payload = schemas.TrackUpdate(
+        leaderboard_enabled=False,
+        leaderboard_default_range="weekly",
+        leaderboard_page_size=50,
+    )
+
+    assert payload.leaderboard_enabled is False
+    assert payload.leaderboard_default_range == "weekly"
+    assert payload.leaderboard_page_size == 50
+
+
+def test_leaderboard_setting_normalizers_keep_supported_values():
+    assert normalize_leaderboard_range("daily") == "daily"
+    assert normalize_leaderboard_range("bad", "weekly") == "weekly"
+    assert normalize_leaderboard_page_size(50) == 50
+    assert normalize_leaderboard_page_size(10) == 25
+    assert normalize_leaderboard_sort("xp_asc") == "xp_asc"
+    assert normalize_leaderboard_sort("bad") == "xp_desc"
 
 
 def test_admin_dashboard_stats_supports_visit_analytics_fields():
