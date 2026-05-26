@@ -1,4 +1,4 @@
-<svg width="1024" height="1365" viewBox="0 0 1024 1365" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+<svg width="776" height="1136" viewBox="128 88 776 1136" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
   <defs>
     <filter id="shadow" x="120" y="120" width="800" height="1110" filterUnits="userSpaceOnUse">
       <feDropShadow dx="8" dy="10" stdDeviation="2.5" flood-color="#4A210E" flood-opacity="0.2"/>

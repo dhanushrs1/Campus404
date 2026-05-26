@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
@@ -88,6 +88,9 @@ function rankFrame(rank) {
   return ASSETS.icons.leaderboardRankingCardFrame;
 }
 
+const PODIUM_PLACES = [2, 1, 3];
+const PODIUM_NAV_PLACES = [1, 2, 3];
+
 function trackOptionValue(track) {
   if (!track) return "";
   return track.slug || String(track.id || "");
@@ -126,7 +129,7 @@ function PodiumCard({ learner, place }) {
   const medal = rankMedal(place);
 
   return (
-    <article className={`lbPodiumCard lbPodiumCard--${rankTone(place)} ${place === 1 ? "is-champion" : ""} ${learner ? "" : "is-empty"}`}>
+    <article className={`lbPodiumCard lbPodiumCard--${rankTone(place)} ${place === 1 ? "is-champion" : ""} ${learner ? "" : "is-empty"}`} data-rank={place}>
       <img className="lbPodiumCard__frame" src={rankFrame(place)} alt="" draggable="false" decoding="async" />
       {medal ? (
         <img className="lbPodiumCard__medal" src={medal} alt="" draggable="false" decoding="async" />
@@ -173,6 +176,8 @@ function TableRank({ rank }) {
 }
 
 export default function LeaderboardPage() {
+  const podiumRailRef = useRef(null);
+  const podiumCardRefs = useRef({});
   const [searchParams, setSearchParams] = useSearchParams();
   const scope = searchParams.get("scope") === "track" ? "track" : "global";
   const trackQuery = searchParams.get("track") || "";
@@ -186,6 +191,7 @@ export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activePodiumRank, setActivePodiumRank] = useState(1);
   const needsTrackSelection = scope === "track" && !trackQuery;
 
   function updateQuery(next) {
@@ -294,7 +300,7 @@ export default function LeaderboardPage() {
   const totalPages = Math.max(1, Math.ceil(totalLearners / pageSize));
   const pageNumbers = visiblePageNumbers(page, totalPages);
   const topByRank = [1, 2, 3].map((rank) => entries.find((learner) => Number(learner.rank) === rank) || entries[rank - 1]);
-  const podiumLearners = [topByRank[1], topByRank[0], topByRank[2]];
+  const podiumLearners = PODIUM_PLACES.map((rank) => topByRank[rank - 1]);
   const currentRank = leaderboard?.current_user_rank;
   const spotlight = entries.find((learner) => Number(learner.rank) > 3) || entries[0];
   const title = scope === "track"
@@ -316,6 +322,39 @@ export default function LeaderboardPage() {
   const hasNextPage = Boolean(leaderboard?.has_more);
   const showPageNumbers = totalPages > 1;
   const showPagerControls = hasPreviousPage || hasNextPage || showPageNumbers;
+
+  const scrollToPodiumRank = (rank) => {
+    setActivePodiumRank(rank);
+    podiumCardRefs.current[rank]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  };
+
+  const handlePodiumScroll = () => {
+    const rail = podiumRailRef.current;
+    if (!rail) return;
+
+    const railBounds = rail.getBoundingClientRect();
+    const railCenter = railBounds.left + (railBounds.width / 2);
+    let closestRank = activePodiumRank;
+    let closestDistance = Infinity;
+
+    PODIUM_NAV_PLACES.forEach((rank) => {
+      const card = podiumCardRefs.current[rank];
+      if (!card) return;
+      const cardBounds = card.getBoundingClientRect();
+      const cardCenter = cardBounds.left + (cardBounds.width / 2);
+      const distance = Math.abs(cardCenter - railCenter);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestRank = rank;
+      }
+    });
+
+    setActivePodiumRank((currentRank) => (currentRank === closestRank ? currentRank : closestRank));
+  };
 
   const handleScopeClick = (nextScope) => {
     if (nextScope === "global") {
@@ -427,11 +466,48 @@ export default function LeaderboardPage() {
           )}
         </section>
 
-        <section className="lbPodium" aria-label="Top ranked learners">
-          {podiumLearners.map((learner, index) => {
-            const place = [2, 1, 3][index];
-            return <PodiumCard learner={learner} place={place} key={place} />;
-          })}
+        <section className="lbPodiumShowcase" aria-label="Top ranked learners">
+          <div className="lbPodiumNav" role="group" aria-label="Choose a top rank">
+            {PODIUM_NAV_PLACES.map((place) => {
+              const medal = rankMedal(place);
+              return (
+                <button
+                  className={`lbPodiumNav__button lbPodiumNav__button--${rankTone(place)} ${activePodiumRank === place ? "is-active" : ""}`}
+                  type="button"
+                  onClick={() => scrollToPodiumRank(place)}
+                  aria-label={`Show rank ${place} learner`}
+                  aria-pressed={activePodiumRank === place}
+                  key={place}
+                >
+                  <img src={medal} alt="" draggable="false" decoding="async" />
+                  <span>{place}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="lbPodium" role="list" aria-label="Top three rankers" ref={podiumRailRef} onScroll={handlePodiumScroll}>
+            {podiumLearners.map((learner, index) => {
+              const place = PODIUM_PLACES[index];
+              return (
+                <div
+                  className="lbPodium__item"
+                  data-rank={place}
+                  role="listitem"
+                  ref={(node) => {
+                    if (node) {
+                      podiumCardRefs.current[place] = node;
+                    } else {
+                      delete podiumCardRefs.current[place];
+                    }
+                  }}
+                  key={place}
+                >
+                  <PodiumCard learner={learner} place={place} />
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <section className="lbYourRank">
