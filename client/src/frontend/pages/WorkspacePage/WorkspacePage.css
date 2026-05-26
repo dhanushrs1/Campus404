@@ -526,10 +526,10 @@
   margin: 0 0 22px;
   color: var(--text-primary);
   font-family: var(--font-heading);
-  font-size: clamp(1.5rem, 1.25rem + 1vw, 2.05rem);
+  font-size: 1.9rem;
   font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .ws-theory-content {
@@ -544,7 +544,7 @@
   color: var(--text-primary);
   font-family: var(--font-heading);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .ws-theory-content h1 {
@@ -1396,14 +1396,33 @@
 
 .ws-engine-main {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) minmax(160px, 28%);
+  grid-template-rows: auto auto minmax(0, 1fr) minmax(160px, 28%);
   min-width: 0;
   min-height: 0;
   gap: 10px;
 }
 
 .ws-engine-main--frontend_preview {
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.ws-mode-banner {
+  grid-row: 1;
+}
+
+.ws-completion-card {
+  grid-row: 2;
+}
+
+.ws-mode-center,
+.ws-preview-layout,
+.ws-theory-mode,
+.ws-quiz-mode {
+  grid-row: 3;
+}
+
+.ws-terminal--engine {
+  grid-row: 4;
 }
 
 .ws-mode-banner {
@@ -1426,6 +1445,81 @@
   border: 1px solid #fecaca;
   background: #fef2f2;
   color: #b91c1c;
+}
+
+.ws-completion-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(255, 255, 255, 0) 54%),
+    #ffffff;
+  box-shadow: 0 12px 26px rgba(22, 163, 74, 0.08);
+}
+
+.ws-completion-card__badge {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #dcfce7;
+  color: #047857;
+}
+
+.ws-completion-card__copy {
+  min-width: 0;
+}
+
+.ws-completion-card__copy span {
+  color: #047857;
+  font-size: 0.76rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.ws-completion-card__copy h2 {
+  margin: 2px 0;
+  color: #0f2747;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.ws-completion-card__copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-completion-card__stats,
+.ws-completion-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-completion-card__stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #123a62;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .ws-mode-center,
@@ -1734,6 +1828,14 @@
   .ws-instruction-panel {
     display: none;
   }
+
+  .ws-completion-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .ws-completion-card__stats {
+    display: none;
+  }
 }
 
 @media (max-width: 940px) and (orientation: landscape) {
@@ -1744,5 +1846,14 @@
 
   .ws-preview-layout {
     grid-template-columns: 1fr;
+  }
+
+  .ws-completion-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .ws-completion-card__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
 }

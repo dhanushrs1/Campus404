@@ -134,6 +134,47 @@ function StatusBanner({ result, submitResult }) {
   );
 }
 
+function CompletionSummary({ data, submitResult, nextExercise, onNext }) {
+  const isCompleted = Boolean(submitResult || data?.status === "completed");
+  if (!isCompleted) return null;
+
+  const xpAwarded = Number(submitResult?.xp_awarded || 0);
+  const streak = Number(data?.current_streak || 0);
+
+  return (
+    <section className="ws-completion-card" aria-label="Exercise completion summary">
+      <div className="ws-completion-card__badge">
+        <Trophy size={22} />
+      </div>
+      <div className="ws-completion-card__copy">
+        <span>Level complete</span>
+        <h2>{xpAwarded > 0 ? `+${xpAwarded} XP earned` : "Progress saved"}</h2>
+        <p>
+          {nextExercise
+            ? `Next up: ${nextExercise.title}`
+            : "You reached the end of this section. Check your profile or rewards next."}
+        </p>
+      </div>
+      <div className="ws-completion-card__stats">
+        <span><Sparkles size={15} /> {data?.user_xp || 0} total XP</span>
+        <span>Streak {streak}</span>
+      </div>
+      <div className="ws-completion-card__actions">
+        {nextExercise ? (
+          <button type="button" className="btn btn-brand" onClick={onNext}>
+            Next Level <ChevronRight size={15} />
+          </button>
+        ) : (
+          <Link className="btn btn-brand" to={APP_ROUTES.frontendTracks}>
+            Tracks <ChevronRight size={15} />
+          </Link>
+        )}
+        <Link className="btn btn-ghost" to={APP_ROUTES.frontendRankingRewards}>Rewards</Link>
+      </div>
+    </section>
+  );
+}
+
 function WorkspaceSidebar({ sections, activeExerciseId, viewAll, setViewAll, search, setSearch, goToExercise }) {
   const query = search.trim().toLowerCase();
 
@@ -584,6 +625,9 @@ export default function WorkspacePage() {
       const result = await finishQuiz(data.id, { attempt_id: quizAttemptId, answers: quizAnswers });
       setSubmitResult(result);
       setRunResult({ passed: result.passed, verdict: result.passed ? "Accepted" : "Try Again", passed_cases: result.score, total_cases: result.total_questions });
+      if (result.passed) {
+        setData((current) => current ? { ...current, status: "completed" } : current);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -658,6 +702,12 @@ export default function WorkspacePage() {
 
         <main className={`ws-engine-main ws-engine-main--${mode}`}>
           <StatusBanner result={runResult} submitResult={submitResult} />
+          <CompletionSummary
+            data={data}
+            submitResult={submitResult}
+            nextExercise={nextExercise}
+            onNext={() => nextExercise && goToExercise({ title: data.section_title, slug: sectionSlug }, nextExercise)}
+          />
 
           {["code", "multi_file_code", "project"].includes(mode) && (
             <>
