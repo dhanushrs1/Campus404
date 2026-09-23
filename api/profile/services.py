@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
@@ -224,7 +224,8 @@ class ProfileService:
             raise ValueError("Profile not found.")
 
         profile = await ProfileService.ensure_profile(db, user)
-        if not profile.is_public:
+        is_self = bool(viewer and int(viewer.id) == int(user.id))
+        if not profile.is_public and not is_self:
             raise PermissionError("This profile is private.")
 
         metrics = await ProfileService.metrics(db, int(user.id))
@@ -239,7 +240,6 @@ class ProfileService:
         certificates = certificate_list.claimed if profile.show_certificates else []
         projects = await ProfileService.projects(db, int(user.id), public_only=True) if profile.show_projects else []
         activity = await ProfileService.activity(db, int(user.id)) if profile.show_activity else []
-        is_self = bool(viewer and int(viewer.id) == int(user.id))
         viewer_connected = False
         if viewer and not is_self:
             viewer_connected = bool(
@@ -261,6 +261,7 @@ class ProfileService:
             linkedin_url=profile.linkedin_url,
             portfolio_url=profile.portfolio_url,
             avatar_url=active_avatar_url(user, profile),
+            is_public=bool(profile.is_public),
             metrics=metrics,
             badges=badges,
             certificates=certificates,
@@ -374,7 +375,7 @@ class ProfileService:
     @staticmethod
     async def activity(db: AsyncSession, user_id: int, *, days: int = 90) -> list[schemas.ActivityDay]:
         safe_days = max(1, min(int(days or 90), 180))
-        today = datetime.utcnow().date()
+        today = datetime.now(UTC).date()
         start_day = today - timedelta(days=safe_days - 1)
         start_at = datetime(start_day.year, start_day.month, start_day.day)
         rows = await db.execute(
@@ -635,7 +636,7 @@ class CreditService:
 
     @staticmethod
     async def claim_daily_check_in(db: AsyncSession, user_id: int) -> schemas.DailyCheckInResponse:
-        today = datetime.utcnow().date()
+        today = datetime.now(UTC).date()
         source_id = today.isoformat()
         existing = await db.scalar(
             select(models.UserCreditLedger)
@@ -701,7 +702,7 @@ class CreditService:
         if not dates:
             return 0
 
-        today = datetime.utcnow().date()
+        today = datetime.now(UTC).date()
         anchor = today if today in dates else today - timedelta(days=1)
         if anchor not in dates:
             return 0
@@ -716,7 +717,7 @@ class CreditService:
 
     @staticmethod
     async def reward_summary(db: AsyncSession, user_id: int) -> schemas.RewardSummary:
-        today = datetime.utcnow().date()
+        today = datetime.now(UTC).date()
         claimed = bool(
             await db.scalar(
                 select(models.UserCreditLedger.id)

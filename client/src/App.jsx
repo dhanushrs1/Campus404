@@ -17,15 +17,33 @@ import DataDeletionPage from "./frontend/pages/LegalPage/DataDeletionPage.jsx";
 import SecurityPracticesPage from "./frontend/pages/LegalPage/SecurityPracticesPage.jsx";
 import NotFoundPage from "./shared/404/NotFoundPage.jsx";
 import FrontendDashboardPage from "./frontend/FrontendDashboardPage.jsx";
-import ProfilePage from "./frontend/pages/ProfilePage/ProfilePage.jsx";
-import PublicProfilePage from "./frontend/pages/PublicProfilePage/PublicProfilePage.jsx";
-import StorePage from "./frontend/pages/StorePage/StorePage.jsx";
 import FrontendLayout from "./frontend/layout/FrontendLayout.jsx";
 import { APP_ROUTES } from "./routes/paths.js";
 import { AlertProvider } from "./shared/Alert/AlertContext.jsx";
 import { RequireAdmin, RequireAuth } from "./shared/RouteGuards.jsx";
 
 const OAuthCallbackPage = lazy(() => import("./frontend/pages/OAuthCallbackPage/OAuthCallbackPage.jsx"));
+const ProfilePage = lazy(() => import("./frontend/pages/ProfilePage/ProfilePage.jsx"));
+const PublicProfilePage = lazy(() => import("./frontend/pages/PublicProfilePage/PublicProfilePage.jsx"));
+const StorePage = lazy(() => import("./frontend/pages/StorePage/StorePage.jsx"));
+
+function PageLoadingFallback() {
+  return (
+    <div style={{
+      minHeight: "52vh",
+      display: "grid",
+      placeItems: "center",
+      color: "#2563eb",
+      fontWeight: 800,
+    }}>
+      Loading...
+    </div>
+  );
+}
+
+function LazyPageRoute({ children }) {
+  return <Suspense fallback={<PageLoadingFallback />}>{children}</Suspense>;
+}
 
 function OAuthCallbackRoute() {
   return (
@@ -100,17 +118,17 @@ export default function App() {
             path={APP_ROUTES.frontendProfile}
             element={(
               <RequireAuth>
-                <ProfilePage />
+                <LazyPageRoute><ProfilePage /></LazyPageRoute>
               </RequireAuth>
             )}
           />
           <Route
             path={APP_ROUTES.frontendPublicProfilePattern}
-            element={<PublicProfilePage />}
+            element={<LazyPageRoute><PublicProfilePage /></LazyPageRoute>}
           />
           <Route
             path={APP_ROUTES.frontendStore}
-            element={<StorePage />}
+            element={<LazyPageRoute><StorePage /></LazyPageRoute>}
           />
           <Route
             path={APP_ROUTES.frontendTracks}

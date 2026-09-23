@@ -5,12 +5,17 @@ OAuth2-only: no password column.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
+
+
+def utc_now() -> datetime:
+    """Return naive UTC for legacy DateTime columns without using deprecated utcnow()."""
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class User(Base):
@@ -27,7 +32,7 @@ class User(Base):
     session_version = Column(Integer, nullable=False, default=1)
     is_active = Column(Boolean, default=True, nullable=False)
     ban_reason = Column(String(256), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
     last_login = Column(DateTime, nullable=True)
 
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
@@ -42,7 +47,7 @@ class UserSession(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    login_time = Column(DateTime, default=datetime.utcnow, nullable=False)
+    login_time = Column(DateTime, default=utc_now, nullable=False)
     logout_time = Column(DateTime, nullable=True)
     ip_address = Column(String(64), nullable=True)
     device_info = Column(String(512), nullable=True)  # User-Agent string
@@ -73,7 +78,7 @@ class AdminActivityLog(Base):
     timezone = Column(String(64), nullable=True)
     user_agent = Column(String(512), nullable=True)
     details = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False, index=True)
 
     user = relationship("User", back_populates="activity_logs")
 

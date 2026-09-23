@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -223,7 +223,7 @@ async def revoke_my_sessions(
             .where(UserSession.logout_time.is_(None))
         )
     ).all()
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     for session in active_sessions:
         session.logout_time = now
         session.refresh_token_hash = None
@@ -262,6 +262,22 @@ async def create_account_change_request(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New email is required.")
     if payload.request_type == "provider_change" and not requested_provider:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New provider is required.")
+    if requested_email and requested_email.casefold() == str(user.email or "").casefold():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This is already your login email.")
+    if requested_provider and requested_provider.casefold() == str(user.auth_provider or "").casefold():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This is already your sign-in provider.")
+
+    duplicate_request = await db.scalar(
+        select(models.AccountChangeRequest.id)
+        .where(models.AccountChangeRequest.user_id == user.id)
+        .where(models.AccountChangeRequest.request_type == payload.request_type)
+        .where(models.AccountChangeRequest.status == "pending")
+    )
+    if duplicate_request:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You already have a pending request of this type.",
+        )
 
     request_row = models.AccountChangeRequest(
         user_id=int(user.id),

@@ -47,6 +47,26 @@
   background: #ffffff;
 }
 
+.publicProfilePrivateNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  color: #9a4b0b;
+  background: #fff7ed;
+  font-weight: 800;
+}
+
+.publicProfilePrivateNotice a {
+  flex: 0 0 auto;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
 .publicProfileHero {
   min-height: 230px;
   display: grid;
@@ -215,6 +235,13 @@
   margin: 0;
   color: #667996;
   font-weight: 750;
+}
+
+.publicProfileAbout p {
+  max-width: 820px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
 }
 
 .publicProfilePulse {
@@ -395,5 +422,10 @@
 
   .publicProfilePulse {
     grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+
+  .publicProfilePrivateNotice {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

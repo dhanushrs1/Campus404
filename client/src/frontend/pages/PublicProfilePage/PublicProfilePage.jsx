@@ -156,6 +156,13 @@ export default function PublicProfilePage() {
         </div>
       </section>
 
+      {profile.is_self && !profile.is_public && (
+        <div className="publicProfilePrivateNotice">
+          This Campus Passport is private. You can preview it because it belongs to you.
+          <Link to={`${APP_ROUTES.frontendProfile}?tab=edit`}>Manage privacy</Link>
+        </div>
+      )}
+
       {error && <div className="publicProfileNotice">{error}</div>}
 
       <section className="publicProfileStats">
@@ -166,6 +173,11 @@ export default function PublicProfilePage() {
       </section>
 
       <section className="publicProfileGrid">
+        <article className="publicProfilePanel publicProfilePanel--wide publicProfileAbout">
+          <h2>About</h2>
+          <p>{profile.bio || "This learner has not added a public bio yet."}</p>
+        </article>
+
         <article className="publicProfilePanel publicProfilePanel--wide">
           <h2><CalendarDays size={18} /> 404 Pulse</h2>
           {profile.activity?.length ? <ActivityGrid days={profile.activity} /> : <p>No public activity yet.</p>}

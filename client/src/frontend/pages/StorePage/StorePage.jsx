@@ -62,7 +62,7 @@ export default function StorePage() {
         <div>
           <span><Store size={18} /> Campus Store</span>
           <h1>Campus Credits will unlock real rewards.</h1>
-          <p>Store redemption opens in v2. Until then, daily check-ins, task completions, and streaks keep adding Credits to your wallet.</p>
+          <p>Store redemption is planned for a future release. Until then, daily check-ins, task completions, and streaks keep adding Credits to your wallet.</p>
           <div className="storeHero__actions">
             <Link className="btn btn-brand" to={APP_ROUTES.frontendProfile}>
               View Wallet <ArrowRight size={15} />
@@ -85,7 +85,7 @@ export default function StorePage() {
         <article>
           <Clock3 size={22} />
           <h2>Coming Soon</h2>
-          <p>Checkout, shipping address collection, and redemption review are intentionally held for v2.</p>
+          <p>Checkout, shipping details, and redemption review will arrive in a future milestone.</p>
         </article>
         <article>
           <CircleDollarSign size={22} />

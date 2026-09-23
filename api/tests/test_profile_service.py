@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 os.environ.setdefault("JWT_SECRET", "test-secret")
@@ -63,7 +63,7 @@ async def create_track_fixture(db_session, user):
 @pytest.mark.asyncio
 async def test_daily_check_in_is_idempotent_and_awards_seven_day_bonus(db_session):
     user = await create_user(db_session)
-    today = datetime.utcnow().date()
+    today = datetime.now(UTC).date()
 
     for offset in range(1, 7):
         db_session.add(
@@ -182,6 +182,32 @@ async def test_connection_rejects_private_profile_without_writing_connection(db_
         .where(profile_models.UserConnection.connected_user_id == target.id)
     )
     assert connection_count == 0
+
+
+@pytest.mark.asyncio
+async def test_owner_can_preview_private_profile(db_session):
+    user = await create_user(db_session)
+    profile = await ProfileService.ensure_profile(db_session, user)
+    profile.is_public = False
+    await db_session.flush()
+
+    result = await ProfileService.public_profile(db_session, user.username, viewer=user)
+
+    assert result.is_self is True
+    assert result.is_public is False
+
+
+def test_profile_update_rejects_unsafe_public_urls():
+    with pytest.raises(ValueError):
+        profile_schemas.UserProfileUpdate(website_url="javascript:alert(1)")
+
+    payload = profile_schemas.UserProfileUpdate(website_url=" https://campus404.example/profile ")
+    assert payload.website_url == "https://campus404.example/profile"
+
+
+def test_project_payload_requires_a_web_url():
+    with pytest.raises(ValueError):
+        profile_schemas.ProjectPinCreate(title="Unsafe", project_url="javascript:alert(1)")
 
 
 @pytest.mark.asyncio

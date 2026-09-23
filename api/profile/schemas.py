@@ -3,7 +3,19 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
+
+
+def _optional_http_url(value: Any) -> str | None:
+    if value is None:
+        return None
+    cleaned = str(value).strip()
+    if not cleaned:
+        return None
+    parsed = HttpUrl(cleaned)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("URL must use http or https.")
+    return str(parsed)
 
 
 class AccountSummary(BaseModel):
@@ -59,6 +71,11 @@ class UserProfileUpdate(BaseModel):
     show_projects: bool | None = None
     show_rank: bool | None = None
     show_connections: bool | None = None
+
+    @field_validator("website_url", "github_url", "linkedin_url", "portfolio_url", mode="before")
+    @classmethod
+    def validate_public_url(cls, value: Any) -> str | None:
+        return _optional_http_url(value)
 
     model_config = {"extra": "forbid"}
 
@@ -138,8 +155,8 @@ class DailyCheckInResponse(BaseModel):
 class ProjectPinBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=800)
-    project_url: HttpUrl | str = Field(..., max_length=512)
-    image_url: HttpUrl | str | None = Field(default=None, max_length=512)
+    project_url: HttpUrl = Field(..., max_length=512)
+    image_url: HttpUrl | None = Field(default=None, max_length=512)
     tags: list[str] = Field(default_factory=list, max_length=8)
     is_public: bool = True
     order: int = 0
@@ -152,8 +169,8 @@ class ProjectPinCreate(ProjectPinBase):
 class ProjectPinUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=160)
     description: str | None = Field(default=None, max_length=800)
-    project_url: HttpUrl | str | None = Field(default=None, max_length=512)
-    image_url: HttpUrl | str | None = Field(default=None, max_length=512)
+    project_url: HttpUrl | None = Field(default=None, max_length=512)
+    image_url: HttpUrl | None = Field(default=None, max_length=512)
     tags: list[str] | None = Field(default=None, max_length=8)
     is_public: bool | None = None
     order: int | None = None
@@ -183,7 +200,7 @@ class SessionRevokeResponse(BaseModel):
 
 class AccountChangeRequestCreate(BaseModel):
     request_type: str = Field(..., pattern="^(email_change|provider_change)$")
-    requested_email: str | None = Field(default=None, max_length=256)
+    requested_email: EmailStr | None = Field(default=None, max_length=256)
     requested_provider: str | None = Field(default=None, pattern="^(google|github)$")
     note: str | None = Field(default=None, max_length=1000)
 
@@ -222,6 +239,7 @@ class PublicProfileResponse(BaseModel):
     linkedin_url: str | None = None
     portfolio_url: str | None = None
     avatar_url: str | None = None
+    is_public: bool = True
     metrics: ProfileMetrics
     badges: list[BadgeSummary] = Field(default_factory=list)
     certificates: list[CertificateSummary] = Field(default_factory=list)

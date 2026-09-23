@@ -102,6 +102,12 @@ function linkLabel(url) {
   }
 }
 
+function avatarLabel(id) {
+  return String(id || "Campus avatar")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (letter) => letter.toUpperCase());
+}
+
 function ActivityGrid({ days = [] }) {
   const maxXp = Math.max(...days.map((day) => Number(day.xp) || 0), 1);
   return (
@@ -209,8 +215,8 @@ export default function ProfilePage() {
     note: "",
   });
 
-  const loadProfile = async () => {
-    setLoading(true);
+  const loadProfile = async ({ showLoading = true } = {}) => {
+    if (showLoading) setLoading(true);
     setError("");
     try {
       const [profilePayload, sessionPayload] = await Promise.all([
@@ -220,10 +226,14 @@ export default function ProfilePage() {
       setProfileData(profilePayload);
       setSessions(Array.isArray(sessionPayload) ? sessionPayload : []);
       setDraft(profilePayload.profile || {});
+      setAccountRequest((current) => ({
+        ...current,
+        requested_provider: String(profilePayload.account?.auth_provider || "").toLowerCase() === "github" ? "google" : "github",
+      }));
     } catch (err) {
       setError(err.message || "Unable to load profile.");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -299,9 +309,10 @@ export default function ProfilePage() {
   const claimDaily = async () => {
     setSaving(true);
     setNotice("");
+    setError("");
     try {
       const result = await claimDailyCheckIn();
-      await loadProfile();
+      await loadProfile({ showLoading: false });
       setNotice(result.already_claimed ? "Daily check-in already claimed." : `Claimed ${result.awarded + result.bonus_awarded} Campus Credits.`);
     } catch (err) {
       setError(err.message || "Unable to claim reward.");
@@ -314,6 +325,7 @@ export default function ProfilePage() {
     event.preventDefault();
     setSaving(true);
     setNotice("");
+    setError("");
     try {
       const payload = {
         title: projectDraft.title,
@@ -330,7 +342,7 @@ export default function ProfilePage() {
       }
       setProjectDraft(EMPTY_PROJECT);
       setEditingProjectId(null);
-      await loadProfile();
+      await loadProfile({ showLoading: false });
       setNotice("Build Drop saved.");
     } catch (err) {
       setError(err.message || "Unable to save project.");
@@ -352,11 +364,14 @@ export default function ProfilePage() {
   };
 
   const removeProject = async (projectId) => {
+    const project = projects.find((item) => item.id === projectId);
+    if (!window.confirm(`Remove ${project?.title || "this Build Drop"}? This cannot be undone.`)) return;
     setSaving(true);
     setNotice("");
+    setError("");
     try {
       await deleteMyProject(projectId);
-      await loadProfile();
+      await loadProfile({ showLoading: false });
       setNotice("Build Drop removed.");
     } catch (err) {
       setError(err.message || "Unable to remove project.");
@@ -368,9 +383,10 @@ export default function ProfilePage() {
   const claimTrackCertificate = async (trackId) => {
     setSaving(true);
     setNotice("");
+    setError("");
     try {
       await claimCertificate(trackId);
-      await loadProfile();
+      await loadProfile({ showLoading: false });
       setNotice("Certificate claimed.");
     } catch (err) {
       setError(err.message || "Unable to claim certificate.");
@@ -383,6 +399,7 @@ export default function ProfilePage() {
     event.preventDefault();
     setSaving(true);
     setNotice("");
+    setError("");
     try {
       await createAccountChangeRequest({
         request_type: accountRequest.request_type,
@@ -390,7 +407,12 @@ export default function ProfilePage() {
         requested_provider: accountRequest.request_type === "provider_change" ? accountRequest.requested_provider : null,
         note: accountRequest.note,
       });
-      setAccountRequest({ request_type: "email_change", requested_email: "", requested_provider: "github", note: "" });
+      setAccountRequest({
+        request_type: "email_change",
+        requested_email: "",
+        requested_provider: String(account.auth_provider || "").toLowerCase() === "github" ? "google" : "github",
+        note: "",
+      });
       setNotice("Account change request submitted.");
     } catch (err) {
       setError(err.message || "Unable to submit account request.");
@@ -400,7 +422,9 @@ export default function ProfilePage() {
   };
 
   const revokeSessions = async () => {
+    if (!window.confirm("Sign out every active session, including this browser?")) return;
     setSaving(true);
+    setError("");
     try {
       await revokeMySessions();
       clearAuthSession();
@@ -509,6 +533,11 @@ export default function ProfilePage() {
           </article>
 
           <article className="profilePanel">
+            <h2>About</h2>
+            {profile.bio ? <p className="profileBio">{profile.bio}</p> : <p className="profileEmptyText">Add a short bio to introduce yourself to the Campus404 community.</p>}
+          </article>
+
+          <article className="profilePanel">
             <h2>Proof Shelf</h2>
             <BadgeShelf badges={badges} certificates={certificates.claimed || []} />
           </article>
@@ -561,9 +590,11 @@ export default function ProfilePage() {
                   type="button"
                   className={draft.avatar_source === "provider" ? "is-active" : ""}
                   onClick={() => setDraft((current) => ({ ...current, avatar_source: "provider" }))}
+                  aria-pressed={draft.avatar_source === "provider"}
+                  aria-label={`Use ${account.auth_provider || "connected account"} profile photo`}
                 >
                   <AvatarImage src={draft.provider_avatar_url} fallbackKey="provider" alt="" />
-                  <span>Google/GitHub</span>
+                  <span>{account.auth_provider || "Provider"}</span>
                 </button>
               )}
               {AVATAR_OPTIONS.map((avatar) => (
@@ -576,9 +607,10 @@ export default function ProfilePage() {
                     avatar_source: "selected",
                     selected_avatar_url: avatar.src,
                   }))}
+                  aria-pressed={draft.avatar_source !== "provider" && draft.selected_avatar_url === avatar.src}
+                  aria-label={`Use ${avatarLabel(avatar.id)}`}
                 >
                   <img src={avatar.src} alt="" />
-                  <span>Campus</span>
                 </button>
               ))}
             </div>
@@ -586,22 +618,23 @@ export default function ProfilePage() {
 
           <section className="profilePanel profileFormPanel">
             <h2>Identity</h2>
-            <label>Display name<input value={draft.display_name || ""} onChange={(event) => setDraft((current) => ({ ...current, display_name: event.target.value }))} /></label>
-            <label>Headline<input value={draft.headline || ""} onChange={(event) => setDraft((current) => ({ ...current, headline: event.target.value }))} /></label>
-            <label>Bio<textarea value={draft.bio || ""} rows={5} onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))} /></label>
-            <label>Location<input value={draft.location_text || ""} onChange={(event) => setDraft((current) => ({ ...current, location_text: event.target.value }))} /></label>
+            <label>Display name<input maxLength={160} required value={draft.display_name || ""} onChange={(event) => setDraft((current) => ({ ...current, display_name: event.target.value }))} /></label>
+            <label>Headline<input maxLength={180} placeholder="What are you building or learning?" value={draft.headline || ""} onChange={(event) => setDraft((current) => ({ ...current, headline: event.target.value }))} /></label>
+            <label>Bio<textarea maxLength={1200} placeholder="Share a short introduction, your interests, and your goals." value={draft.bio || ""} rows={5} onChange={(event) => setDraft((current) => ({ ...current, bio: event.target.value }))} /><small>{(draft.bio || "").length}/1200</small></label>
+            <label>Location<input maxLength={128} placeholder="City, country" value={draft.location_text || ""} onChange={(event) => setDraft((current) => ({ ...current, location_text: event.target.value }))} /></label>
           </section>
 
           <section className="profilePanel profileFormPanel">
             <h2>Links</h2>
-            <label>Website<input value={draft.website_url || ""} onChange={(event) => setDraft((current) => ({ ...current, website_url: event.target.value }))} /></label>
-            <label>GitHub<input value={draft.github_url || ""} onChange={(event) => setDraft((current) => ({ ...current, github_url: event.target.value }))} /></label>
-            <label>LinkedIn<input value={draft.linkedin_url || ""} onChange={(event) => setDraft((current) => ({ ...current, linkedin_url: event.target.value }))} /></label>
-            <label>Portfolio<input value={draft.portfolio_url || ""} onChange={(event) => setDraft((current) => ({ ...current, portfolio_url: event.target.value }))} /></label>
+            <label>Website<input type="url" maxLength={512} placeholder="https://example.com" value={draft.website_url || ""} onChange={(event) => setDraft((current) => ({ ...current, website_url: event.target.value }))} /></label>
+            <label>GitHub<input type="url" maxLength={512} placeholder="https://github.com/username" value={draft.github_url || ""} onChange={(event) => setDraft((current) => ({ ...current, github_url: event.target.value }))} /></label>
+            <label>LinkedIn<input type="url" maxLength={512} placeholder="https://linkedin.com/in/username" value={draft.linkedin_url || ""} onChange={(event) => setDraft((current) => ({ ...current, linkedin_url: event.target.value }))} /></label>
+            <label>Portfolio<input type="url" maxLength={512} placeholder="https://portfolio.example" value={draft.portfolio_url || ""} onChange={(event) => setDraft((current) => ({ ...current, portfolio_url: event.target.value }))} /></label>
           </section>
 
           <section className="profilePanel profilePanel--wide profileToggleGrid">
             <h2>Public Showcase</h2>
+            {!draft.is_public && <p className="profilePrivacyHint"><LockKeyhole size={16} /> Your Campus Passport is private. Only you can see its contents.</p>}
             {[
               ["is_public", "Public Campus Passport"],
               ["show_badges", "Proof Shelf"],
@@ -701,16 +734,19 @@ export default function ProfilePage() {
               )}
             </div>
             <form className="projectForm" onSubmit={submitProject}>
-              <input placeholder="Project title" value={projectDraft.title} onChange={(event) => setProjectDraft((current) => ({ ...current, title: event.target.value }))} required />
-              <input placeholder="Project URL" value={projectDraft.project_url} onChange={(event) => setProjectDraft((current) => ({ ...current, project_url: event.target.value }))} required />
-              <input placeholder="Image URL" value={projectDraft.image_url} onChange={(event) => setProjectDraft((current) => ({ ...current, image_url: event.target.value }))} />
-              <input placeholder="Tags: React, Python" value={projectDraft.tags} onChange={(event) => setProjectDraft((current) => ({ ...current, tags: event.target.value }))} />
-              <textarea placeholder="Short description" value={projectDraft.description} rows={3} onChange={(event) => setProjectDraft((current) => ({ ...current, description: event.target.value }))} />
-              <label className="profileSwitch">
+              {!editingProjectId && projects.length >= 6 && (
+                <p className="profileFormLimit projectForm__wide">You have reached the 6-project limit. Edit or remove an existing Build Drop to add another.</p>
+              )}
+              <label>Project title<input maxLength={160} placeholder="My learning project" value={projectDraft.title} onChange={(event) => setProjectDraft((current) => ({ ...current, title: event.target.value }))} required /></label>
+              <label>Project URL<input type="url" maxLength={512} placeholder="https://github.com/..." value={projectDraft.project_url} onChange={(event) => setProjectDraft((current) => ({ ...current, project_url: event.target.value }))} required /></label>
+              <label>Preview image URL<input type="url" maxLength={512} placeholder="https://.../preview.png" value={projectDraft.image_url} onChange={(event) => setProjectDraft((current) => ({ ...current, image_url: event.target.value }))} /></label>
+              <label>Tags<input maxLength={264} placeholder="React, Python, API" value={projectDraft.tags} onChange={(event) => setProjectDraft((current) => ({ ...current, tags: event.target.value }))} /><small>Up to 8 comma-separated tags.</small></label>
+              <label className="projectForm__wide">Description<textarea maxLength={800} placeholder="What does this project do?" value={projectDraft.description} rows={3} onChange={(event) => setProjectDraft((current) => ({ ...current, description: event.target.value }))} /><small>{projectDraft.description.length}/800</small></label>
+              <label className="profileSwitch projectForm__wide">
                 <input type="checkbox" checked={projectDraft.is_public} onChange={(event) => setProjectDraft((current) => ({ ...current, is_public: event.target.checked }))} />
                 <span>Public Build Drop</span>
               </label>
-              <button className="btn btn-brand" type="submit" disabled={saving}>
+              <button className="btn btn-brand" type="submit" disabled={saving || (!editingProjectId && projects.length >= 6)}>
                 <Plus size={16} />
                 {editingProjectId ? "Update Build Drop" : "Add Build Drop"}
               </button>
@@ -767,19 +803,19 @@ export default function ProfilePage() {
           <article className="profilePanel">
             <h2>Change Request</h2>
             <form className="accountRequestForm" onSubmit={submitAccountRequest}>
-              <select value={accountRequest.request_type} onChange={(event) => setAccountRequest((current) => ({ ...current, request_type: event.target.value }))}>
+              <label>Request type<select value={accountRequest.request_type} onChange={(event) => setAccountRequest((current) => ({ ...current, request_type: event.target.value }))}>
                 <option value="email_change">Change login email</option>
                 <option value="provider_change">Change OAuth provider</option>
-              </select>
+              </select></label>
               {accountRequest.request_type === "email_change" ? (
-                <input type="email" placeholder="new@email.com" value={accountRequest.requested_email} onChange={(event) => setAccountRequest((current) => ({ ...current, requested_email: event.target.value }))} />
+                <label>New email<input type="email" maxLength={256} placeholder="new@email.com" value={accountRequest.requested_email} onChange={(event) => setAccountRequest((current) => ({ ...current, requested_email: event.target.value }))} required /></label>
               ) : (
-                <select value={accountRequest.requested_provider} onChange={(event) => setAccountRequest((current) => ({ ...current, requested_provider: event.target.value }))}>
+                <label>New provider<select value={accountRequest.requested_provider} onChange={(event) => setAccountRequest((current) => ({ ...current, requested_provider: event.target.value }))}>
                   <option value="github">GitHub</option>
                   <option value="google">Google</option>
-                </select>
+                </select></label>
               )}
-              <textarea placeholder="Optional note" rows={3} value={accountRequest.note} onChange={(event) => setAccountRequest((current) => ({ ...current, note: event.target.value }))} />
+              <label>Note <span className="profileOptional">Optional</span><textarea maxLength={1000} placeholder="Add context for the administrator reviewing this request." rows={3} value={accountRequest.note} onChange={(event) => setAccountRequest((current) => ({ ...current, note: event.target.value }))} /></label>
               <button className="btn btn-brand" type="submit" disabled={saving}>
                 <ShieldCheck size={16} />
                 Submit Request
