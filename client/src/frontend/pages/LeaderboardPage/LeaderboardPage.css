@@ -411,6 +411,16 @@
   min-width: 0;
 }
 
+.lbPodiumCard__profileLink {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 7px;
+  color: inherit;
+  text-decoration: none;
+}
+
 .lbPodiumCard--gold .lbPodiumCard__content {
   top: 37%;
 }
@@ -956,11 +966,14 @@
   object-fit: contain;
 }
 
-.lbSpotlightCard > div {
+.lbSpotlightCard > div,
+.lbSpotlightCard > a {
   display: grid;
   grid-template-columns: 54px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
+  color: inherit;
+  text-decoration: none;
 }
 
 .lbSpotlightCard img {

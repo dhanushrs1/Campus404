@@ -41,6 +41,7 @@ from diagnostics.service import (
     route_template_from_request,
 )
 from media.router import router as media_router
+from profile.router import router as profile_router
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -209,5 +210,6 @@ app.include_router(router)
 app.include_router(auth_router)
 app.include_router(contact_router)
 app.include_router(curriculum_router)
+app.include_router(profile_router)
 app.include_router(media_router)
 app.include_router(diagnostics_router)

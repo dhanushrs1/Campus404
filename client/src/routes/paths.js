@@ -5,6 +5,9 @@ export const APP_ROUTES = Object.freeze({
   // Clean user-facing slugs.
   frontendDashboard: "/dashboard",
   frontendProfile: "/profile",
+  frontendPublicProfilePattern: "/u/:username",
+  frontendPublicProfile: (username) => `/u/${encodeURIComponent(username)}`,
+  frontendStore: "/store",
   frontendTracks: "/tracks",
   frontendLeaderboards: "/leaderboards",
   frontendRankingRewards: "/ranking-rewards",

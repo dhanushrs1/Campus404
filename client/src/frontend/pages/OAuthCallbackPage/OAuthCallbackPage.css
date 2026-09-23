@@ -147,7 +147,6 @@
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
-  scroll-behavior: smooth;
   scroll-padding-inline: calc((100% - 116px) / 2);
   scrollbar-width: none;
 }
@@ -255,43 +254,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 7px;
+  margin-top: 12px;
 }
 
 .oauthCallback__avatarDots button {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  min-width: 6px;
+  height: 6px;
+  min-height: 6px;
   padding: 0;
+  border: 0;
   border-radius: 999px;
   background: #cfd8e8;
+  box-shadow: none;
+  transition: width 180ms ease, background-color 180ms ease;
 }
 
 .oauthCallback__avatarDots button.is-active {
-  width: 22px;
+  width: 18px;
   background: var(--accent-primary);
-}
-
-.oauthCallback__avatarNote {
-  width: min(100%, 308px);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 26px;
-  padding: 12px 14px;
-  border: 1px solid #d4def0;
-  border-radius: 8px;
-  background: rgba(246, 250, 255, 0.9);
-  color: #657391;
-  font-size: 0.78rem;
-  font-weight: 600;
-  line-height: 1.45;
-  text-align: left;
-}
-
-.oauthCallback__avatarNote svg {
-  flex: 0 0 auto;
-  color: var(--accent-primary);
 }
 
 .oauthCallback__profilePanel {
@@ -612,11 +594,6 @@
   .oauthCallback__avatarNav {
     width: 32px;
     height: 32px;
-  }
-
-  .oauthCallback__avatarNote {
-    margin-top: 22px;
-    font-size: 0.76rem;
   }
 
   .oauthCallback__profilePanel {

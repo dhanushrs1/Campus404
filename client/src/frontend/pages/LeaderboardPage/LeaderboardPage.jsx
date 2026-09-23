@@ -127,6 +127,7 @@ function openAuthModal() {
 
 function PodiumCard({ learner, place }) {
   const medal = rankMedal(place);
+  const profilePath = learner?.username ? APP_ROUTES.frontendPublicProfile(learner.username) : "";
 
   return (
     <article className={`lbPodiumCard lbPodiumCard--${rankTone(place)} ${place === 1 ? "is-champion" : ""} ${learner ? "" : "is-empty"}`} data-rank={place}>
@@ -138,7 +139,7 @@ function PodiumCard({ learner, place }) {
       )}
       <div className="lbPodiumCard__content">
         {learner ? (
-          <>
+          <Link className="lbPodiumCard__profileLink" to={profilePath}>
             <span className="lbPodiumCard__avatar">
               <AvatarImage
                 src={learnerAvatar(learner)}
@@ -151,7 +152,7 @@ function PodiumCard({ learner, place }) {
             <strong>{learnerName(learner)}</strong>
             <small>@{learner.username || "learner"}</small>
             <b>{formatNumber(learnerXp(learner))} XP</b>
-          </>
+          </Link>
         ) : (
           <>
             <span className="lbPodiumCard__avatar is-empty">
@@ -593,7 +594,7 @@ export default function LeaderboardPage() {
                         <tr key={learner.user_id} className={currentRank?.user_id === learner.user_id ? "is-current" : ""}>
                           <td><TableRank rank={Number(learner.rank)} /></td>
                           <td>
-                            <span className="lbLearnerCell">
+                            <Link className="lbLearnerCell" to={APP_ROUTES.frontendPublicProfile(learner.username || "learner")}>
                               <AvatarImage
                                 src={learnerAvatar(learner)}
                                 fallbackKey={learner?.user_id || learner?.username}
@@ -605,7 +606,7 @@ export default function LeaderboardPage() {
                                 <strong>{currentRank?.user_id === learner.user_id ? "You" : learnerName(learner)}</strong>
                                 <small>@{learner.username || "learner"}</small>
                               </span>
-                            </span>
+                            </Link>
                           </td>
                           <td>
                             <b className="lbXpText">
@@ -679,7 +680,7 @@ export default function LeaderboardPage() {
             <section className="lbSpotlightCard">
               <h2><Sparkles size={17} /> Weekly Spotlight</h2>
               {spotlight ? (
-                <div>
+                <Link to={APP_ROUTES.frontendPublicProfile(spotlight.username || "learner")}>
                   <AvatarImage
                     src={learnerAvatar(spotlight)}
                     fallbackKey={spotlight?.user_id || spotlight?.username}
@@ -692,7 +693,7 @@ export default function LeaderboardPage() {
                     <small>@{spotlight.username || "learner"}</small>
                     <b>+{formatNumber(learnerXp(spotlight))} XP this week</b>
                   </span>
-                </div>
+                </Link>
               ) : (
                 <p>First spotlight opens after learners start earning XP.</p>
               )}

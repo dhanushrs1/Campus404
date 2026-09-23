@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  RefreshCw,
   ShieldCheck,
   Sparkles,
   X,
@@ -583,10 +582,6 @@ export default function OAuthCallbackPage() {
             ))}
           </div>
 
-          <div className="oauthCallback__avatarNote">
-            <RefreshCw size={19} />
-            <span>You can change your avatar anytime from profile settings.</span>
-          </div>
         </div>
 
         <div className="oauthCallback__profilePanel">

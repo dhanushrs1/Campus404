@@ -17,6 +17,9 @@ import DataDeletionPage from "./frontend/pages/LegalPage/DataDeletionPage.jsx";
 import SecurityPracticesPage from "./frontend/pages/LegalPage/SecurityPracticesPage.jsx";
 import NotFoundPage from "./shared/404/NotFoundPage.jsx";
 import FrontendDashboardPage from "./frontend/FrontendDashboardPage.jsx";
+import ProfilePage from "./frontend/pages/ProfilePage/ProfilePage.jsx";
+import PublicProfilePage from "./frontend/pages/PublicProfilePage/PublicProfilePage.jsx";
+import StorePage from "./frontend/pages/StorePage/StorePage.jsx";
 import FrontendLayout from "./frontend/layout/FrontendLayout.jsx";
 import { APP_ROUTES } from "./routes/paths.js";
 import { AlertProvider } from "./shared/Alert/AlertContext.jsx";
@@ -97,9 +100,17 @@ export default function App() {
             path={APP_ROUTES.frontendProfile}
             element={(
               <RequireAuth>
-                <FrontendDashboardPage />
+                <ProfilePage />
               </RequireAuth>
             )}
+          />
+          <Route
+            path={APP_ROUTES.frontendPublicProfilePattern}
+            element={<PublicProfilePage />}
+          />
+          <Route
+            path={APP_ROUTES.frontendStore}
+            element={<StorePage />}
           />
           <Route
             path={APP_ROUTES.frontendTracks}

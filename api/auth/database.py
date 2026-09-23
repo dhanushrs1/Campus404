@@ -29,6 +29,7 @@ async def init_db() -> None:
     from contact.models import ContactMessage as _ContactMessage  # noqa: F401
     from curriculum import models as _CurriculumModels  # noqa: F401
     from diagnostics import models as _DiagnosticsModels  # noqa: F401
+    from profile import models as _ProfileModels  # noqa: F401
 
     async with engine.begin() as conn:
         # create_all is idempotent — only creates tables that don't already exist.

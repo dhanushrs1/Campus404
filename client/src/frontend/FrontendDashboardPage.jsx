@@ -101,7 +101,7 @@ export default function FrontendDashboardPage() {
     return (
       <div className="frontendDashboardPage frontendDashboardPage--state">
         <Loader2 size={28} className="frontendDashboardPage__spin" />
-        Loading your profile...
+        Loading your dashboard...
       </div>
     );
   }
@@ -120,7 +120,7 @@ export default function FrontendDashboardPage() {
 
   return (
     <div className="frontendDashboardPage">
-      <section className="frontendDashboardPage__hero" aria-label="Learner profile summary">
+      <section className="frontendDashboardPage__hero" aria-label="Learning dashboard summary">
         <div className="frontendDashboardPage__identity">
           <AvatarImage
             src={session.avatarUrl || ASSETS.avatars.brownPonytailBlueHoodie}
@@ -128,7 +128,7 @@ export default function FrontendDashboardPage() {
             alt=""
           />
           <div>
-            <p className="frontendDashboardPage__eyebrow">Learner Profile</p>
+            <p className="frontendDashboardPage__eyebrow">Learning Dashboard</p>
             <h1>Your Campus404 progress</h1>
             <span>{displayName}</span>
           </div>

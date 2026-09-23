@@ -67,6 +67,16 @@ class RewardService:
             )
             track_progress.total_xp = int(track_progress.total_xp or 0) + int(event.points or 0)
 
+        from profile.services import CreditService
+
+        await CreditService.award_task_completion_credits(
+            db,
+            user_id=user_id,
+            xp_event_id=int(event.id),
+            source_type=source_type,
+            exercise_id=exercise_id,
+        )
+
         badges = await RewardService.check_and_award_badges(
             db,
             user_id=user_id,

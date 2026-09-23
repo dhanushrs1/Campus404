@@ -63,6 +63,7 @@ from auth.schemas import (
     RoleUpdateRequest,
     BanUpdateRequest,
 )
+from profile.services import ProfileService
 
 # ---------------------------------------------------------------------------
 # OAuth App credentials — use getenv so missing GitHub doesn't crash startup
@@ -464,6 +465,7 @@ async def _handle_oauth_profile(
         user.last_login = datetime.utcnow()
         if avatar_url and user.avatar != avatar_url and not _is_campus_avatar_url(user.avatar):
             user.avatar = avatar_url
+        await ProfileService.ensure_profile(db, user, provider_avatar_url=avatar_url)
 
         login_session, refresh_token = await _create_login_session(db=db, user=user, request=request)
 
@@ -723,9 +725,8 @@ async def complete_profile(
     db.add(new_user)
 
     try:
-        await db.commit()
-        await db.refresh(new_user)
-
+        await db.flush()
+        await ProfileService.ensure_profile(db, new_user, provider_avatar_url=avatar_url)
         login_session, refresh_token = await _create_login_session(db=db, user=new_user, request=request)
         await db.commit()
         await db.refresh(new_user)

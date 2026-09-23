@@ -154,7 +154,7 @@ export default function RankingRewardsPage() {
           <p>Track your rank, XP, badges, and weekly momentum. The reward board shows what you already qualify for and what to chase next.</p>
           <div className="rankingRewardsPage__heroActions">
             <Link className="btn btn-brand" to={APP_ROUTES.frontendTracks}>Earn More XP</Link>
-            <Link className="btn btn-ghost" to={APP_ROUTES.frontendDashboard}>View Profile</Link>
+            <Link className="btn btn-ghost" to={APP_ROUTES.frontendProfile}>View Profile</Link>
           </div>
         </div>
 

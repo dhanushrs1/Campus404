@@ -17,6 +17,7 @@ from contact import models as _contact_models  # noqa: F401
 from curriculum import models as _curriculum_models  # noqa: F401
 from diagnostics import models as _diagnostics_models  # noqa: F401
 from media import models as _media_models  # noqa: F401
+from profile import models as _profile_models  # noqa: F401
 
 # Load .env the same way the FastAPI app does: project root first, then api/.
 _api_dir = Path(__file__).resolve().parents[1]

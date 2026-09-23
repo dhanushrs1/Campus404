@@ -8,6 +8,7 @@ import {
   Mail,
   Menu,
   Shield,
+  Store,
   Trophy,
   X,
 } from "lucide-react";
@@ -37,6 +38,13 @@ const NAV_MENU_ITEMS = [
     path: APP_ROUTES.frontendLeaderboard({ scope: "global" }),
     icon: Trophy,
     description: "See global and track XP rankings.",
+  },
+  {
+    key: "store",
+    label: "Store",
+    path: APP_ROUTES.frontendStore,
+    icon: Store,
+    description: "Preview Campus Credits rewards.",
   },
   {
     key: "legal",
@@ -233,7 +241,7 @@ export default function Header({
                         Profile
                       </Link>
                       <Link
-                        to={APP_ROUTES.frontendDashboard}
+                        to={`${APP_ROUTES.frontendProfile}?tab=account`}
                         className="nav-profile-item"
                         onClick={closeProfileMenu}
                       >
