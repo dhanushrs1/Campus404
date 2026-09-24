@@ -1,0 +1,46 @@
+services:
+  api:
+    # Local development only:
+    # mount Python source and run Uvicorn with reload so API edits do not
+    # require rebuilding the service image after every backend change.
+    command:
+      - python
+      - start_api.py
+      - uvicorn
+      - main:app
+      - --reload
+      - --reload-dir
+      - /app/auth
+      - --reload-dir
+      - /app/contact
+      - --reload-dir
+      - /app/curriculum
+      - --reload-dir
+      - /app/media
+      - --reload-dir
+      - /app/diagnostics
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+    volumes:
+      - ./api:/app
+      - ./api/uploads:/app/uploads
+    environment:
+      WATCHFILES_FORCE_POLLING: "true"
+
+  client:
+    # Local development only:
+    # run Vite inside Docker so source edits update through HMR without
+    # rebuilding the production Nginx image after every frontend change.
+    build:
+      context: ./client
+      target: build
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 80"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_PROXY_TARGET: "http://api:8000"
+      WATCHPACK_POLLING: "true"

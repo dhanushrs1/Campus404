@@ -38,6 +38,7 @@ Use `client/src/shared/assets.js` from React code instead of hardcoding paths.
 - `icons/xp-star.png` - XP star icon.
 - `mascot/opto-workspace-guide.png` - workspace warning/success guide.
 - `rewards/certificate-trophy.png` - certificate path and trophy artwork.
+- `tracks/admin-command-center.webp` - admin overview command center hero building.
 - `tracks/lesson-checklist.png` - lesson checklist object.
 - `tracks/project-laptop.png` - project laptop object.
 - `tracks/python-campus-hero.png` - pixel campus coding hero scene.

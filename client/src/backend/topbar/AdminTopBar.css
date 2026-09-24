@@ -1,0 +1,222 @@
+.mod-topbar {
+  min-height: 64px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 22px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--ap-line, #dbe5f2);
+  z-index: 4;
+}
+
+.mod-topbar-main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.mod-search {
+  min-width: 220px;
+  max-width: 560px;
+  height: 40px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 11px;
+  border: 1px solid var(--ap-line, #dbe5f2);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #667a94;
+}
+
+.mod-search:focus-within {
+  border-color: #a9c9f7;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(23, 92, 255, 0.08);
+}
+
+.mod-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #14213d;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.mod-search input::placeholder {
+  color: #8795a7;
+}
+
+.mod-topbar-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mod-icon-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ap-line, #dbe5f2);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #415875;
+  cursor: pointer;
+}
+
+.mod-icon-btn span {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #e11d48;
+}
+
+.mod-icon-btn:hover,
+.mod-btn:hover {
+  border-color: #b8cff0;
+  background: #f8fbff;
+  color: var(--ap-blue, #175cff);
+}
+
+.mod-btn,
+.mod-topbar-date {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ap-line, #dbe5f2);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #26384f;
+  text-decoration: none;
+}
+
+.mod-btn {
+  padding: 0 12px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.mod-topbar-date {
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.mod-topbar-date svg {
+  color: var(--ap-blue, #175cff);
+}
+
+.mod-topbar-date span {
+  color: #4d5f75;
+  font-size: 0.78rem;
+  font-weight: 760;
+}
+
+.mod-topbar-date strong {
+  color: #14213d;
+  font-family: var(--font-code, Consolas, monospace);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.mod-topbar-profile {
+  max-width: 180px;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+  color: #26384f;
+  background: transparent;
+}
+
+.mod-topbar-profile .mod-avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #175cff;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.mod-topbar-profile .mod-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mod-topbar-profile > div:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  line-height: 1.05;
+}
+
+.mod-topbar-profile strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #17243a;
+  font-size: 0.8rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .mod-topbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mod-topbar-main,
+  .mod-topbar-actions {
+    width: 100%;
+  }
+
+  .mod-search {
+    max-width: none;
+  }
+
+  .mod-topbar-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 760px) {
+  .mod-topbar {
+    padding: 10px 14px;
+  }
+
+  .mod-search {
+    min-width: 0;
+  }
+
+  .mod-topbar-date,
+  .mod-topbar-profile > div:last-child,
+  .mod-btn span {
+    display: none;
+  }
+}

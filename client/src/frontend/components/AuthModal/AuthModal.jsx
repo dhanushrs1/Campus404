@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Loader2, ShieldCheck, X } from "lucide-react";
 import { apiUrl } from "../../../shared/api.js";
 import { ASSETS } from "../../../shared/assets.js";
+import { saveAuthReturnTo } from "../../../shared/authSession.js";
 import "./AuthModal.css";
 
-export default function AuthModal({ isOpen, onClose }) {
+export default function AuthModal({ isOpen, onClose, returnTo = "" }) {
   const [error, setError] = useState("");
   const [loadingProvider, setLoadingProvider] = useState("");
 
@@ -13,6 +14,7 @@ export default function AuthModal({ isOpen, onClose }) {
   const handleOAuth = (provider) => {
     setError("");
     setLoadingProvider(provider);
+    saveAuthReturnTo(returnTo || `${window.location.pathname}${window.location.search}${window.location.hash}`);
     window.location.href = apiUrl(`/auth/${provider}/login`);
   };
 

@@ -118,6 +118,17 @@ export default function TrackEditorPage({ trackId, onBackToList }) {
   const [sectionTitle, setSectionTitle] = useState("");
   const [sectionBadgeUrl, setSectionBadgeUrl] = useState("");
   const [exerciseTitle, setExerciseTitle] = useState("");
+  const [exerciseMode, setExerciseMode] = useState("code");
+  const [exerciseXpReward, setExerciseXpReward] = useState("20");
+  const [exerciseUnlockRule, setExerciseUnlockRule] = useState("previous_completed");
+  const [exerciseInstructionsMd, setExerciseInstructionsMd] = useState("");
+  const [exerciseTheoryContent, setExerciseTheoryContent] = useState("");
+  const [exerciseReferenceUrl, setExerciseReferenceUrl] = useState("");
+  const [exerciseDocsUrl, setExerciseDocsUrl] = useState("");
+  const [exercisePassingScorePct, setExercisePassingScorePct] = useState("70");
+  const [exerciseAttemptsAllowed, setExerciseAttemptsAllowed] = useState("");
+  const [exerciseAutoSubmitOnPass, setExerciseAutoSubmitOnPass] = useState(false);
+  const [exerciseIsPublished, setExerciseIsPublished] = useState(true);
 
   const [taskInstructions, setTaskInstructions] = useState("");
   const [taskStarterCode, setTaskStarterCode] = useState("");
@@ -215,6 +226,17 @@ export default function TrackEditorPage({ trackId, onBackToList }) {
         return;
       }
       setExerciseTitle(exercise.title || "");
+      setExerciseMode(exercise.mode || "code");
+      setExerciseXpReward(String(exercise.xp_reward ?? 20));
+      setExerciseUnlockRule(exercise.unlock_rule || "previous_completed");
+      setExerciseInstructionsMd(exercise.instructions_md || "");
+      setExerciseTheoryContent(exercise.theory_content || "");
+      setExerciseReferenceUrl(exercise.reference_solution_url || "");
+      setExerciseDocsUrl(exercise.docs_url || "");
+      setExercisePassingScorePct(String(exercise.passing_score_pct ?? 70));
+      setExerciseAttemptsAllowed(exercise.attempts_allowed ? String(exercise.attempts_allowed) : "");
+      setExerciseAutoSubmitOnPass(Boolean(exercise.auto_submit_on_pass));
+      setExerciseIsPublished(exercise.is_published !== false);
       return;
     }
 
@@ -570,7 +592,7 @@ export default function TrackEditorPage({ trackId, onBackToList }) {
     setSaving(true);
     setError("");
     try {
-      await createExercise(sectionId, { title: newExerciseTitle.trim() });
+      await createExercise(sectionId, { title: newExerciseTitle.trim(), mode: "code", xp_reward: 20 });
       setNewExerciseTitle("");
       await loadExercises(sectionId, true);
       setExpanded((prev) => ({ ...prev, [`section-${sectionId}`]: true }));
@@ -589,7 +611,20 @@ export default function TrackEditorPage({ trackId, onBackToList }) {
     setSaving(true);
     setError("");
     try {
-      await updateExercise(selectedNode.exerciseId, { title: exerciseTitle.trim() });
+      await updateExercise(selectedNode.exerciseId, {
+        title: exerciseTitle.trim(),
+        mode: exerciseMode,
+        xp_reward: Number(exerciseXpReward) || 0,
+        unlock_rule: exerciseUnlockRule,
+        instructions_md: exerciseInstructionsMd,
+        theory_content: exerciseTheoryContent,
+        reference_solution_url: exerciseReferenceUrl.trim(),
+        docs_url: exerciseDocsUrl.trim(),
+        passing_score_pct: Number(exercisePassingScorePct) || 70,
+        attempts_allowed: exerciseAttemptsAllowed ? Number(exerciseAttemptsAllowed) : null,
+        auto_submit_on_pass: exerciseAutoSubmitOnPass,
+        is_published: exerciseIsPublished,
+      });
       await loadExercises(selectedNode.sectionId, true);
       addAlert("Exercise saved successfully!", "success");
     } catch (err) {
@@ -1290,9 +1325,67 @@ export default function TrackEditorPage({ trackId, onBackToList }) {
             <span>Exercise title</span>
             <input value={exerciseTitle} onChange={(event) => setExerciseTitle(event.target.value)} />
           </label>
+          <label>
+            <span>Mode</span>
+            <select value={exerciseMode} onChange={(event) => setExerciseMode(event.target.value)}>
+              <option value="code">Code</option>
+              <option value="multi_file_code">Multi-file code</option>
+              <option value="frontend_preview">Frontend preview</option>
+              <option value="theory">Theory</option>
+              <option value="quiz">Quiz</option>
+              <option value="project">Project</option>
+            </select>
+          </label>
           <button type="button" className="cfm-btn" onClick={() => void handleSaveExercise()}>
             <Save size={14} /> Save Exercise
           </button>
+        </div>
+
+        <div className="cfm-fields-grid" style={{ marginTop: "1rem" }}>
+          <label>
+            <span>XP reward</span>
+            <input value={exerciseXpReward} onChange={(event) => setExerciseXpReward(event.target.value)} inputMode="numeric" />
+          </label>
+          <label>
+            <span>Unlock rule</span>
+            <select value={exerciseUnlockRule} onChange={(event) => setExerciseUnlockRule(event.target.value)}>
+              <option value="previous_completed">Previous completed</option>
+              <option value="always_unlocked">Always unlocked</option>
+              <option value="section_unlocked">Section unlocked</option>
+            </select>
+          </label>
+          <label>
+            <span>Passing score %</span>
+            <input value={exercisePassingScorePct} onChange={(event) => setExercisePassingScorePct(event.target.value)} inputMode="numeric" />
+          </label>
+          <label>
+            <span>Attempts allowed</span>
+            <input value={exerciseAttemptsAllowed} onChange={(event) => setExerciseAttemptsAllowed(event.target.value)} inputMode="numeric" placeholder="Unlimited" />
+          </label>
+          <label className="cfm-field-full">
+            <span>Instructions (Markdown)</span>
+            <textarea rows={4} value={exerciseInstructionsMd} onChange={(event) => setExerciseInstructionsMd(event.target.value)} />
+          </label>
+          <label className="cfm-field-full">
+            <span>Theory content</span>
+            <textarea rows={4} value={exerciseTheoryContent} onChange={(event) => setExerciseTheoryContent(event.target.value)} />
+          </label>
+          <label className="cfm-field-full">
+            <span>Reference solution URL</span>
+            <input value={exerciseReferenceUrl} onChange={(event) => setExerciseReferenceUrl(event.target.value)} />
+          </label>
+          <label className="cfm-field-full">
+            <span>Docs URL</span>
+            <input value={exerciseDocsUrl} onChange={(event) => setExerciseDocsUrl(event.target.value)} />
+          </label>
+          <label className="cfm-status-toggle">
+            <input type="checkbox" checked={exerciseAutoSubmitOnPass} onChange={(event) => setExerciseAutoSubmitOnPass(event.target.checked)} />
+            <span className="cfm-status-badge published">Auto-submit on pass</span>
+          </label>
+          <label className="cfm-status-toggle">
+            <input type="checkbox" checked={exerciseIsPublished} onChange={(event) => setExerciseIsPublished(event.target.checked)} />
+            <span className={`cfm-status-badge ${exerciseIsPublished ? "published" : "draft"}`}>{exerciseIsPublished ? "Published" : "Draft"}</span>
+          </label>
         </div>
 
         <div className="cfm-sublist-box">

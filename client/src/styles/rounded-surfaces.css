@@ -26,7 +26,8 @@ body {
   .tracksPage,
   .legalPage,
   .contactPage,
-  .trackLeaderboardPage,
+  .leaderboardPage,
+  .rankingRewardsPage,
   .frontendDashboardPage,
   .notFoundPage
 ) {
@@ -41,7 +42,8 @@ body {
   .legalPage__heroStage--policy,
   .contactHero__stage,
   .trackOverviewPage__hero,
-  .trackLeaderboardPage__hero
+  .lbHero,
+  .rankingRewardsPage__hero
 ) {
   border-radius: var(--surface-radius-hero) !important;
   clip-path: none !important;
@@ -76,7 +78,14 @@ body {
   .trackOverviewPage__certificateCard,
   .trackOverviewPage__skillsCard,
   .trackOverviewPage__stateCard,
-  .trackLeaderboardPage__stateCard,
+  .lbPodiumCard,
+  .lbYourRank,
+  .lbTableCard,
+  .lbInfoCard,
+  .lbRewardCard,
+  .lbSpotlightCard,
+  .lbState,
+  .rankingRewardsPage__grid article,
   .notFoundPage__panel
 ) {
   border-radius: var(--surface-radius-card) !important;
@@ -89,7 +98,7 @@ body {
   .tracksPage__heroStats span,
   .tracksPage__metaRow span,
   .trackOverviewPage__heroBadge,
-  .trackLeaderboardPage__heroStats span,
+  .lbHero__stats span,
   .contactForm__consent,
   .modal-error
 ) {

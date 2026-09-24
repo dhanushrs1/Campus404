@@ -1,0 +1,215 @@
+.storePage {
+  --store-blue: #2563eb;
+  --store-navy: #0f2747;
+  --store-line: #dbe8ff;
+  --store-gold: #f2a916;
+  width: min(100% - 32px, 1120px);
+  margin: 0 auto;
+  padding: 28px 0 56px;
+  color: var(--store-navy);
+}
+
+.storePage__spin {
+  animation: storeSpin 0.9s linear infinite;
+}
+
+@keyframes storeSpin {
+  to { transform: rotate(360deg); }
+}
+
+.storeHero,
+.storeWallet,
+.storeStatus article,
+.storeItems article {
+  border: 1px solid var(--store-line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.storeHero {
+  min-height: 330px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: center;
+  padding: 30px;
+  background:
+    linear-gradient(110deg, #ffffff 0%, #f4f9ff 52%, #e7f1ff 100%);
+}
+
+.storeHero span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--store-blue);
+  font-size: 0.82rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.storeHero h1 {
+  max-width: 720px;
+  margin: 12px 0 12px;
+  color: var(--store-navy);
+  font-size: clamp(2.7rem, 1.6rem + 3.4vw, 5rem);
+  font-weight: 950;
+  line-height: 0.9;
+  letter-spacing: 0;
+}
+
+.storeHero p {
+  max-width: 600px;
+  margin: 0;
+  color: #4d668d;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.storeHero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.storeWallet {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  background: #071d46;
+}
+
+.storeWallet img {
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
+}
+
+.storeWallet span {
+  color: #bfdbfe;
+}
+
+.storeWallet strong {
+  color: #ffffff;
+  font-size: 2.4rem;
+  font-weight: 950;
+}
+
+.storeStatus {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.storeStatus article {
+  min-height: 156px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 18px;
+}
+
+.storeStatus svg {
+  color: var(--store-blue);
+}
+
+.storeStatus h2,
+.storeItems h2 {
+  margin: 0;
+  color: var(--store-navy);
+  font-size: 1.08rem;
+  font-weight: 950;
+}
+
+.storeStatus p {
+  margin: 0;
+  color: #637795;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.storeItems {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.storeItems article {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.storeItems__image {
+  min-height: 190px;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #dbe8ff;
+  border-radius: 8px;
+  background: #f7fbff;
+}
+
+.storeItems__image img {
+  width: 118px;
+  height: 118px;
+  object-fit: contain;
+}
+
+.storeItems__image svg {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  color: var(--store-gold);
+}
+
+.storeItems article > span {
+  width: fit-content;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 6px;
+  color: #8a5a00;
+  background: #fff4cc;
+  font-size: 0.75rem;
+  font-weight: 950;
+}
+
+.storeItems strong {
+  color: var(--store-blue);
+  font-size: 1.2rem;
+  font-weight: 950;
+}
+
+@media (max-width: 900px) {
+  .storeHero,
+  .storeStatus,
+  .storeItems {
+    grid-template-columns: 1fr;
+  }
+
+  .storeWallet {
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 560px) {
+  .storePage {
+    width: min(100% - 24px, 1120px);
+    padding-top: 20px;
+  }
+
+  .storeHero {
+    padding: 20px;
+  }
+
+  .storeHero h1 {
+    font-size: 2.55rem;
+  }
+}

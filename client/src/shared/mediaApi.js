@@ -4,6 +4,7 @@
  */
 
 import { apiUrl } from "./api.js";
+import { authenticatedFetch } from "./authSession.js";
 
 // ── Auth helpers ──────────────────────────────────────────────────────────
 
@@ -63,7 +64,7 @@ export async function listMedia({ query = "", category = "", folder = "", skip =
   params.set("limit", limit.toString());
 
   const suffix = params.size ? `?${params.toString()}` : "";
-  const res = await fetch(apiUrl(`/api/admin/media${suffix}`), {
+  const res = await authenticatedFetch(apiUrl(`/api/admin/media${suffix}`), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -96,7 +97,7 @@ export async function uploadMediaFiles(files, folder = "media") {
   }
   formData.append("folder", folder);
 
-  const res = await fetch(apiUrl("/api/admin/media/upload"), {
+  const res = await authenticatedFetch(apiUrl("/api/admin/media/upload"), {
     method: "POST",
     headers: {
       // No Content-Type — the browser sets multipart/form-data with the correct boundary.
@@ -123,7 +124,7 @@ export async function deleteMediaFile({ relativePath }) {
     throw new Error("relative_path is required for deletion.");
   }
 
-  const res = await fetch(apiUrl("/api/admin/media"), {
+  const res = await authenticatedFetch(apiUrl("/api/admin/media"), {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -149,7 +150,7 @@ export async function deleteMediaFile({ relativePath }) {
  * @returns {Promise<object>}
  */
 export async function getMediaStorageSettings() {
-  const res = await fetch(apiUrl("/api/admin/media/storage-settings"), {
+  const res = await authenticatedFetch(apiUrl("/api/admin/media/storage-settings"), {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -171,7 +172,7 @@ export async function getMediaStorageSettings() {
  * @returns {Promise<object>}
  */
 export async function updateMediaStorageSettings(payload) {
-  const res = await fetch(apiUrl("/api/admin/media/storage-settings"), {
+  const res = await authenticatedFetch(apiUrl("/api/admin/media/storage-settings"), {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -194,7 +195,7 @@ export async function updateMediaStorageSettings(payload) {
  * @returns {Promise<{ok:boolean, message:string}>}
  */
 export async function testMediaStorageSettings(payload) {
-  const res = await fetch(apiUrl("/api/admin/media/storage-settings/test"), {
+  const res = await authenticatedFetch(apiUrl("/api/admin/media/storage-settings/test"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

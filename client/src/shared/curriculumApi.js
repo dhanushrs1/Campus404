@@ -1,4 +1,5 @@
 import { apiUrl } from "./api.js";
+import { authenticatedFetch } from "./authSession.js";
 
 function getAuthHeaders() {
   const token = localStorage.getItem("campus404_token");
@@ -9,23 +10,34 @@ function getAuthHeaders() {
 }
 
 async function request(endpoint, options = {}) {
-  const res = await fetch(apiUrl(endpoint), {
-    ...options,
-    headers: { ...getAuthHeaders(), ...options.headers },
-  });
+  let res;
+  const maxAttempts = options.method && options.method !== "GET" ? 1 : 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    res = await authenticatedFetch(apiUrl(endpoint), {
+      ...options,
+      headers: { ...getAuthHeaders(), ...options.headers },
+    });
+    if (!res || ![502, 503, 504].includes(res.status) || attempt === maxAttempts) break;
+    await new Promise((resolve) => window.setTimeout(resolve, attempt * 450));
+  }
   if (!res.ok) {
-    let message = "An error occurred";
+    let message = `Request failed (${res.status})`;
     try {
       const data = await res.json();
       if (data.detail) {
         if (Array.isArray(data.detail)) {
-          message = data.detail.map((err) => err.msg).join(", ");
+          message = data.detail.map((err) => err.msg || err.message || String(err)).join(", ");
         } else {
           message = data.detail;
         }
+      } else if (data.message) {
+        message = data.message;
       }
     } catch {}
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = res.status;
+    error.endpoint = endpoint;
+    throw error;
   }
   if (res.status !== 204) {
     return res.json();
@@ -41,15 +53,11 @@ export const deleteTrack = (id) => request(`/api/admin/tracks/${id}`, { method: 
 export const reorderTracks = (item_ids) => request("/api/admin/tracks/reorder", { method: "PUT", body: JSON.stringify({ item_ids }) });
 
 export async function uploadTrackFeaturedImage(file) {
-  const token = localStorage.getItem("campus404_token");
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(apiUrl("/api/admin/uploads/track-featured-image"), {
+  const res = await authenticatedFetch(apiUrl("/api/admin/uploads/track-featured-image"), {
     method: "POST",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
     body: formData,
   });
 
@@ -86,6 +94,15 @@ export const createExercise = (sectionId, data) => request(`/api/admin/sections/
 export const updateExercise = (exerciseId, data) => request(`/api/admin/exercises/${exerciseId}`, { method: "PUT", body: JSON.stringify(data) });
 export const deleteExercise = (id) => request(`/api/admin/exercises/${id}`, { method: "DELETE" });
 export const reorderExercises = (item_ids) => request("/api/admin/exercises/reorder", { method: "PUT", body: JSON.stringify({ item_ids }) });
+
+// Learning engine studio
+export const getCurriculumTree = () => request("/api/admin/curriculum/tree");
+export const getExerciseStudio = (exerciseId) => request(`/api/admin/exercises/${exerciseId}/studio`);
+export const saveExerciseStudio = (exerciseId, data) => request(`/api/admin/exercises/${exerciseId}/studio`, { method: "PUT", body: JSON.stringify(data) });
+export const validateExerciseStudio = (exerciseId, data = {}) => request(`/api/admin/exercises/${exerciseId}/validate`, { method: "POST", body: JSON.stringify(data) });
+export const previewExerciseStudio = (exerciseId) => request(`/api/admin/exercises/${exerciseId}/preview`, { method: "POST", body: JSON.stringify({}) });
+export const checkTrackPublish = (trackId) => request(`/api/admin/tracks/${trackId}/publish-check`, { method: "POST", body: JSON.stringify({}) });
+export const getLearningEngineHealth = () => request("/api/admin/learning-engine/health");
 
 // Tasks
 export const getTasks = (exerciseId) => request(`/api/admin/exercises/${exerciseId}/tasks`);

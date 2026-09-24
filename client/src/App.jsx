@@ -5,7 +5,8 @@ import HomePage from "./frontend/pages/HomePage/HomePage.jsx";
 import WorkspacePage from "./frontend/pages/WorkspacePage/WorkspacePage.jsx";
 import TracksPage from "./frontend/pages/TracksPage/TracksPage.jsx";
 import TrackOverviewPage from "./frontend/pages/TrackOverviewPage/TrackOverviewPage.jsx";
-import TrackLeaderboardPage from "./frontend/pages/TrackLeaderboardPage/TrackLeaderboardPage.jsx";
+import LeaderboardPage from "./frontend/pages/LeaderboardPage/LeaderboardPage.jsx";
+import RankingRewardsPage from "./frontend/pages/RankingRewardsPage/RankingRewardsPage.jsx";
 import ContactPage from "./frontend/pages/ContactPage/ContactPage.jsx";
 import LegalCenterPage from "./frontend/pages/LegalPage/LegalCenterPage.jsx";
 import PrivacyPolicyPage from "./frontend/pages/LegalPage/PrivacyPolicyPage.jsx";
@@ -22,6 +23,27 @@ import { AlertProvider } from "./shared/Alert/AlertContext.jsx";
 import { RequireAdmin, RequireAuth } from "./shared/RouteGuards.jsx";
 
 const OAuthCallbackPage = lazy(() => import("./frontend/pages/OAuthCallbackPage/OAuthCallbackPage.jsx"));
+const ProfilePage = lazy(() => import("./frontend/pages/ProfilePage/ProfilePage.jsx"));
+const PublicProfilePage = lazy(() => import("./frontend/pages/PublicProfilePage/PublicProfilePage.jsx"));
+const StorePage = lazy(() => import("./frontend/pages/StorePage/StorePage.jsx"));
+
+function PageLoadingFallback() {
+  return (
+    <div style={{
+      minHeight: "52vh",
+      display: "grid",
+      placeItems: "center",
+      color: "#2563eb",
+      fontWeight: 800,
+    }}>
+      Loading...
+    </div>
+  );
+}
+
+function LazyPageRoute({ children }) {
+  return <Suspense fallback={<PageLoadingFallback />}>{children}</Suspense>;
+}
 
 function OAuthCallbackRoute() {
   return (
@@ -93,12 +115,32 @@ export default function App() {
             )}
           />
           <Route
+            path={APP_ROUTES.frontendProfile}
+            element={(
+              <RequireAuth>
+                <LazyPageRoute><ProfilePage /></LazyPageRoute>
+              </RequireAuth>
+            )}
+          />
+          <Route
+            path={APP_ROUTES.frontendPublicProfilePattern}
+            element={<LazyPageRoute><PublicProfilePage /></LazyPageRoute>}
+          />
+          <Route
+            path={APP_ROUTES.frontendStore}
+            element={<LazyPageRoute><StorePage /></LazyPageRoute>}
+          />
+          <Route
             path={APP_ROUTES.frontendTracks}
             element={<TracksPage />}
           />
           <Route
-            path={APP_ROUTES.frontendTrackLeaderboardPattern}
-            element={<TrackLeaderboardPage />}
+            path={APP_ROUTES.frontendLeaderboards}
+            element={<LeaderboardPage />}
+          />
+          <Route
+            path={APP_ROUTES.frontendRankingRewards}
+            element={<RankingRewardsPage />}
           />
           <Route
             path={APP_ROUTES.frontendTrackOverviewPattern}
@@ -141,7 +183,7 @@ export default function App() {
         />
         <Route
           path={APP_ROUTES.adminTracksLegacy}
-          element={<Navigate to={APP_ROUTES.adminDashboardTab("tracks")} replace />}
+          element={<Navigate to={APP_ROUTES.adminDashboardTab("curriculum")} replace />}
         />
         <Route
           path={APP_ROUTES.adminMediaLegacy}

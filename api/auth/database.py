@@ -27,6 +27,9 @@ async def init_db() -> None:
     from media.models import MediaFile as _MediaFile  # noqa: F401 — registers on Base.metadata
     from media.models import MediaStorageSettings as _MediaStorageSettings  # noqa: F401
     from contact.models import ContactMessage as _ContactMessage  # noqa: F401
+    from curriculum import models as _CurriculumModels  # noqa: F401
+    from diagnostics import models as _DiagnosticsModels  # noqa: F401
+    from profile import models as _ProfileModels  # noqa: F401
 
     async with engine.begin() as conn:
         # create_all is idempotent — only creates tables that don't already exist.
@@ -39,12 +42,29 @@ async def init_db() -> None:
             "ALTER TABLE users ADD COLUMN session_version INTEGER NOT NULL DEFAULT 1",
             "ALTER TABLE users ADD COLUMN avatar VARCHAR(512) DEFAULT NULL",
             "ALTER TABLE users ADD COLUMN ban_reason VARCHAR(256) DEFAULT NULL",
+            # User session refresh-token additions
+            "ALTER TABLE user_sessions ADD COLUMN refresh_token_hash VARCHAR(128) DEFAULT NULL",
+            "ALTER TABLE user_sessions ADD COLUMN refresh_expires_at DATETIME DEFAULT NULL",
             # Exercises table additions
-            "ALTER TABLE exercises ADD COLUMN mode VARCHAR(50) NOT NULL DEFAULT 'task'",
+            "ALTER TABLE exercises ADD COLUMN mode VARCHAR(50) NOT NULL DEFAULT 'code'",
             "ALTER TABLE exercises ADD COLUMN theory_content TEXT NULL",
+            "ALTER TABLE exercises ADD COLUMN instructions_md TEXT NULL",
+            "ALTER TABLE exercises ADD COLUMN xp_reward INTEGER NOT NULL DEFAULT 20",
+            "ALTER TABLE exercises ADD COLUMN unlock_rule VARCHAR(64) NOT NULL DEFAULT 'previous_completed'",
+            "ALTER TABLE exercises ADD COLUMN reference_solution_url VARCHAR(1024) NULL",
+            "ALTER TABLE exercises ADD COLUMN docs_url VARCHAR(1024) NULL",
+            "ALTER TABLE exercises ADD COLUMN passing_score_pct INTEGER NOT NULL DEFAULT 70",
+            "ALTER TABLE exercises ADD COLUMN attempts_allowed INTEGER NULL",
+            "ALTER TABLE exercises ADD COLUMN validation_config JSON NULL",
+            "ALTER TABLE exercises ADD COLUMN auto_submit_on_pass BOOLEAN NOT NULL DEFAULT 0",
+            "ALTER TABLE exercises ADD COLUMN is_published BOOLEAN NOT NULL DEFAULT 1",
+            "UPDATE exercises SET mode = 'code' WHERE mode = 'task' OR mode IS NULL",
             # Tracks table additions
             "ALTER TABLE tracks ADD COLUMN featured_image_url VARCHAR(1024) NULL",
             "ALTER TABLE tracks ADD COLUMN is_published BOOLEAN NOT NULL DEFAULT 0",
+            "ALTER TABLE tracks ADD COLUMN leaderboard_enabled BOOLEAN NOT NULL DEFAULT 1",
+            "ALTER TABLE tracks ADD COLUMN leaderboard_default_range VARCHAR(32) NOT NULL DEFAULT 'all_time'",
+            "ALTER TABLE tracks ADD COLUMN leaderboard_page_size INTEGER NOT NULL DEFAULT 25",
             # Media files table additions
             "ALTER TABLE media_files ADD COLUMN storage_provider VARCHAR(32) NOT NULL DEFAULT 'local'",
             "ALTER TABLE media_files ADD COLUMN cloud_public_id TEXT NULL",
@@ -60,6 +80,17 @@ async def init_db() -> None:
             except Exception:
                 # Column already exists or table doesn't exist yet — either is safe.
                 pass
+
+        try:
+            await conn.execute(
+                text(
+                    "INSERT INTO leaderboard_settings (id, global_enabled, default_range, page_size) "
+                    "SELECT 1, 1, 'all_time', 25 "
+                    "WHERE NOT EXISTS (SELECT 1 FROM leaderboard_settings WHERE id = 1)"
+                )
+            )
+        except Exception:
+            pass
 
         # ── media_files table ──────────────────────────────────────────────
         # create_all above already creates the media_files table if it doesn't

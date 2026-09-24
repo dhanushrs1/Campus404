@@ -4,11 +4,20 @@ export const APP_ROUTES = Object.freeze({
 
   // Clean user-facing slugs.
   frontendDashboard: "/dashboard",
+  frontendProfile: "/profile",
+  frontendPublicProfilePattern: "/u/:username",
+  frontendPublicProfile: (username) => `/u/${encodeURIComponent(username)}`,
+  frontendStore: "/store",
   frontendTracks: "/tracks",
+  frontendLeaderboards: "/leaderboards",
+  frontendRankingRewards: "/ranking-rewards",
+  frontendLeaderboard: ({ scope = "global", track = "" } = {}) => {
+    const params = new URLSearchParams({ scope });
+    if (track) params.set("track", track);
+    return `/leaderboards?${params.toString()}`;
+  },
   frontendTrackOverviewPattern: "/tracks/:trackSlug",
   frontendTrackOverview: (trackSlug) => `/tracks/${trackSlug}`,
-  frontendTrackLeaderboardPattern: "/tracks/:trackSlug/leaderboard",
-  frontendTrackLeaderboard: (trackSlug) => `/tracks/${trackSlug}/leaderboard`,
   frontendExerciseWorkspacePattern: "/:trackSlug/:sectionSlug/:exerciseSlug/:taskId",
   frontendExerciseWorkspace: (trackSlug, sectionSlug, exerciseSlug, taskId) => `/${trackSlug}/${sectionSlug}/${exerciseSlug}/${taskId}`,
   contactUs: "/contact-us",

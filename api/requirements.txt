@@ -14,6 +14,9 @@ pydantic[email]==2.11.4
 # Async HTTP client — used for OAuth2 provider token exchanges.
 httpx==0.28.1
 
+# User-Agent parser for analytics device classification.
+user-agents==2.2.0
+
 # Multipart form parser for image/file uploads.
 python-multipart==0.0.20
 
@@ -24,6 +27,13 @@ python-dotenv==1.0.1
 
 # Async SQLAlchemy ORM.
 sqlalchemy[asyncio]==2.0.41
+
+# Versioned database migrations.
+alembic==1.13.2
+
+# Test runner for backend service checks.
+pytest==8.3.3
+pytest-asyncio==0.24.0
 
 # Async SQLite driver (local dev without Docker).
 aiosqlite==0.21.0

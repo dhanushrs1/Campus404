@@ -1,0 +1,141 @@
+import os
+from datetime import datetime, timezone
+
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ.setdefault("JWT_SECRET", "test-secret")
+
+import pytest
+from fastapi import HTTPException
+
+import curriculum.router as curriculum_router
+from auth.models import User
+from curriculum import models, schemas
+from curriculum.services.leaderboards import normalize_leaderboard_page_size, normalize_leaderboard_range, normalize_leaderboard_sort
+
+
+def test_workspace_run_request_accepts_multi_file_payload():
+    payload = schemas.ExerciseRunRequest(
+        files=[
+            schemas.SubmittedFile(file_path="main.py", content="from helpers import double\nprint(double(2))", is_entrypoint=True),
+            schemas.SubmittedFile(file_path="helpers.py", content="def double(value):\n    return value * 2\n"),
+        ]
+    )
+
+    assert len(payload.files) == 2
+    assert payload.files[0].is_entrypoint is True
+
+
+def test_leaderboard_response_supports_current_user_rank():
+    entry = schemas.LeaderboardEntry(
+        rank=1,
+        user_id=7,
+        display_name="Campus Learner",
+        username="campuslearner",
+        total_xp=120,
+        completed_exercises=4,
+        badges_count=2,
+        current_streak=3,
+    )
+    response = schemas.LeaderboardResponse(entries=[entry], current_user_rank=entry, total=1)
+
+    assert response.current_user_rank.username == "campuslearner"
+    assert response.entries[0].total_xp == 120
+
+
+def test_leaderboard_response_supports_scope_and_disabled_state():
+    response = schemas.LeaderboardResponse(
+        enabled=False,
+        disabled_reason="Global leaderboard is currently disabled.",
+        scope="global",
+        has_more=False,
+        sort="xp_desc",
+        xp_total=120,
+    )
+
+    assert response.enabled is False
+    assert response.disabled_reason == "Global leaderboard is currently disabled."
+    assert response.page_size == 25
+    assert response.xp_total == 120
+    assert response.sort == "xp_desc"
+
+
+def test_track_update_accepts_leaderboard_settings():
+    payload = schemas.TrackUpdate(
+        leaderboard_enabled=False,
+        leaderboard_default_range="weekly",
+        leaderboard_page_size=50,
+    )
+
+    assert payload.leaderboard_enabled is False
+    assert payload.leaderboard_default_range == "weekly"
+    assert payload.leaderboard_page_size == 50
+
+
+def test_leaderboard_setting_normalizers_keep_supported_values():
+    assert normalize_leaderboard_range("daily") == "daily"
+    assert normalize_leaderboard_range("bad", "weekly") == "weekly"
+    assert normalize_leaderboard_page_size(50) == 50
+    assert normalize_leaderboard_page_size(10) == 25
+    assert normalize_leaderboard_sort("xp_asc") == "xp_asc"
+    assert normalize_leaderboard_sort("bad") == "xp_desc"
+
+
+def test_admin_dashboard_stats_supports_visit_analytics_fields():
+    stats = schemas.AdminDashboardStats(
+        unique_visits_24h=3,
+        visit_activity_by_day=[{"date": "2026-05-14", "unique_visits": 3}],
+        top_entry_paths=[{"path": "/tracks", "visits": 3}],
+        xp_awarded_24h=40,
+    )
+
+    assert stats.unique_visits_24h == 3
+    assert stats.visit_activity_by_day[0]["unique_visits"] == 3
+    assert stats.top_entry_paths[0]["path"] == "/tracks"
+    assert stats.xp_awarded_24h == 40
+
+
+def test_publish_permissions_require_admin_for_destructive_actions():
+    with pytest.raises(HTTPException) as exc_info:
+        curriculum_router._require_platform_admin(User(username="editor", role="EDITOR"))
+
+    assert exc_info.value.status_code == 403
+
+    curriculum_router._require_platform_admin(User(username="admin", role="ADMIN"))
+
+
+def test_meaningful_test_cases_require_non_empty_expected_output():
+    exercise = models.Exercise(title="Blank output", order=1, section_id=1, mode="code")
+    exercise.test_cases = [
+        models.ExerciseTestCase(label="Blank", expected_outputs=[""], order=1),
+    ]
+
+    assert curriculum_router._has_meaningful_test_cases(exercise) is False
+
+    exercise.test_cases = [
+        models.ExerciseTestCase(label="Real output", expected_outputs=["42"], order=1),
+    ]
+
+    assert curriculum_router._has_meaningful_test_cases(exercise) is True
+
+
+def test_frontend_acceptance_rules_require_at_least_one_real_rule():
+    assert curriculum_router._has_frontend_acceptance_rules({}) is False
+    assert curriculum_router._has_frontend_acceptance_rules({"required_text": [""]}) is False
+    assert curriculum_router._has_frontend_acceptance_rules({"required_selectors": [".profile-card"]}) is True
+
+
+def test_submission_monitor_cursor_round_trip():
+    created_at = datetime(2026, 5, 23, 9, 30, tzinfo=timezone.utc)
+    cursor = curriculum_router._encode_submission_cursor(created_at, 42)
+
+    assert cursor
+    assert curriculum_router._decode_submission_cursor(cursor) == (created_at, 42)
+
+
+def test_submission_monitor_response_defaults_are_lightweight():
+    response = schemas.AdminSubmissionAttemptsResponse()
+
+    assert response.items == []
+    assert response.limit == 50
+    assert response.has_more is False
+    assert response.summary.window_size == 0

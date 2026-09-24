@@ -484,7 +484,6 @@
   .es-run-icon-btn,
   .ws-icon-btn,
   .ws-header-back,
-  .ap-sidebar__toggle,
   .ap-curriculum-panel__icon-btn,
   .ap-delete-confirm-btn,
   .modal-close,
@@ -493,8 +492,7 @@
   .ci-modal__close,
   .um-modal__close,
   .rcm-close,
-  .ml-error__dismiss,
-  .oauthCallback__avatarDots button
+  .ml-error__dismiss
 ) {
   --pixel-button-bg: linear-gradient(180deg, var(--pixel-button-blue-top), var(--pixel-button-blue-bottom));
   --pixel-button-fg: #ffffff;
@@ -539,7 +537,6 @@
   .es-run-icon-btn,
   .ws-icon-btn,
   .ws-header-back,
-  .ap-sidebar__toggle,
   .ap-curriculum-panel__icon-btn,
   .ap-delete-confirm-btn,
   .modal-close,
@@ -548,8 +545,7 @@
   .ci-modal__close,
   .um-modal__close,
   .rcm-close,
-  .ml-error__dismiss,
-  .oauthCallback__avatarDots button
+  .ml-error__dismiss
 ):hover:not(:disabled) {
   filter: brightness(1.06) saturate(1.05) !important;
   transform: translateY(-2px) !important;
@@ -573,7 +569,6 @@
   .es-run-icon-btn,
   .ws-icon-btn,
   .ws-header-back,
-  .ap-sidebar__toggle,
   .ap-curriculum-panel__icon-btn,
   .ap-delete-confirm-btn,
   .modal-close,
@@ -582,8 +577,7 @@
   .ci-modal__close,
   .um-modal__close,
   .rcm-close,
-  .ml-error__dismiss,
-  .oauthCallback__avatarDots button
+  .ml-error__dismiss
 ):active:not(:disabled) {
   transform: translateY(3px) !important;
   box-shadow:
